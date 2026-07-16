@@ -182,7 +182,7 @@ export default function Layout({ children, title }: LayoutProps) {
               className="max-w-lg rounded-3xl border border-blue-200 bg-white p-8 text-center shadow-2xl dark:border-blue-900 dark:bg-slate-900"
             >
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-xl font-semibold text-white">
-                <img src="/sit-icon.svg" alt="SIT icon" className="h-full w-full object-cover" />
+                <img src={`${import.meta.env.BASE_URL}sit-icon.svg`} alt="SIT icon" className="h-full w-full object-cover" />
               </div>
               <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Welcome to the International SIT Consortium.</h2>
               <p className="mt-3 text-slate-600 dark:text-slate-400">Your curiosity has earned you access to the official ceremonial hall of the standard.</p>
