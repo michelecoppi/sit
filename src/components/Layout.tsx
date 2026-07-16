@@ -60,8 +60,8 @@ export default function Layout({ children, title }: LayoutProps) {
             }}
             className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
           >
-            <div className="flex h-10 w-10 items-center justify-center rounded-2xl bg-blue-600 text-lg font-semibold text-white">
-              SIT
+            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-blue-600 text-lg font-semibold text-white">
+              <img src="/sit-icon.svg" alt="SIT icon" className="h-full w-full object-cover" />
             </div>
             <div className="text-left">
               <div className="text-sm font-semibold tracking-[0.2em] text-slate-900 dark:text-slate-100">SIT</div>
@@ -181,8 +181,8 @@ export default function Layout({ children, title }: LayoutProps) {
               exit={{ y: 16, scale: 0.98 }}
               className="max-w-lg rounded-3xl border border-blue-200 bg-white p-8 text-center shadow-2xl dark:border-blue-900 dark:bg-slate-900"
             >
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center rounded-full bg-blue-600 text-xl font-semibold text-white">
-                SIT
+              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-xl font-semibold text-white">
+                <img src="/sit-icon.svg" alt="SIT icon" className="h-full w-full object-cover" />
               </div>
               <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Welcome to the International SIT Consortium.</h2>
               <p className="mt-3 text-slate-600 dark:text-slate-400">Your curiosity has earned you access to the official ceremonial hall of the standard.</p>
