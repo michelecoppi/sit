@@ -98,7 +98,7 @@ export default function Layout({ children, title }: LayoutProps) {
             <div>Established 2026</div>
           </div>
           <div className="flex flex-wrap gap-4">
-            <a href="https://github.com" className="transition hover:text-blue-600">GitHub</a>
+            <a href="https://github.com/michelecoppi/sit" className="transition hover:text-blue-600">GitHub</a>
             <a href="/rfc" className="transition hover:text-blue-600">RFC</a>
             <a href="/docs" className="transition hover:text-blue-600">License</a>
           </div>
