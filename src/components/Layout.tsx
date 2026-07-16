@@ -77,7 +77,7 @@ export default function Layout({ children, title }: LayoutProps) {
             })}
           </nav>
           <a
-            href="https://github.com"
+            href="https://github.com/michelecoppi/sit"
             target="_blank"
             rel="noreferrer"
             className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200"

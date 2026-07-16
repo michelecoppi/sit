@@ -1,4 +1,4 @@
-import { BrowserRouter, Routes, Route } from 'react-router-dom'
+import { HashRouter, Routes, Route } from 'react-router-dom'
 import Layout from './components/Layout'
 import HomePage from './pages/HomePage'
 import DocumentationPage from './pages/DocumentationPage'
@@ -9,7 +9,7 @@ import RfcPage from './pages/RfcPage'
 
 function App() {
   return (
-    <BrowserRouter>
+    <HashRouter>
       <Layout title="SIT Standard">
         <Routes>
           <Route path="/" element={<HomePage />} />
@@ -20,7 +20,7 @@ function App() {
           <Route path="/rfc" element={<RfcPage />} />
         </Routes>
       </Layout>
-    </BrowserRouter>
+    </HashRouter>
   )
 }
 
