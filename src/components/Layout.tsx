@@ -61,7 +61,7 @@ export default function Layout({ children, title }: LayoutProps) {
             className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
           >
             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-blue-600 text-lg font-semibold text-white">
-              <img src="/sit-icon.svg" alt="SIT icon" className="h-full w-full object-cover" />
+              <img src={`${import.meta.env.BASE_URL}sit-icon.svg`} alt="SIT icon" className="h-full w-full object-cover" />
             </div>
             <div className="text-left">
               <div className="text-sm font-semibold tracking-[0.2em] text-slate-900 dark:text-slate-100">SIT</div>
