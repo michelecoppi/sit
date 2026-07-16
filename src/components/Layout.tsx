@@ -32,6 +32,8 @@ export default function Layout({ children, title }: LayoutProps) {
   const [showSecret, setShowSecret] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
 
+  const closeSecret = () => setShowSecret(false)
+
   const footerLinks = useMemo(
     () => [
       { href: 'https://github.com/michelecoppi/sit', label: 'GitHub' },
@@ -49,6 +51,21 @@ export default function Layout({ children, title }: LayoutProps) {
     }
   }, [title])
 
+  useEffect(() => {
+    if (!showSecret) {
+      return
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        closeSecret()
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [showSecret])
+
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--foreground)] transition-colors duration-300">
       <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
@@ -58,6 +75,7 @@ export default function Layout({ children, title }: LayoutProps) {
             onClick={() => {
               setShowSecret(true)
             }}
+            aria-label="Open ceremonial hall"
             className="flex items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
           >
             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-blue-600 text-lg font-semibold text-white">
@@ -179,6 +197,9 @@ export default function Layout({ children, title }: LayoutProps) {
               initial={{ y: 24, scale: 0.96 }}
               animate={{ y: 0, scale: 1 }}
               exit={{ y: 16, scale: 0.98 }}
+              role="dialog"
+              aria-modal="true"
+              aria-label="Ceremonial hall"
               className="max-w-lg rounded-3xl border border-blue-200 bg-white p-8 text-center shadow-2xl dark:border-blue-900 dark:bg-slate-900"
             >
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-xl font-semibold text-white">
@@ -186,6 +207,16 @@ export default function Layout({ children, title }: LayoutProps) {
               </div>
               <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Welcome to the International SIT Consortium.</h2>
               <p className="mt-3 text-slate-600 dark:text-slate-400">Your curiosity has earned you access to the official ceremonial hall of the standard.</p>
+              <button
+                type="button"
+                onClick={(event) => {
+                  event.stopPropagation()
+                  closeSecret()
+                }}
+                className="mt-6 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200"
+              >
+                Close
+              </button>
             </motion.div>
           </motion.div>
         ) : null}

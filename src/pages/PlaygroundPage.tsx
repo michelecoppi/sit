@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
 import { ClipboardDocumentIcon, ArrowDownTrayIcon, SparklesIcon } from '@heroicons/react/24/outline'
 import { encodeTextToSit } from '../utils/encoder'
@@ -18,6 +18,7 @@ export default function PlaygroundPage() {
   const [sitInput, setSitInput] = useState('67667777')
   const [validatorInput, setValidatorInput] = useState('67678667')
   const [conversionCount, setConversionCount] = useState(0)
+  const [statusMessage, setStatusMessage] = useState<string | null>(null)
 
   const encodedOutput = useMemo(() => encodeTextToSit(encoderInput), [encoderInput])
   const decodedOutput = useMemo(() => decodeSitToText(decoderInput), [decoderInput])
@@ -25,8 +26,27 @@ export default function PlaygroundPage() {
   const sitToBinary = useMemo(() => decodeSitToBinary(sitInput), [sitInput])
   const validation = useMemo(() => validateSit(validatorInput), [validatorInput])
 
+  useEffect(() => {
+    if (!statusMessage) {
+      return
+    }
+
+    const timeout = window.setTimeout(() => setStatusMessage(null), 1800)
+    return () => window.clearTimeout(timeout)
+  }, [statusMessage])
+
   const handleCopy = async (value: string) => {
-    await navigator.clipboard.writeText(value)
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard unavailable')
+      }
+
+      await navigator.clipboard.writeText(value)
+      setStatusMessage('Copied SIT payload to the clipboard.')
+    } catch {
+      setStatusMessage('Clipboard is unavailable, so the output is ready to copy manually.')
+    }
+
     setConversionCount((value) => value + 1)
   }
 
@@ -36,9 +56,12 @@ export default function PlaygroundPage() {
     const anchor = document.createElement('a')
     anchor.href = url
     anchor.download = filename
+    document.body.appendChild(anchor)
     anchor.click()
+    anchor.remove()
     URL.revokeObjectURL(url)
     setConversionCount((value) => value + 1)
+    setStatusMessage(`Downloaded ${filename}.`)
   }
 
   const achievement = conversionCount >= 10 ? 'Certified SIT Engineer' : null
@@ -73,6 +96,11 @@ export default function PlaygroundPage() {
                     <ArrowDownTrayIcon className="h-4 w-4" /> Download .sit
                   </button>
                 </div>
+                {statusMessage ? (
+                  <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+                    {statusMessage}
+                  </div>
+                ) : null}
               </div>
               <div>
                 <div className="text-sm font-semibold text-slate-700 dark:text-slate-300">Output</div>
