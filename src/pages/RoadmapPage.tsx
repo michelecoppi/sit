@@ -1,7 +1,7 @@
 import { motion } from 'framer-motion'
 
-const completed = ['SIT', 'SYTE', 'Browser Encoder', 'Browser Decoder']
-const planned = ['KiloSYTE', 'MegaSYTE', 'GigaSYTE', 'Quantum SIT', 'Distributed SIT', 'SIT Blockchain', 'AI Generated SIT']
+const completed = ['SIT', 'SYTE', 'Browser Encoder', 'Browser Decoder', 'KiloSYTE (Batch SIT Mode)']
+const planned = ['MegaSYTE', 'GigaSYTE', 'Quantum SIT', 'Distributed SIT', 'SIT Blockchain', 'AI Generated SIT']
 
 export default function RoadmapPage() {
   return (

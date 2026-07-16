@@ -6,7 +6,8 @@ describe('encodeTextToSit', () => {
     expect(encodeTextToSit('A')).toBe('01000001'.replace(/0/g, '6').replace(/1/g, '7'))
   })
 
-  it('joins multiple characters with newlines', () => {
-    expect(encodeTextToSit('AB')).toContain('\n')
+  it('groups multiple characters into compact rows for readability', () => {
+    expect(encodeTextToSit('AB')).toBe('67666667 67666676')
+    expect(encodeTextToSit('ABCDE')).toContain('\n')
   })
 })

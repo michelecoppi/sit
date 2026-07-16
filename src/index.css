@@ -30,7 +30,12 @@ body {
   min-width: 320px;
   min-height: 100vh;
   background-color: var(--bg);
+  background-image: linear-gradient(135deg, #f8fafc 0%, #eef4ff 100%);
   color: var(--foreground);
+}
+
+.dark body {
+  background-image: linear-gradient(135deg, #020617 0%, #0f172a 100%);
 }
 
 * {
@@ -43,4 +48,9 @@ body {
 
 pre {
   white-space: pre-wrap;
+}
+
+::selection {
+  background: rgba(59, 130, 246, 0.25);
+  color: inherit;
 }
