@@ -1,4 +1,4 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
 import { motion, AnimatePresence } from 'framer-motion'
 import {
@@ -10,6 +10,8 @@ import {
   AcademicCapIcon,
   ArrowTopRightOnSquareIcon,
   SparklesIcon,
+  Bars3Icon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 
 type LayoutProps = {
@@ -28,6 +30,17 @@ const navItems = [
 
 export default function Layout({ children, title }: LayoutProps) {
   const [showSecret, setShowSecret] = useState(false)
+  const [menuOpen, setMenuOpen] = useState(false)
+
+  const footerLinks = useMemo(
+    () => [
+      { href: 'https://github.com/michelecoppi/sit', label: 'GitHub' },
+      { href: '/rfc', label: 'RFC' },
+      { href: '/docs', label: 'Documentation' },
+    ],
+    [],
+  )
+
   useEffect(() => {
     document.title = `${title} | SIT Standard`
     const meta = document.querySelector('meta[name="description"]')
@@ -76,17 +89,63 @@ export default function Layout({ children, title }: LayoutProps) {
               )
             })}
           </nav>
-          <a
-            href="https://github.com/michelecoppi/sit"
-            target="_blank"
-            rel="noreferrer"
-            className="inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200"
-          >
-            <SparklesIcon className="h-4 w-4" />
-            GitHub
-            <ArrowTopRightOnSquareIcon className="h-4 w-4" />
-          </a>
+          <div className="flex items-center gap-2">
+            <a
+              href="https://github.com/michelecoppi/sit"
+              target="_blank"
+              rel="noreferrer"
+              className="hidden md:inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200"
+            >
+              <SparklesIcon className="h-4 w-4" />
+              GitHub
+              <ArrowTopRightOnSquareIcon className="h-4 w-4" />
+            </a>
+            <button
+              type="button"
+              onClick={() => setMenuOpen((value) => !value)}
+              className="inline-flex items-center justify-center rounded-full border border-slate-300 p-2 text-slate-700 transition hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200 md:hidden"
+              aria-label="Toggle menu"
+            >
+              {menuOpen ? <XMarkIcon className="h-5 w-5" /> : <Bars3Icon className="h-5 w-5" />}
+            </button>
+          </div>
         </div>
+
+        {menuOpen ? (
+          <div className="border-t border-slate-200 bg-white px-4 py-4 dark:border-slate-800 dark:bg-slate-950 md:hidden">
+            <div className="flex flex-col gap-2">
+              {navItems.map((item) => {
+                const Icon = item.icon
+                return (
+                  <NavLink
+                    key={item.href}
+                    to={item.href}
+                    onClick={() => setMenuOpen(false)}
+                    className={({ isActive }) =>
+                      `flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium transition ${
+                        isActive
+                          ? 'bg-blue-600 text-white'
+                          : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800'
+                      }`
+                    }
+                  >
+                    <Icon className="h-4 w-4" />
+                    {item.label}
+                  </NavLink>
+                )
+              })}
+              <a
+                href="https://github.com/michelecoppi/sit"
+                target="_blank"
+                rel="noreferrer"
+                className="mt-2 inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200"
+              >
+                <SparklesIcon className="h-4 w-4" />
+                GitHub
+              </a>
+            </div>
+          </div>
+        ) : null}
       </header>
 
       <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">{children}</main>
@@ -98,9 +157,11 @@ export default function Layout({ children, title }: LayoutProps) {
             <div>Established 2026</div>
           </div>
           <div className="flex flex-wrap gap-4">
-            <a href="https://github.com/michelecoppi/sit" className="transition hover:text-blue-600">GitHub</a>
-            <a href="/rfc" className="transition hover:text-blue-600">RFC</a>
-            <a href="/docs" className="transition hover:text-blue-600">License</a>
+            {footerLinks.map((link) => (
+              <a key={link.label} href={link.href} className="transition hover:text-blue-600">
+                {link.label}
+              </a>
+            ))}
           </div>
         </div>
       </footer>
