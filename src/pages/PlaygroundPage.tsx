@@ -23,6 +23,7 @@ const inputPanelClassName = 'rounded-[1.6rem] border border-slate-200/70 bg-whit
 const textareaClassName = 'mt-3 min-h-32 w-full rounded-[1.2rem] border border-slate-200/80 bg-white/95 p-4 text-sm text-slate-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] outline-none transition-colors duration-200 placeholder:text-slate-400 selection:bg-blue-100 focus:border-blue-500 focus:bg-white focus:text-slate-900 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100 dark:placeholder:text-slate-500 dark:selection:bg-blue-950/70'
 const outputClassName = 'mt-3 min-h-32 overflow-auto rounded-[1.2rem] border border-slate-200/80 bg-slate-950 p-4 font-mono text-sm leading-6 text-slate-100 shadow-[inset_0_2px_8px_rgba(2,8,23,0.35)] ring-1 ring-slate-800/70'
 const hintClassName = 'mt-3 rounded-[1.1rem] border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-300'
+const actionButtonClassName = 'inline-flex items-center gap-1.5 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200'
 
 export default function PlaygroundPage() {
   const [activeTab, setActiveTab] = useState<Tab>('Encoder')
@@ -106,6 +107,12 @@ export default function PlaygroundPage() {
         </div>
       </section>
 
+      {statusMessage ? (
+        <div className="rounded-[1.2rem] border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 shadow-sm dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
+          {statusMessage}
+        </div>
+      ) : null}
+
       <div className="rounded-[2rem] border border-slate-200/80 bg-white/90 p-2 shadow-[0_10px_30px_rgba(15,23,42,0.05)] ring-1 ring-slate-200/70 sm:p-3 dark:border-slate-800 dark:bg-slate-900/80 dark:ring-slate-800/60">
         <div className="flex flex-wrap gap-2">
           {tabs.map((tab) => {
@@ -156,11 +163,6 @@ export default function PlaygroundPage() {
                       <ArrowDownTrayIcon className="h-4 w-4" /> Download .sit
                     </button>
                   </div>
-                  {statusMessage ? (
-                    <div className="mt-4 rounded-2xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
-                      {statusMessage}
-                    </div>
-                  ) : null}
                 </div>
                 <div className={inputPanelClassName}>
                   <div className="flex items-center justify-between gap-3">
@@ -168,7 +170,12 @@ export default function PlaygroundPage() {
                       <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Output</p>
                       <h3 className="mt-1 text-base font-semibold text-slate-900 dark:text-white">SIT payload</h3>
                     </div>
-                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Readable rows</span>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => handleCopy(encodedOutput)} className={actionButtonClassName}>
+                        <ClipboardDocumentIcon className="h-3.5 w-3.5" /> Copy output
+                      </button>
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Readable rows</span>
+                    </div>
                   </div>
                   <pre className={outputClassName}>{encodedOutput || '...'}</pre>
                   <div className={hintClassName}>ASCII and UTF-8 are both supported. Long phrases are wrapped in compact rows of four SIT bytes for readability.</div>
@@ -206,7 +213,12 @@ export default function PlaygroundPage() {
                       <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Output</p>
                       <h3 className="mt-1 text-base font-semibold text-slate-900 dark:text-white">Decoded text</h3>
                     </div>
-                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Plain text</span>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => handleCopy(decodedOutput)} className={actionButtonClassName}>
+                        <ClipboardDocumentIcon className="h-3.5 w-3.5" /> Copy output
+                      </button>
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Plain text</span>
+                    </div>
                   </div>
                   <pre className={outputClassName}>{decodedOutput || '...'}</pre>
                   <div className={hintClassName}>Input may contain multiple SIT rows separated by spaces or line breaks.</div>
@@ -245,7 +257,12 @@ export default function PlaygroundPage() {
                       <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Output</p>
                       <h3 className="mt-1 text-base font-semibold text-slate-900 dark:text-white">SIT</h3>
                     </div>
-                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Symbolic</span>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => handleCopy(binaryToSit)} className={actionButtonClassName}>
+                        <ClipboardDocumentIcon className="h-3.5 w-3.5" /> Copy output
+                      </button>
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Symbolic</span>
+                    </div>
                   </div>
                   <pre className={outputClassName}>{binaryToSit || '...'}</pre>
                 </div>
@@ -265,7 +282,12 @@ export default function PlaygroundPage() {
                       <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Output</p>
                       <h3 className="mt-1 text-base font-semibold text-slate-900 dark:text-white">Binary</h3>
                     </div>
-                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Bits</span>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => handleCopy(sitToBinary)} className={actionButtonClassName}>
+                        <ClipboardDocumentIcon className="h-3.5 w-3.5" /> Copy output
+                      </button>
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Bits</span>
+                    </div>
                   </div>
                   <pre className={outputClassName}>{sitToBinary || '...'}</pre>
                 </div>
@@ -303,7 +325,12 @@ export default function PlaygroundPage() {
                       <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Output</p>
                       <h3 className="mt-1 text-base font-semibold text-slate-900 dark:text-white">Batch SIT output</h3>
                     </div>
-                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Structured blocks</span>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => handleCopy(batchToSit)} className={actionButtonClassName}>
+                        <ClipboardDocumentIcon className="h-3.5 w-3.5" /> Copy output
+                      </button>
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Structured blocks</span>
+                    </div>
                   </div>
                   <pre className={outputClassName}>{batchToSit || '...'}</pre>
                 </div>
@@ -323,7 +350,12 @@ export default function PlaygroundPage() {
                       <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Output</p>
                       <h3 className="mt-1 text-base font-semibold text-slate-900 dark:text-white">Decoded text</h3>
                     </div>
-                    <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Multi-line</span>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => handleCopy(sitToBatch)} className={actionButtonClassName}>
+                        <ClipboardDocumentIcon className="h-3.5 w-3.5" /> Copy output
+                      </button>
+                      <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Multi-line</span>
+                    </div>
                   </div>
                   <pre className={outputClassName}>{sitToBatch || '...'}</pre>
                 </div>
@@ -360,7 +392,12 @@ export default function PlaygroundPage() {
                       <p className="text-[11px] font-semibold uppercase tracking-[0.24em] text-slate-500 dark:text-slate-400">Result</p>
                       <h3 className="mt-1 text-base font-semibold text-slate-900 dark:text-white">Compliance report</h3>
                     </div>
-                    <span className={`rounded-full border px-3 py-1 text-xs font-medium ${validation.valid ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300'}`}>{validation.valid ? 'Compliant' : 'Review needed'}</span>
+                    <div className="flex items-center gap-2">
+                      <button type="button" onClick={() => handleCopy(`${validation.message}\n${validation.error}`)} className={actionButtonClassName}>
+                        <ClipboardDocumentIcon className="h-3.5 w-3.5" /> Copy output
+                      </button>
+                      <span className={`rounded-full border px-3 py-1 text-xs font-medium ${validation.valid ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300'}`}>{validation.valid ? 'Compliant' : 'Review needed'}</span>
+                    </div>
                   </div>
                   <pre className={outputClassName}>{validation.message}\n{validation.error}</pre>
                   <div className={hintClassName}>Only the symbols 6, 7, spaces, and line breaks are considered compliant within the SIT standard.</div>
