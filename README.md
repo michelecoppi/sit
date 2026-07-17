@@ -1,15 +1,15 @@
 # SIT Standard
 
-SIT is a fictional but convincing encoding standard designed as a polished parody of technical specifications. The project presents itself as a serious international standard, but its real charm lies in the deliberate absurdity of the {6,7} alphabet and the ceremonious tone of the documentation.
+SIT is a fictional encoding standard designed as a polished parody of technical specifications. The site is built to look like a serious standards body while showcasing a live browser-based implementation of the protocol.
 
 ## What SIT is
 
-SIT stands for Symbolic Information Token. It is a browser-based encoding system built around a minimal alphabet:
+SIT stands for Symbolic Information Token. The core encoding rule is:
 
 - `6` represents binary `0`
 - `7` represents binary `1`
 
-This means a standard byte such as `01000011` becomes:
+A byte such as `01000011` becomes:
 
 ```text
 01000011
@@ -17,58 +17,72 @@ This means a standard byte such as `01000011` becomes:
 67666677
 ```
 
-The reverse mapping works the same way.
+## Editions
+
+- **SIT 1.0 (Legacy)**: text → UTF-8 bytes → binary → SIT symbols. Supported in the playground hub.
+- **SIT 2.0 (Native)**: semantic tokens and concept-first encoding with an official SIT alphabet, grammar, dictionary and explorer.
 
 ## Features
 
 The website includes:
 
-- a polished landing page inspired by standards bodies
-- documentation styled like an IEEE-style technical paper
-- an interactive playground with:
-  - encoder
-  - decoder
-  - binary converter
-  - compliance checker
-- a roadmap page for the fictional ecosystem
-- an RFC-style page for RFC-0001
-- lightweight animations and a responsive layout
-- dark mode support
+- Home page with overview, features and example output
+- Documentation page describing the standard and implementation details
+- Playground hub with two editions:
+  - SIT 1.0 legacy encoder, decoder, binary converter, batch packaging and compliance checker
+  - SIT 2.0 native semantic playground with encoder, decoder and concept explorer
+- About page with history, working group and initiative details
+- RFC registry page listing SIT documents
+- Roadmap page with completed milestones and future work
+- Native section with alphabet, grammar, dictionary, semantic engine and explorer pages
+- Dark mode, responsive layout and animated UI transitions
 
 ## How it works
 
 ### Encoding
 
-Text is converted to ASCII or UTF-8 bytes, then each bit is transformed:
+Text is encoded as UTF-8 bytes, then each byte is converted to an 8-bit binary string and mapped into SIT symbols:
 
 - `0` → `6`
 - `1` → `7`
 
+SIT bytes are grouped into rows of four for readability.
+
 ### Decoding
 
-A SIT token is converted back by reversing the mapping:
+SIT payloads are split into whitespace-separated 8-symbol blocks, validated for the alphabet, converted back to binary and decoded as UTF-8 text.
 
-- `6` → `0`
-- `7` → `1`
+### Binary conversion
+
+The playground supports direct conversion of raw binary to SIT and SIT back to binary.
+
+### Batch mode
+
+KiloSYTE batch mode encodes multiple lines of text into structured SIT blocks and decodes them back into separate output lines.
+
+### Native mode
+
+SIT 2.0 introduces a native registry of semantic tokens, a symbolic grammar, a dictionary lookup and a semantic engine for concept-driven encoding.
 
 ### Compliance
 
-A valid SIT payload may contain:
+A valid SIT payload may contain only:
 
 - `6`
 - `7`
-- space
-- newline
+- spaces
+- newlines
 
-Any other character generates an error.
+Any other character is considered non-compliant.
 
 ## Project structure
 
-- `src/components` – shared UI layout and navigation
-- `src/pages` – home, docs, playground, roadmap, about, RFC pages
-- `src/utils` – encoding, decoding, binary conversion, and validation helpers
-- `src/App.tsx` – routing setup
-- `src/index.css` – Tailwind and base styling
+- `src/components` – layout, navigation and shared UI components
+- `src/pages` – home, documentation, playground, roadmap, about, RFC pages and SIT 2.0 native pages
+- `src/utils` – text encoding, decoding, binary conversion, batch packaging and validation helpers
+- `src/data` – native token registry and semantic mappings
+- `src/App.tsx` – navigation and route definitions
+- `src/index.css` – Tailwind theme, native styling and responsive utilities
 
 ## Tech stack
 
@@ -76,8 +90,8 @@ Any other character generates an error.
 - TypeScript
 - Vite
 - Tailwind CSS
-- React Router
 - Framer Motion
+- React Router
 - Heroicons
 
 ## Run locally
@@ -102,4 +116,4 @@ npm run build
 
 ## Notes
 
-SIT is intentionally a parody, but the site is designed to look credible at first glance. The experience is meant to feel like a real technical standard before the underlying joke becomes clear.
+This project is intentionally playful, but it is implemented as a real web app with working encoding tools and a complete front-end experience.

@@ -10,4 +10,11 @@ describe('encodeTextToSit', () => {
     expect(encodeTextToSit('AB')).toBe('67666667 67666676')
     expect(encodeTextToSit('ABCDE')).toContain('\n')
   })
+
+  it('encodes UTF-8 characters using byte sequences', () => {
+    const bytes = Array.from(new TextEncoder().encode('é'))
+      .map((byte) => byte.toString(2).padStart(8, '0').replace(/0/g, '6').replace(/1/g, '7'))
+
+    expect(encodeTextToSit('é')).toBe(bytes.join(' '))
+  })
 })
