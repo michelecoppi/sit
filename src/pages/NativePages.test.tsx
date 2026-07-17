@@ -4,6 +4,16 @@ import { AlphabetPage, NativePlayground, PunctuationPage } from './NativePages'
 import { nativeEncode } from '../data/native'
 
 describe('NativePlayground', () => {
+  it('shows copy controls for both encoder and decoder outputs', () => {
+    render(<NativePlayground />)
+
+    expect(screen.getByRole('button', { name: 'Copy result' })).toBeInTheDocument()
+
+    fireEvent.click(screen.getByRole('button', { name: 'Native Decoder' }))
+
+    expect(screen.getByRole('button', { name: 'Copy result' })).toBeInTheDocument()
+  })
+
   it('optionally shows canonical token names in native decoder mode', () => {
     render(<NativePlayground />)
 

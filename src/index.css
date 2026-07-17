@@ -65,8 +65,13 @@ pre {
 .native-input, .native-select { width: 100%; border: 1px solid rgb(203 213 225); border-radius: 1rem; background: white; padding: .8rem 1rem; color: rgb(15 23 42); outline: none; }
 .native-select { width: auto; }
 .native-input:focus, .native-select:focus { border-color: rgb(59 130 246); box-shadow: 0 0 0 3px rgb(59 130 246 / .16); }
+.native-input-long { resize: vertical; line-height: 1.55; overflow-wrap: anywhere; }
 .native-code, .native-output, .native-flow { border-radius: .75rem; background: rgb(15 23 42); color: rgb(219 234 254); font-family: ui-monospace, SFMono-Regular, Menlo, monospace; padding: .45rem .65rem; overflow-wrap: anywhere; }
 .native-output { min-height: 5rem; padding: 1rem; white-space: pre-wrap; }
+.native-output-long { max-height: 22rem; overflow: auto; }
+.native-copy-btn { border: 1px solid rgb(34 211 238 / .45); border-radius: 999px; background: rgb(8 47 73 / .62); color: rgb(165 243 252); font-size: .74rem; font-weight: 700; letter-spacing: .04em; padding: .32rem .72rem; transition: .2s; }
+.native-copy-btn:hover { border-color: rgb(34 211 238); background: rgb(14 116 144 / .55); }
+.native-copy-status { margin-top: .6rem; font-size: .75rem; color: rgb(125 211 252); }
 .native-pill { border-radius: 999px; background: rgb(219 234 254); color: rgb(30 64 175); padding: .25rem .6rem; font-size: .75rem; font-weight: 600; }
 .native-tab { border: 1px solid rgb(203 213 225); border-radius: 999px; background: white; padding: .55rem .9rem; font-size: .875rem; font-weight: 600; color: rgb(51 65 85); }
 .native-tab-active { border-color: rgb(37 99 235); background: rgb(37 99 235); color: white; }
@@ -84,6 +89,8 @@ pre {
 .native-v2 .native-input:focus { border-color: rgb(34 211 238); background: rgb(2 6 23 / .75); box-shadow: 0 0 0 3px rgb(34 211 238 / .15), 0 0 22px rgb(99 102 241 / .20); }
 .native-v2 .native-select:focus { border-color: rgb(34 211 238); background: rgb(2 6 23 / .75); box-shadow: 0 0 0 3px rgb(34 211 238 / .15), 0 0 22px rgb(99 102 241 / .20); }
 .native-v2 .native-output { background: linear-gradient(135deg, rgb(15 23 42), rgb(30 27 75)); border: 1px solid rgb(99 102 241 / .45); color: rgb(207 250 254); }
+.native-v2 .native-copy-btn { border-color: rgb(34 211 238 / .5); background: rgb(14 116 144 / .30); }
+.native-v2 .native-copy-btn:hover { background: rgb(14 116 144 / .55); }
 .native-status { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1.25rem; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgb(165 243 252) !important; }
 .native-status span { border: 1px solid rgb(34 211 238 / .28); border-radius: 999px; background: rgb(8 47 73 / .45); padding: .4rem .65rem; }
 .native-status span:first-child { color: rgb(110 231 183); }

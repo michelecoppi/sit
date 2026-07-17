@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState, type ReactNode } from 'react'
+import { useDeferredValue, useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import AlphabetTable from '../components/AlphabetTable'
 import DictionarySearch from '../components/DictionarySearch'
@@ -309,30 +309,66 @@ export function NativePlayground() {
   const [mode, setMode] = useState<Mode>('Native Encoder')
   const [value, setValue] = useState('HELLO')
   const [showCanonicalDecode, setShowCanonicalDecode] = useState(false)
+  const [copyStatus, setCopyStatus] = useState('')
+  const inputRef = useRef<HTMLTextAreaElement | null>(null)
+  const deferredValue = useDeferredValue(value)
+
+  useEffect(() => {
+    const input = inputRef.current
+    if (!input) {
+      return
+    }
+
+    const maxHeight = 360
+    input.style.height = 'auto'
+    input.style.height = `${Math.min(input.scrollHeight, maxHeight)}px`
+    input.style.overflowY = input.scrollHeight > maxHeight ? 'auto' : 'hidden'
+  }, [mode, value])
+
+  const handleCopy = async (text: string, label: string) => {
+    const normalizedText = text.trim()
+
+    if (!normalizedText) {
+      setCopyStatus('No output available to copy yet.')
+      return
+    }
+
+    try {
+      if (!navigator.clipboard?.writeText) {
+        throw new Error('Clipboard unavailable')
+      }
+
+      await navigator.clipboard.writeText(normalizedText)
+      setCopyStatus(`${label} copied to clipboard.`)
+    } catch {
+      setCopyStatus('Clipboard unavailable. Select the output manually to copy it.')
+    }
+  }
 
   const output = useMemo(() => {
     if (mode === 'Native Encoder') {
-      return nativeEncode(value)
+      return nativeEncode(deferredValue)
     }
     if (mode === 'Native Decoder') {
-      return nativeDecode(value)
+      return nativeDecode(deferredValue)
     }
     if (mode === 'Semantic Explorer') {
-      return nativeDictionary.find((item) => item.name === value.toUpperCase())?.description ?? 'Select an official concept.'
+      return nativeDictionary.find((item) => item.name === deferredValue.toUpperCase())?.description ?? 'Select an official concept.'
     }
     return ''
-  }, [mode, value])
+  }, [deferredValue, mode])
 
   const canonicalDecodeOutput = useMemo(() => {
     if (mode !== 'Native Decoder' || !showCanonicalDecode) {
       return ''
     }
 
-    return nativeDecode(value, { mode: 'canonical' })
-  }, [mode, showCanonicalDecode, value])
+    return nativeDecode(deferredValue, { mode: 'canonical' })
+  }, [deferredValue, mode, showCanonicalDecode])
 
   const setModeDefaults = (selectedMode: Mode) => {
     setMode(selectedMode)
+    setCopyStatus('')
     if (selectedMode === 'Native Decoder') {
       setValue('6667677667767676')
       return
@@ -385,7 +421,7 @@ export function NativePlayground() {
               </label>
               <span className="native-live">LIVE INTERPRETER</span>
             </div>
-            <textarea className="native-input mt-4 min-h-28 sm:min-h-32" value={value} onChange={(e) => setValue(e.target.value)} placeholder={mode === 'Native Decoder' ? 'Paste SIT codes such as 6667677667767676 7666667676676776 ...' : mode === 'Semantic Explorer' ? 'Try HELLO, ?, or TRUST' : 'Try HELLO, WORLD! or [PLAN] -- BUILD.'} />
+            <textarea ref={inputRef} className="native-input native-input-long mt-4 min-h-28 sm:min-h-32" value={value} onChange={(e) => setValue(e.target.value)} placeholder={mode === 'Native Decoder' ? 'Paste SIT codes such as 6667677667767676 7666667676676776 ...' : mode === 'Semantic Explorer' ? 'Try HELLO, ?, or TRUST' : 'Try HELLO, WORLD! or [PLAN] -- BUILD.'} />
             {mode === 'Native Decoder' ? (
               <label className="mt-4 inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
                 <input
@@ -407,16 +443,37 @@ export function NativePlayground() {
             ) : null}
             <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm font-semibold">Native result</p>
-              <span className="text-xs opacity-70">Instant semantic resolution</span>
+              <div className="flex flex-wrap items-center gap-2">
+                {(mode === 'Native Encoder' || mode === 'Native Decoder') ? (
+                  <button
+                    type="button"
+                    className="native-copy-btn"
+                    onClick={() => handleCopy(output, mode === 'Native Encoder' ? 'Encoded output' : 'Decoded output')}
+                  >
+                    Copy result
+                  </button>
+                ) : null}
+                <span className="text-xs opacity-70">Instant semantic resolution</span>
+              </div>
             </div>
-            <pre className="native-output mt-2">{output || '-'}</pre>
+            <pre className="native-output native-output-long mt-2">{output || '-'}</pre>
+            {copyStatus ? <p role="status" className="native-copy-status">{copyStatus}</p> : null}
             {canonicalDecodeOutput ? (
               <>
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-semibold">Canonical tokens</p>
-                  <span className="text-xs opacity-70">Diagnostic decode mode</span>
+                  <div className="flex flex-wrap items-center gap-2">
+                    <button
+                      type="button"
+                      className="native-copy-btn"
+                      onClick={() => handleCopy(canonicalDecodeOutput, 'Canonical tokens')}
+                    >
+                      Copy canonical
+                    </button>
+                    <span className="text-xs opacity-70">Diagnostic decode mode</span>
+                  </div>
                 </div>
-                <pre className="native-output mt-2">{canonicalDecodeOutput}</pre>
+                <pre className="native-output native-output-long mt-2">{canonicalDecodeOutput}</pre>
               </>
             ) : null}
           </>
