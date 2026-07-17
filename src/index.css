@@ -122,6 +122,20 @@ th, td { padding: 1rem; vertical-align: top; }
     font-size: 0.875rem;
   }
 
+  .native-tab,
+  .native-suggestions button,
+  .native-live {
+    min-height: 2.75rem;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .native-tab,
+  .native-suggestions button {
+    padding: 0.55rem 0.9rem;
+  }
+
   .native-select {
     width: 100%;
   }
@@ -147,5 +161,25 @@ th, td { padding: 1rem; vertical-align: top; }
   th,
   td {
     padding: 0.72rem;
+  }
+}
+
+@media (max-width: 520px) {
+  .native-status {
+    gap: 0.45rem;
+    font-size: 0.68rem;
+    letter-spacing: 0.06em;
+  }
+
+  .native-status span {
+    width: 100%;
+    justify-content: center;
+    text-align: center;
+  }
+
+  .native-live {
+    font-size: 0.62rem;
+    letter-spacing: 0.08em;
+    padding: 0.3rem 0.55rem;
   }
 }

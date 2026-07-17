@@ -23,7 +23,7 @@ const inputPanelClassName = 'rounded-[1.6rem] border border-slate-200/70 bg-whit
 const textareaClassName = 'mt-3 min-h-32 w-full rounded-[1.2rem] border border-slate-200/80 bg-white/95 p-4 text-sm text-slate-900 shadow-[inset_0_1px_0_rgba(255,255,255,0.8)] outline-none transition-colors duration-200 placeholder:text-slate-400 selection:bg-blue-100 focus:border-blue-500 focus:bg-white focus:text-slate-900 focus:ring-2 focus:ring-blue-500/20 dark:border-slate-700 dark:bg-slate-900/90 dark:text-slate-100 dark:placeholder:text-slate-500 dark:selection:bg-blue-950/70'
 const outputClassName = 'mt-3 min-h-32 overflow-auto rounded-[1.2rem] border border-slate-200/80 bg-slate-950 p-4 font-mono text-sm leading-6 text-slate-100 shadow-[inset_0_2px_8px_rgba(2,8,23,0.35)] ring-1 ring-slate-800/70'
 const hintClassName = 'mt-3 rounded-[1.1rem] border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-300'
-const actionButtonClassName = 'inline-flex items-center gap-1.5 rounded-full border border-slate-300 px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200'
+const actionButtonClassName = 'inline-flex min-h-11 items-center gap-1.5 rounded-full border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200'
 
 export default function PlaygroundPage() {
   const [activeTab, setActiveTab] = useState<Tab>('Encoder')
@@ -113,7 +113,7 @@ export default function PlaygroundPage() {
         </div>
       ) : null}
 
-      <div className="rounded-[2rem] border border-slate-200/80 bg-white/90 p-2 shadow-[0_10px_30px_rgba(15,23,42,0.05)] ring-1 ring-slate-200/70 sm:p-3 dark:border-slate-800 dark:bg-slate-900/80 dark:ring-slate-800/60">
+      <div className="rounded-[1.4rem] border border-slate-200/80 bg-white/90 p-2 shadow-[0_10px_30px_rgba(15,23,42,0.05)] ring-1 ring-slate-200/70 sm:rounded-[2rem] sm:p-3 dark:border-slate-800 dark:bg-slate-900/80 dark:ring-slate-800/60">
         <div className="flex flex-wrap gap-2">
           {tabs.map((tab) => {
             const meta = tabMeta[tab]
@@ -123,7 +123,7 @@ export default function PlaygroundPage() {
                 key={tab}
                 type="button"
                 onClick={() => setActiveTab(tab)}
-                className={`inline-flex items-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 ${isActive ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_6px_16px_rgba(59,130,246,0.16)]' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:shadow-sm dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'}`}
+                className={`inline-flex min-h-11 w-full items-center justify-center gap-2 rounded-full px-4 py-2 text-sm font-medium transition-all duration-200 sm:w-auto ${isActive ? 'bg-gradient-to-r from-blue-600 to-indigo-600 text-white shadow-[0_6px_16px_rgba(59,130,246,0.16)]' : 'bg-slate-100 text-slate-700 hover:bg-slate-200 hover:shadow-sm dark:bg-slate-800 dark:text-slate-200 dark:hover:bg-slate-700'}`}
               >
                 <span className={isActive ? 'text-white' : meta.accent}>{meta.icon}</span>
                 {tab}
@@ -156,10 +156,10 @@ export default function PlaygroundPage() {
                   </div>
                   <textarea value={encoderInput} onChange={(event) => setEncoderInput(event.target.value)} className={textareaClassName} spellCheck={false} />
                   <div className="mt-4 flex flex-wrap gap-3">
-                    <button type="button" onClick={() => handleCopy(encodedOutput)} className="inline-flex items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+                    <button type="button" onClick={() => handleCopy(encodedOutput)} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
                       <ClipboardDocumentIcon className="h-4 w-4" /> Copy SIT
                     </button>
-                    <button type="button" onClick={() => downloadFile(encodedOutput, 'sample.sit')} className="inline-flex items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200">
+                    <button type="button" onClick={() => downloadFile(encodedOutput, 'sample.sit')} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200">
                       <ArrowDownTrayIcon className="h-4 w-4" /> Download .sit
                     </button>
                   </div>

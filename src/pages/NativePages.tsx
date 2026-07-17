@@ -241,9 +241,9 @@ export function NativePlayground() {
 
       <div className="native-modebar">
         <p>Choose an operation</p>
-        <div className="flex flex-wrap gap-2">
+        <div className="grid w-full gap-2 sm:flex sm:flex-wrap">
           {modes.map((item) => (
-            <button key={item} className={mode === item ? 'native-tab native-tab-active' : 'native-tab'} onClick={() => setModeDefaults(item)}>
+            <button key={item} className={mode === item ? 'native-tab native-tab-active w-full sm:w-auto' : 'native-tab w-full sm:w-auto'} onClick={() => setModeDefaults(item)}>
               {item}
             </button>
           ))}
