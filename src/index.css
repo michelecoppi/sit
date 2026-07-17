@@ -80,7 +80,9 @@ pre {
 .native-tab-v2-active { border-color: rgb(8 145 178); background: linear-gradient(135deg, rgb(8 145 178), rgb(79 70 229)); color: white; box-shadow: 0 5px 16px rgb(14 116 144 / .25); }
 .native-v2 .native-tab-active { border-color: rgb(8 145 178); background: linear-gradient(135deg, rgb(8 145 178), rgb(79 70 229)); }
 .native-v2 .native-input { border-color: rgb(34 211 238 / .4); background: rgb(2 6 23 / .50); color: rgb(236 254 255); }
+.native-v2 .native-select { border-color: rgb(34 211 238 / .4); background: rgb(2 6 23 / .65); color: rgb(236 254 255); }
 .native-v2 .native-input:focus { border-color: rgb(34 211 238); background: rgb(2 6 23 / .75); box-shadow: 0 0 0 3px rgb(34 211 238 / .15), 0 0 22px rgb(99 102 241 / .20); }
+.native-v2 .native-select:focus { border-color: rgb(34 211 238); background: rgb(2 6 23 / .75); box-shadow: 0 0 0 3px rgb(34 211 238 / .15), 0 0 22px rgb(99 102 241 / .20); }
 .native-v2 .native-output { background: linear-gradient(135deg, rgb(15 23 42), rgb(30 27 75)); border: 1px solid rgb(99 102 241 / .45); color: rgb(207 250 254); }
 .native-status { display: flex; flex-wrap: wrap; gap: .55rem; margin-top: 1.25rem; font-size: .75rem; font-weight: 700; letter-spacing: .08em; text-transform: uppercase; color: rgb(165 243 252) !important; }
 .native-status span { border: 1px solid rgb(34 211 238 / .28); border-radius: 999px; background: rgb(8 47 73 / .45); padding: .4rem .65rem; }

@@ -1,4 +1,6 @@
-import { motion } from 'framer-motion'
+import { useEffect, useState } from 'react'
+import { AnimatePresence, motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import {
   BeakerIcon,
   CheckBadgeIcon,
@@ -7,13 +9,39 @@ import {
   LanguageIcon,
 } from '@heroicons/react/24/outline'
 
-const rfcs = [
+type RfcRecord = {
+  id: string
+  title: string
+  body: string
+  status: 'Stable' | 'Draft' | 'Review'
+  icon: typeof ClipboardDocumentListIcon
+  memo: {
+    updated: string
+    summary: string
+    highlights: string[]
+    readMorePath?: string
+    readMoreLabel?: string
+  }
+}
+
+const rfcs: RfcRecord[] = [
   {
     id: 'RFC-0001',
     title: 'Original SIT Standard',
     body: 'Historical binary translation and SYTE reference.',
     status: 'Stable',
     icon: ClipboardDocumentListIcon,
+    memo: {
+      updated: '2026-03-14',
+      summary: 'Defines SIT 1.0 as a byte-preserving symbolic layer where 0 maps to 6 and 1 maps to 7.',
+      highlights: [
+        'Compatibility with legacy ASCII and binary pipelines is mandatory.',
+        'A token is valid when it contains only symbols 6 and 7 in groups of 8.',
+        'Reference encoder and decoder behavior are considered normative.',
+      ],
+      readMorePath: '/docs',
+      readMoreLabel: 'Open documentation',
+    },
   },
   {
     id: 'RFC-0002',
@@ -21,6 +49,17 @@ const rfcs = [
     body: 'The official semantic tokens and their native sequences.',
     status: 'Stable',
     icon: LanguageIcon,
+    memo: {
+      updated: '2026-04-02',
+      summary: 'Introduces the native SIT alphabet as first-class symbols rather than binary substitutions.',
+      highlights: [
+        'Each native token maps to a concept group and a usage category.',
+        'Dictionary and explorer pages are the canonical registry for current symbols.',
+        'Legacy mappings remain available as a non-primary compatibility layer.',
+      ],
+      readMorePath: '/alphabet',
+      readMoreLabel: 'View alphabet',
+    },
   },
   {
     id: 'RFC-0003',
@@ -28,6 +67,17 @@ const rfcs = [
     body: 'Composition rules for concepts, actions, relations and modifiers.',
     status: 'Draft',
     icon: DocumentMagnifyingGlassIcon,
+    memo: {
+      updated: '2026-05-21',
+      summary: 'Draft grammar defines symbolic sentence structure with explicit role blocks.',
+      highlights: [
+        'Proposed slots include Subject, Verb, Object, Modifier and Connector.',
+        'Validation must reject ambiguous ordering for deterministic decoding.',
+        'Open question: compact notation for optional modifiers in chained clauses.',
+      ],
+      readMorePath: '/grammar',
+      readMoreLabel: 'Open grammar page',
+    },
   },
   {
     id: 'RFC-0004',
@@ -35,6 +85,17 @@ const rfcs = [
     body: 'Language-independent concept interpretation.',
     status: 'Draft',
     icon: BeakerIcon,
+    memo: {
+      updated: '2026-06-07',
+      summary: 'Describes concept-level encoding where output text is derived from semantic intent.',
+      highlights: [
+        'Semantic tokens should resolve to multiple natural languages from one source sequence.',
+        'Concept fidelity is prioritized over exact phrase preservation.',
+        'Resolver behavior is currently experimental and under review.',
+      ],
+      readMorePath: '/semantic',
+      readMoreLabel: 'Open semantic engine',
+    },
   },
   {
     id: 'RFC-0005',
@@ -42,10 +103,38 @@ const rfcs = [
     body: 'ASCII and binary interoperability for older applications.',
     status: 'Review',
     icon: CheckBadgeIcon,
+    memo: {
+      updated: '2026-06-29',
+      summary: 'Specifies adapters that keep SIT 2.0 interoperable with systems still bound to legacy formats.',
+      highlights: [
+        'Round-trip conversion accuracy is required for constrained byte ranges.',
+        'Compatibility mode is explicitly opt-in and tracked in diagnostics.',
+        'Migration guidance recommends progressive switch to native SIT sequences.',
+      ],
+      readMorePath: '/playground',
+      readMoreLabel: 'Try legacy tools',
+    },
   },
 ]
 
 export default function RfcPage() {
+  const [selectedRfc, setSelectedRfc] = useState<RfcRecord | null>(null)
+
+  useEffect(() => {
+    if (!selectedRfc) {
+      return
+    }
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        setSelectedRfc(null)
+      }
+    }
+
+    document.addEventListener('keydown', handleKeyDown)
+    return () => document.removeEventListener('keydown', handleKeyDown)
+  }, [selectedRfc])
+
   return (
     <div className="space-y-8">
       <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -85,6 +174,9 @@ export default function RfcPage() {
             <p className="mt-3 text-slate-600 dark:text-slate-400">{rfc.body}</p>
             <button
               type="button"
+              onClick={() => setSelectedRfc(rfc)}
+              aria-label={`Read memo for ${rfc.id}`}
+              aria-haspopup="dialog"
               className="mt-5 inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:border-blue-500 dark:hover:text-blue-300"
             >
               Read memo
@@ -93,6 +185,65 @@ export default function RfcPage() {
           )
         })}
       </div>
+
+      <AnimatePresence>
+        {selectedRfc ? (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-40 flex items-center justify-center bg-slate-950/70 px-4"
+            onClick={() => setSelectedRfc(null)}
+          >
+            <motion.div
+              initial={{ y: 24, scale: 0.98 }}
+              animate={{ y: 0, scale: 1 }}
+              exit={{ y: 12, scale: 0.98 }}
+              transition={{ type: 'spring', stiffness: 240, damping: 24 }}
+              role="dialog"
+              aria-modal="true"
+              aria-label={`${selectedRfc.id} memo`}
+              onClick={(event) => event.stopPropagation()}
+              className="w-full max-w-2xl rounded-3xl border border-slate-200 bg-white p-7 shadow-2xl dark:border-slate-800 dark:bg-slate-900"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-3">
+                <div>
+                  <p className="text-xs font-semibold uppercase tracking-[0.25em] text-blue-600 dark:text-blue-300">Consortium memo</p>
+                  <h2 className="mt-2 text-2xl font-semibold text-slate-900 dark:text-slate-100">{selectedRfc.id}: {selectedRfc.title}</h2>
+                  <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Updated {selectedRfc.memo.updated}</p>
+                </div>
+                <button
+                  type="button"
+                  onClick={() => setSelectedRfc(null)}
+                  className="rounded-full border border-slate-300 px-3 py-1.5 text-sm font-semibold text-slate-700 transition hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200"
+                >
+                  Close
+                </button>
+              </div>
+
+              <p className="mt-5 text-slate-700 dark:text-slate-300">{selectedRfc.memo.summary}</p>
+
+              <ul className="mt-4 space-y-2 text-sm text-slate-600 dark:text-slate-400">
+                {selectedRfc.memo.highlights.map((highlight) => (
+                  <li key={highlight} className="rounded-xl border border-slate-200 bg-slate-50 px-3 py-2 dark:border-slate-800 dark:bg-slate-950/60">
+                    {highlight}
+                  </li>
+                ))}
+              </ul>
+
+              {selectedRfc.memo.readMorePath ? (
+                <Link
+                  to={selectedRfc.memo.readMorePath}
+                  onClick={() => setSelectedRfc(null)}
+                  className="mt-6 inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-4 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300"
+                >
+                  {selectedRfc.memo.readMoreLabel ?? 'Read more'}
+                </Link>
+              ) : null}
+            </motion.div>
+          </motion.div>
+        ) : null}
+      </AnimatePresence>
     </div>
   )
 }

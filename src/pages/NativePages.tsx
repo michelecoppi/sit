@@ -68,27 +68,33 @@ export function NativePage() {
 
 export function AlphabetPage() {
   return (
-    <div className="space-y-8">
-      <Header eyebrow="RFC-0002" title="Official SIT Alphabet">
-        Each official token has a native code, semantic meaning and category. These fictional codes
-        intentionally use only 6 and 7.
-      </Header>
-      <AlphabetTable />
+    <div className="native-v2">
+      <div className="space-y-8">
+        <Header eyebrow="RFC-0002" title="Official SIT Alphabet">
+          Each official token has a native code, semantic meaning and category. These fictional codes
+          intentionally use only 6 and 7.
+        </Header>
+        <article className="native-card">
+          <AlphabetTable />
+        </article>
+      </div>
     </div>
   )
 }
 
 export function GrammarPage() {
   return (
-    <div className="space-y-8">
-      <Header eyebrow="RFC-0003" title="Symbolic Grammar">
-        Native SIT structures a message as meaningful concepts rather than an encoded stream of bytes.
-      </Header>
-      <GrammarCard />
-      <article className="native-card">
-        <h2 className="text-xl font-semibold">Expression example</h2>
-        <pre className="mt-4 native-flow">PERSON + SHARE + MESSAGE + NOW</pre>
-      </article>
+    <div className="native-v2">
+      <div className="space-y-8">
+        <Header eyebrow="RFC-0003" title="Symbolic Grammar">
+          Native SIT structures a message as meaningful concepts rather than an encoded stream of bytes.
+        </Header>
+        <GrammarCard />
+        <article className="native-card">
+          <h2 className="text-xl font-semibold">Expression example</h2>
+          <pre className="mt-4 native-flow">PERSON + SHARE + MESSAGE + NOW</pre>
+        </article>
+      </div>
     </div>
   )
 }
@@ -105,37 +111,77 @@ export function DictionaryPage() {
 }
 
 export function SemanticPage() {
-  const [concept, setConcept] = useState('HELLO')
-  const entry = nativeDictionary.find((item) => item.name === concept)!
+  const [query, setQuery] = useState('HELLO')
+
+  const normalizedQuery = query.trim().toLowerCase()
+
+  const matches = useMemo(() => {
+    if (!normalizedQuery) {
+      return nativeDictionary.slice(0, 8)
+    }
+
+    return nativeDictionary.filter((item) =>
+      [item.name, item.meaning, item.code, item.examples.join(' ')].join(' ').toLowerCase().includes(normalizedQuery),
+    )
+  }, [normalizedQuery])
+
+  const entry = useMemo(() => {
+    if (!normalizedQuery) {
+      return nativeDictionary.find((item) => item.name === 'HELLO') ?? nativeDictionary[0] ?? null
+    }
+
+    const upperQuery = query.trim().toUpperCase()
+    const exactMatch = nativeDictionary.find((item) => item.name === upperQuery || item.code === query.trim())
+    return exactMatch ?? matches[0] ?? null
+  }, [matches, normalizedQuery, query])
 
   return (
-    <div className="space-y-8">
-      <Header eyebrow="RFC-0004" title="Semantic Engine">
-        A single native concept can be expressed in many natural languages without changing its symbolic
-        identity.
-      </Header>
-      <article className="native-card">
-        <label className="text-sm font-semibold">Select concept</label>
-        <select className="native-select mt-2 block" value={concept} onChange={(e) => setConcept(e.target.value)}>
-          {nativeDictionary.map((item) => (
-            <option key={item.id}>{item.name}</option>
-          ))}
-        </select>
-        <div className="mt-7 grid gap-4 md:grid-cols-3">
-          <div>
-            <p className="text-sm text-slate-500">Native SIT sequence</p>
-            <code className="native-code mt-2 inline-block">{entry.code}</code>
-          </div>
-          <div>
-            <p className="text-sm text-slate-500">Meaning</p>
-            <p className="mt-2 font-semibold">{entry.meaning}</p>
-          </div>
-          <div>
-            <p className="text-sm text-slate-500">Natural outputs</p>
-            <p className="mt-2 font-semibold">{entry.examples.join(' | ')}</p>
-          </div>
-        </div>
-      </article>
+    <div className="native-v2">
+      <div className="space-y-8">
+        <Header eyebrow="RFC-0004" title="Semantic Engine">
+          A single native concept can be expressed in many natural languages without changing its symbolic
+          identity.
+        </Header>
+        <article className="native-card">
+          <label htmlFor="semantic-search" className="text-sm font-semibold">Search concept or code</label>
+          <input
+            id="semantic-search"
+            className="native-input mt-2"
+            value={query}
+            onChange={(event) => setQuery(event.target.value)}
+            placeholder="Try HELLO, TRUST, 6676766767766767, greeting..."
+          />
+
+          {matches.length ? (
+            <div className="native-suggestions">
+              {matches.slice(0, 8).map((item) => (
+                <button key={item.id} type="button" onClick={() => setQuery(item.name)}>
+                  {item.name}
+                </button>
+              ))}
+            </div>
+          ) : (
+            <p className="mt-3 text-sm text-slate-500 dark:text-slate-300">No semantic concept matched your search.</p>
+          )}
+
+          {entry ? (
+            <div className="mt-7 grid gap-4 md:grid-cols-3">
+              <div>
+                <p className="text-sm text-slate-500">Native SIT sequence</p>
+                <code className="native-code mt-2 inline-block">{entry.code}</code>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">Meaning</p>
+                <p className="mt-2 font-semibold">{entry.meaning}</p>
+              </div>
+              <div>
+                <p className="text-sm text-slate-500">Natural outputs</p>
+                <p className="mt-2 font-semibold">{entry.examples.join(' | ')}</p>
+              </div>
+            </div>
+          ) : null}
+        </article>
+      </div>
     </div>
   )
 }
