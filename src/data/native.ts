@@ -3,6 +3,7 @@ export type Category = 'Action' | 'Object' | 'Person' | 'Emotion' | 'Question' |
 export type NativeEntry = {
   id: string
   name: string
+  symbol?: string
   meaning: string
   category: Category
   code: string
@@ -10,6 +11,8 @@ export type NativeEntry = {
   description: string
   usage: string
   examples: string[]
+  aliases: string[]
+  tags: string[]
 }
 
 const baseSeeds: Array<[string, string, Category, string]> = [
@@ -352,6 +355,30 @@ const expansionSeeds: Array<[string, string, Category]> = [
   ['PERIOD', 'Punctuation mark for sentence closure', 'Object'],
   ['COLON', 'Punctuation mark introducing elaboration', 'Object'],
   ['SEMICOLON', 'Punctuation mark linking related clauses', 'Object'],
+  ['QUESTIONMARK', 'Punctuation mark for direct questions', 'Object'],
+  ['EXCLAMATIONMARK', 'Punctuation mark for emphasis or alert', 'Object'],
+  ['APOSTROPHE', 'Punctuation mark for omission or possession', 'Object'],
+  ['QUOTATIONMARK', 'Punctuation mark for quoted speech or citation', 'Object'],
+  ['HYPHEN', 'Punctuation mark joining connected parts', 'Object'],
+  ['DASH', 'Punctuation mark for interruption or emphasis', 'Object'],
+  ['SLASH', 'Punctuation mark for alternatives or separation', 'Object'],
+  ['LEFTPAREN', 'Opening parenthesis punctuation mark', 'Object'],
+  ['RIGHTPAREN', 'Closing parenthesis punctuation mark', 'Object'],
+  ['LEFTBRACKET', 'Opening bracket punctuation mark', 'Object'],
+  ['RIGHTBRACKET', 'Closing bracket punctuation mark', 'Object'],
+  ['LEFTBRACE', 'Opening brace punctuation mark', 'Object'],
+  ['RIGHTBRACE', 'Closing brace punctuation mark', 'Object'],
+  ['LEFTANGLE', 'Opening angle bracket punctuation mark', 'Object'],
+  ['RIGHTANGLE', 'Closing angle bracket punctuation mark', 'Object'],
+  ['BACKSLASH', 'Punctuation mark for reverse path or escape relation', 'Object'],
+  ['PIPE', 'Symbolic operator for alternation or channeling', 'Object'],
+  ['AMPERSAND', 'Symbolic operator for compact conjunction', 'Object'],
+  ['ASTERISK', 'Symbolic operator for wildcard or multiplication', 'Object'],
+  ['PLUSSIGN', 'Symbolic operator for direct addition or composition', 'Object'],
+  ['EQUALSSIGN', 'Symbolic operator for explicit equality assignment', 'Object'],
+  ['ATSIGN', 'Symbolic operator for address or attribution', 'Object'],
+  ['HASH', 'Symbolic operator for tagging or identifier prefixes', 'Object'],
+  ['ELLIPSIS', 'Punctuation mark for omission or trailing continuation', 'Object'],
   ['MOTHER', 'Female parent in family relation', 'Person'],
   ['FATHER', 'Male parent in family relation', 'Person'],
   ['BROTHER', 'Male sibling in family relation', 'Person'],
@@ -905,27 +932,277 @@ const seeds: Array<[string, string, Category, string]> = [
   ),
 ]
 
-export const nativeDictionary: NativeEntry[] = seeds.map(([name, meaning, category, code], index) => ({
-  id: `SIT-${String(index + 1).padStart(3, '0')}`,
-  name,
-  meaning,
-  category,
-  code,
-  version: '2.0',
-  description: `${meaning}. This native token is defined by the SIT 2.0 symbolic standard and has no ASCII dependency.`,
-  usage: `Use ${name} as a standalone semantic token or inside a symbolic expression.`,
-  examples: name === 'HELLO' ? ['Ciao', 'Hello', 'Bonjour'] : [name.toLowerCase(), `shared ${name.toLowerCase()}`],
-}))
+const nativeEntryMetadata: Record<string, { symbol?: string; aliases?: string[]; usage?: string; examples?: string[]; tags?: string[] }> = {
+  PUNCTUATION: {
+    tags: ['punctuation'],
+  },
+  COMMA: {
+    symbol: ',',
+    aliases: [','],
+    usage: 'Use COMMA (,) to separate nearby concepts or clauses inside a symbolic expression.',
+    examples: [',', 'HELLO COMMA WORLD'],
+    tags: ['punctuation'],
+  },
+  PERIOD: {
+    symbol: '.',
+    aliases: ['.'],
+    usage: 'Use PERIOD (.) to close a complete symbolic statement.',
+    examples: ['.', 'HELLO PERIOD'],
+    tags: ['punctuation'],
+  },
+  COLON: {
+    symbol: ':',
+    aliases: [':'],
+    usage: 'Use COLON (:) to introduce elaboration, explanation, or a following list.',
+    examples: [':', 'PLAN COLON BUILD'],
+    tags: ['punctuation'],
+  },
+  SEMICOLON: {
+    symbol: ';',
+    aliases: [';'],
+    usage: 'Use SEMICOLON (;) to connect two strongly related symbolic clauses.',
+    examples: [';', 'LEARN SEMICOLON TEACH'],
+    tags: ['punctuation'],
+  },
+  QUESTIONMARK: {
+    symbol: '?',
+    aliases: ['?'],
+    usage: 'Use QUESTIONMARK (?) to end a direct symbolic question.',
+    examples: ['?', 'WHY QUESTIONMARK'],
+    tags: ['punctuation'],
+  },
+  EXCLAMATIONMARK: {
+    symbol: '!',
+    aliases: ['!'],
+    usage: 'Use EXCLAMATIONMARK (!) to mark emphasis, urgency, or high emotional force.',
+    examples: ['!', 'ALERT EXCLAMATIONMARK'],
+    tags: ['punctuation'],
+  },
+  APOSTROPHE: {
+    symbol: "'",
+    aliases: ["'"],
+    usage: "Use APOSTROPHE (') when a symbolic expression needs omission or possession semantics.",
+    examples: ["'", 'USER APOSTROPHE TOOL'],
+    tags: ['punctuation'],
+  },
+  QUOTATIONMARK: {
+    symbol: '"',
+    aliases: ['"'],
+    usage: 'Use QUOTATIONMARK (") to delimit quoted symbolic content.',
+    examples: ['"', 'QUOTATIONMARK HELLO QUOTATIONMARK'],
+    tags: ['punctuation'],
+  },
+  HYPHEN: {
+    symbol: '-',
+    aliases: ['-'],
+    usage: 'Use HYPHEN (-) to join tightly linked symbolic parts.',
+    examples: ['-', 'SIT HYPHEN NATIVE'],
+    tags: ['punctuation'],
+  },
+  DASH: {
+    symbol: '--',
+    aliases: ['--'],
+    usage: 'Use DASH (--) to create a stronger break or emphasis inside a symbolic sequence.',
+    examples: ['--', 'IDEA DASH ACTION'],
+    tags: ['punctuation'],
+  },
+  SLASH: {
+    symbol: '/',
+    aliases: ['/'],
+    usage: 'Use SLASH (/) to express alternatives, paths, or compact symbolic branching.',
+    examples: ['/', 'YES SLASH NO'],
+    tags: ['punctuation'],
+  },
+  LEFTPAREN: {
+    symbol: '(',
+    aliases: ['('],
+    usage: 'Use LEFTPAREN (() to open a grouped symbolic clause.',
+    examples: ['(', 'LEFTPAREN HELLO RIGHTPAREN'],
+    tags: ['punctuation'],
+  },
+  RIGHTPAREN: {
+    symbol: ')',
+    aliases: [')'],
+    usage: 'Use RIGHTPAREN ()) to close a grouped symbolic clause.',
+    examples: [')', 'LEFTPAREN HELLO RIGHTPAREN'],
+    tags: ['punctuation'],
+  },
+  LEFTBRACKET: {
+    symbol: '[',
+    aliases: ['['],
+    usage: 'Use LEFTBRACKET ([) to open a bracketed symbolic section.',
+    examples: ['[', 'LEFTBRACKET PLAN RIGHTBRACKET'],
+    tags: ['punctuation'],
+  },
+  RIGHTBRACKET: {
+    symbol: ']',
+    aliases: [']'],
+    usage: 'Use RIGHTBRACKET (]) to close a bracketed symbolic section.',
+    examples: [']', 'LEFTBRACKET PLAN RIGHTBRACKET'],
+    tags: ['punctuation'],
+  },
+  LEFTBRACE: {
+    symbol: '{',
+    aliases: ['{'],
+    usage: 'Use LEFTBRACE ({) to open a grouped symbolic block.',
+    examples: ['{', 'LEFTBRACE PLAN RIGHTBRACE'],
+    tags: ['punctuation'],
+  },
+  RIGHTBRACE: {
+    symbol: '}',
+    aliases: ['}'],
+    usage: 'Use RIGHTBRACE (}) to close a grouped symbolic block.',
+    examples: ['}', 'LEFTBRACE PLAN RIGHTBRACE'],
+    tags: ['punctuation'],
+  },
+  LEFTANGLE: {
+    symbol: '<',
+    aliases: ['<'],
+    usage: 'Use LEFTANGLE (<) to open a compact symbolic enclosure or typed relation.',
+    examples: ['<', 'LEFTANGLE CODE RIGHTANGLE'],
+    tags: ['punctuation', 'operator'],
+  },
+  RIGHTANGLE: {
+    symbol: '>',
+    aliases: ['>'],
+    usage: 'Use RIGHTANGLE (>) to close a compact symbolic enclosure or typed relation.',
+    examples: ['>', 'LEFTANGLE CODE RIGHTANGLE'],
+    tags: ['punctuation', 'operator'],
+  },
+  BACKSLASH: {
+    symbol: '\\',
+    aliases: ['\\'],
+    usage: 'Use BACKSLASH (\\) for reverse paths, escaping, or mirrored symbolic separation.',
+    examples: ['\\', 'CODE BACKSLASH FILE'],
+    tags: ['punctuation', 'operator'],
+  },
+  PIPE: {
+    symbol: '|',
+    aliases: ['|'],
+    usage: 'Use PIPE (|) to express alternation, parallel channels, or staged symbolic flow.',
+    examples: ['|', 'YES PIPE NO'],
+    tags: ['punctuation', 'operator'],
+  },
+  AMPERSAND: {
+    symbol: '&',
+    aliases: ['&'],
+    usage: 'Use AMPERSAND (&) as a compact conjunction between tightly linked concepts.',
+    examples: ['&', 'RESEARCH AMPERSAND DESIGN'],
+    tags: ['punctuation', 'operator'],
+  },
+  ASTERISK: {
+    symbol: '*',
+    aliases: ['*'],
+    usage: 'Use ASTERISK (*) for wildcard, emphasis, or multiplicative symbolic operations.',
+    examples: ['*', 'VALUE ASTERISK VALUE'],
+    tags: ['punctuation', 'operator'],
+  },
+  PLUSSIGN: {
+    symbol: '+',
+    aliases: ['+'],
+    usage: 'Use PLUSSIGN (+) for direct addition or composition inside symbolic syntax.',
+    examples: ['+', 'PERSON PLUSSIGN TOOL'],
+    tags: ['punctuation', 'operator'],
+  },
+  EQUALSSIGN: {
+    symbol: '=',
+    aliases: ['='],
+    usage: 'Use EQUALSSIGN (=) to assert explicit equality or assignment between symbolic units.',
+    examples: ['=', 'VALUE EQUALSSIGN MODEL'],
+    tags: ['punctuation', 'operator'],
+  },
+  ATSIGN: {
+    symbol: '@',
+    aliases: ['@'],
+    usage: 'Use ATSIGN (@) for addressing, attribution, or anchored symbolic targets.',
+    examples: ['@', 'MESSAGE ATSIGN USER'],
+    tags: ['punctuation', 'operator'],
+  },
+  HASH: {
+    symbol: '#',
+    aliases: ['#'],
+    usage: 'Use HASH (#) for tagging, indexing, or marked symbolic identifiers.',
+    examples: ['#', 'HASH TOPIC'],
+    tags: ['punctuation', 'operator'],
+  },
+  ELLIPSIS: {
+    symbol: '...',
+    aliases: ['...'],
+    usage: 'Use ELLIPSIS (...) to mark omission, continuation, or an intentionally open ending.',
+    examples: ['...', 'THINK ELLIPSIS'],
+    tags: ['punctuation'],
+  },
+}
+
+const resolveNativeEntryMetadata = (name: string) => nativeEntryMetadata[name] ?? {}
+
+export const nativeDictionary: NativeEntry[] = seeds.map(([name, meaning, category, code], index) => {
+  const metadata = resolveNativeEntryMetadata(name)
+
+  return {
+    id: `SIT-${String(index + 1).padStart(3, '0')}`,
+    name,
+    symbol: metadata.symbol,
+    meaning,
+    category,
+    code,
+    version: '2.0',
+    description: `${meaning}. This native token is defined by the SIT 2.0 symbolic standard and has no ASCII dependency.`,
+    usage: metadata.usage ?? `Use ${name} as a standalone semantic token or inside a symbolic expression.`,
+    examples: metadata.examples ?? (name === 'HELLO' ? ['Ciao', 'Hello', 'Bonjour'] : [name.toLowerCase(), `shared ${name.toLowerCase()}`]),
+    aliases: metadata.aliases ?? [],
+    tags: metadata.tags ?? [],
+  }
+})
 
 export const nativeCategories: Category[] = ['Action', 'Object', 'Person', 'Emotion', 'Question', 'Time', 'Place', 'Logic']
 
+export type NativeDecodeMode = 'symbol' | 'canonical'
+
+const punctuationAliasPattern = Array.from(
+  new Set(
+    Object.values(nativeEntryMetadata)
+      .flatMap((metadata) => metadata.aliases ?? [])
+      .sort((left, right) => right.length - left.length),
+  ),
+).map((alias) => alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')
+
+const nativeTokenPattern = new RegExp(`${punctuationAliasPattern}|[A-Za-z0-9]+|\S`, 'g')
+const closingPunctuation = new Set([',', '.', ':', ';', '?', '!', '...', ')', ']', '}', '>'])
+const openingPunctuation = new Set(['(', '[', '{', '<', '@', '#'])
+const joinPunctuation = new Set(["'", '"', '-', '--', '/', '\\'])
+
+const tokenizeNativeInput = (input: string) => (input.match(nativeTokenPattern) ?? []).map((token) => /^[A-Za-z0-9]+$/.test(token) ? token.toUpperCase() : token)
+
+const renderNativeToken = (entry: NativeEntry, mode: NativeDecodeMode) => mode === 'canonical' ? entry.name : (entry.symbol ?? entry.name)
+
+const formatNativeOutput = (tokens: string[]) => tokens.reduce((output, token, index) => {
+  if (index === 0) {
+    return token
+  }
+
+  const previous = tokens[index - 1]
+  if (closingPunctuation.has(token) || openingPunctuation.has(previous) || joinPunctuation.has(token) || joinPunctuation.has(previous)) {
+    return `${output}${token}`
+  }
+
+  return `${output} ${token}`
+}, '')
+
+export const isPunctuationEntry = (entry: NativeEntry) => entry.tags.includes('punctuation')
+
 export const nativeEncode = (input: string) => {
-  const tokens = input.toUpperCase().trim().split(/\s+/).filter(Boolean)
+  const tokens = tokenizeNativeInput(input.trim())
   if (!tokens.length) return ''
-  return tokens.map((token) => nativeDictionary.find((entry) => entry.name === token)?.code ?? `[unknown:${token}]`).join(' ')
+  return tokens.map((token) => nativeDictionary.find((entry) => entry.name === token || entry.aliases.includes(token))?.code ?? `[unknown:${token}]`).join(' ')
 }
 
-export const nativeDecode = (input: string) => input.trim().split(/\s+/).filter(Boolean).map((code) => {
+export const nativeDecode = (input: string, options?: { mode?: NativeDecodeMode }) => {
+  const mode = options?.mode ?? 'symbol'
+  const decodedTokens = input.trim().split(/\s+/).filter(Boolean).map((code) => {
   const entry = nativeDictionary.find((item) => item.code === code)
-  return entry ? entry.name : `[unknown:${code}]`
-}).join(' ')
+    return entry ? renderNativeToken(entry, mode) : `[unknown:${code}]`
+  })
+
+  return mode === 'canonical' ? decodedTokens.join(' ') : formatNativeOutput(decodedTokens)
+}

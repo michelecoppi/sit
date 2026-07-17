@@ -115,6 +115,24 @@ const rfcs: RfcRecord[] = [
       readMoreLabel: 'Try legacy tools',
     },
   },
+  {
+    id: 'RFC-0006',
+    title: 'Punctuation and Symbolic Operators',
+    body: 'Formal grammar for punctuation, grouping and operator-style native symbols in SIT 2.0.',
+    status: 'Review',
+    icon: DocumentMagnifyingGlassIcon,
+    memo: {
+      updated: '2026-07-17',
+      summary: 'Defines punctuation marks and symbolic operators as first-class native tokens with deterministic spacing and grouping behavior.',
+      highlights: [
+        'Grouping symbols such as (), [], {}, and <> must decode with stable enclosure ordering.',
+        'Operators including +, =, |, &, *, @, #, / and \\ are valid native tokens when registered in the canonical alphabet.',
+        'Decoders should expose both natural rendering and canonical token names when diagnostic mode is requested.',
+      ],
+      readMorePath: '/punctuation',
+      readMoreLabel: 'Open punctuation page',
+    },
+  },
 ]
 
 export default function RfcPage() {

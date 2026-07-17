@@ -1,6 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { NavLink } from 'react-router-dom'
-import { motion, AnimatePresence } from 'framer-motion'
 import {
   HomeIcon,
   DocumentTextIcon,
@@ -193,24 +192,17 @@ export default function Layout({ children, title }: LayoutProps) {
         </div>
       </footer>
 
-      <AnimatePresence>
-        {showSecret ? (
-          <motion.div
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
-            exit={{ opacity: 0 }}
-            className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4"
-            onClick={() => setShowSecret(false)}
+      {showSecret ? (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4"
+          onClick={() => setShowSecret(false)}
+        >
+          <div
+            role="dialog"
+            aria-modal="true"
+            aria-label="Ceremonial hall"
+            className="max-w-lg rounded-3xl border border-blue-200 bg-white p-5 text-center shadow-2xl sm:p-8 dark:border-blue-900 dark:bg-slate-900"
           >
-            <motion.div
-              initial={{ y: 24, scale: 0.96 }}
-              animate={{ y: 0, scale: 1 }}
-              exit={{ y: 16, scale: 0.98 }}
-              role="dialog"
-              aria-modal="true"
-              aria-label="Ceremonial hall"
-              className="max-w-lg rounded-3xl border border-blue-200 bg-white p-5 text-center shadow-2xl sm:p-8 dark:border-blue-900 dark:bg-slate-900"
-            >
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-xl font-semibold text-white">
                 <img src={`${import.meta.env.BASE_URL}sit-icon.svg`} alt="SIT icon" className="h-full w-full object-cover" />
               </div>
@@ -226,10 +218,9 @@ export default function Layout({ children, title }: LayoutProps) {
               >
                 Close
               </button>
-            </motion.div>
-          </motion.div>
-        ) : null}
-      </AnimatePresence>
+          </div>
+        </div>
+      ) : null}
     </div>
   )
 }

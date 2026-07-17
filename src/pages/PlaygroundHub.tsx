@@ -1,6 +1,7 @@
-import { useState } from 'react'
-import LegacyPlayground from './PlaygroundPage'
-import { NativePlayground } from './NativePages'
+import { Suspense, lazy, useState } from 'react'
+
+const LegacyPlayground = lazy(() => import('./PlaygroundPage'))
+const NativePlayground = lazy(() => import('./NativePages').then((module) => ({ default: module.NativePlayground })))
 
 export default function PlaygroundHub() {
   const [edition, setEdition] = useState<'1.0' | '2.0'>('1.0')
@@ -13,6 +14,8 @@ export default function PlaygroundHub() {
       </div>
       <p className="px-2 pt-3 text-sm text-slate-500 dark:text-slate-400">{edition === '1.0' ? 'ASCII, binary, batch conversion and compliance tools.' : 'Concept-first encoding, native decoding and semantic exploration.'}</p>
     </div>
-    {edition === '1.0' ? <LegacyPlayground /> : <div className="native-v2"><NativePlayground /></div>}
+    <Suspense fallback={<div className="native-card">Loading playground...</div>}>
+      {edition === '1.0' ? <LegacyPlayground /> : <div className="native-v2"><NativePlayground /></div>}
+    </Suspense>
   </div>
 }

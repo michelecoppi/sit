@@ -1,9 +1,17 @@
-import { useMemo, useState, type ReactNode } from 'react'
+import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import AlphabetTable from '../components/AlphabetTable'
 import DictionarySearch from '../components/DictionarySearch'
 import GrammarCard from '../components/GrammarCard'
 import { nativeDecode, nativeDictionary, nativeEncode } from '../data/native'
+
+const punctuationSectionNames = ['COMMA', 'PERIOD', 'COLON', 'SEMICOLON', 'QUESTIONMARK', 'EXCLAMATIONMARK', 'APOSTROPHE', 'QUOTATIONMARK', 'HYPHEN', 'DASH', 'SLASH', 'ELLIPSIS'] as const
+const groupingSectionNames = ['LEFTPAREN', 'RIGHTPAREN', 'LEFTBRACKET', 'RIGHTBRACKET', 'LEFTBRACE', 'RIGHTBRACE', 'LEFTANGLE', 'RIGHTANGLE'] as const
+const operatorSectionNames = ['ATSIGN', 'HASH', 'PIPE', 'AMPERSAND', 'ASTERISK', 'PLUSSIGN', 'EQUALSSIGN', 'BACKSLASH'] as const
+
+const getNativeEntriesByName = (names: readonly string[]) => names
+  .map((name) => nativeDictionary.find((entry) => entry.name === name))
+  .filter((entry): entry is NonNullable<typeof entry> => Boolean(entry))
 
 function Header({ eyebrow, title, children }: { eyebrow: string; title: string; children: ReactNode }) {
   return (
@@ -67,6 +75,8 @@ export function NativePage() {
 }
 
 export function AlphabetPage() {
+  const alphabetEntries = nativeDictionary.filter((entry) => !operatorSectionNames.includes(entry.name as (typeof operatorSectionNames)[number]))
+
   return (
     <div className="native-v2">
       <div className="space-y-8">
@@ -75,7 +85,7 @@ export function AlphabetPage() {
           intentionally use only 6 and 7.
         </Header>
         <article className="native-card">
-          <AlphabetTable />
+          <AlphabetTable entries={alphabetEntries} showPunctuationFilter={false} />
         </article>
       </div>
     </div>
@@ -93,6 +103,100 @@ export function GrammarPage() {
         <article className="native-card">
           <h2 className="text-xl font-semibold">Expression example</h2>
           <pre className="mt-4 native-flow">PERSON + SHARE + MESSAGE + NOW</pre>
+        </article>
+      </div>
+    </div>
+  )
+}
+
+export function PunctuationPage() {
+  const punctuationEntries = getNativeEntriesByName(punctuationSectionNames)
+  const groupingEntries = getNativeEntriesByName(groupingSectionNames)
+  const operatorEntries = getNativeEntriesByName(operatorSectionNames)
+
+  useEffect(() => {
+    const search = window.location.hash.split('?')[1] ?? ''
+    const section = new URLSearchParams(search).get('section')
+    if (!section) {
+      return
+    }
+
+    document.getElementById(section)?.scrollIntoView({ block: 'start' })
+  }, [])
+
+  return (
+    <div className="native-v2">
+      <div className="space-y-8">
+        <Header eyebrow="RFC-0006" title="Punctuation and Symbolic Operators">
+          SIT 2.0 treats punctuation as a first-class native layer. Grouping marks, separators and operator-style
+          symbols are official tokens with deterministic spacing and decoding behavior.
+        </Header>
+
+        <article className="native-card">
+          <h2 className="text-xl font-semibold">Core rules</h2>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <a className="native-tab" href="#/punctuation?section=punctuation">Punctuation</a>
+            <a className="native-tab" href="#/punctuation?section=grouping">Grouping</a>
+            <a className="native-tab" href="#/punctuation?section=operators">Operators</a>
+          </div>
+          <div className="mt-4 grid gap-4 md:grid-cols-3">
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Closers bind left</p>
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Tokens like <code className="native-code">, . : ; ? ! ) ] &#125; &gt;</code> attach to the token before them.</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Openers bind right</p>
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Tokens like <code className="native-code">( [ &#123; &lt; @ #</code> attach to the token that follows.</p>
+            </div>
+            <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-800 dark:bg-slate-950/60">
+              <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">Joiners stay inline</p>
+              <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">Tokens like <code className="native-code">' " - -- / \ | &amp; + = *</code> remain inside the same symbolic segment.</p>
+            </div>
+          </div>
+        </article>
+
+        <article id="punctuation" className="native-card scroll-mt-28">
+          <h2 className="text-xl font-semibold">Punctuation</h2>
+          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">Sentence boundaries, pauses and inline joins are all first-class SIT tokens.</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {punctuationEntries.map((entry) => <span key={entry.id} className="native-pill">{entry.symbol ?? entry.name} {entry.name}</span>)}
+          </div>
+          <div className="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
+            <pre className="native-flow">HELLO, WORLD!</pre>
+            <pre className="native-flow">THINK...</pre>
+            <pre className="native-flow">WHY?</pre>
+          </div>
+        </article>
+
+        <article id="grouping" className="native-card scroll-mt-28">
+          <h2 className="text-xl font-semibold">Grouping</h2>
+          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">Grouping marks define explicit symbolic scope and must decode in stable enclosure order.</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {groupingEntries.map((entry) => <span key={entry.id} className="native-pill">{entry.symbol ?? entry.name} {entry.name}</span>)}
+          </div>
+          <div className="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
+            <pre className="native-flow">(HELLO)</pre>
+            <pre className="native-flow">[PLAN] -- BUILD.</pre>
+            <pre className="native-flow">&lt;CODE&gt;</pre>
+          </div>
+        </article>
+
+        <article id="operators" className="native-card scroll-mt-28">
+          <h2 className="text-xl font-semibold">Operators</h2>
+          <p className="mt-3 text-sm text-slate-600 dark:text-slate-300">Operator-style symbols create compact relations for addressing, assignment, branching and inline composition.</p>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {operatorEntries.map((entry) => <span key={entry.id} className="native-pill">{entry.symbol ?? entry.name} {entry.name}</span>)}
+          </div>
+          <div className="mt-4 space-y-3 text-sm text-slate-600 dark:text-slate-300">
+            <pre className="native-flow">@USER = VALUE</pre>
+            <pre className="native-flow">CODE\FILE</pre>
+            <pre className="native-flow">@USER | #TAG</pre>
+          </div>
+        </article>
+
+        <article className="native-card">
+          <h2 className="text-xl font-semibold">Registered punctuation tokens</h2>
+          <AlphabetTable entries={punctuationEntries} />
         </article>
       </div>
     </div>
@@ -121,7 +225,7 @@ export function SemanticPage() {
     }
 
     return nativeDictionary.filter((item) =>
-      [item.name, item.meaning, item.code, item.examples.join(' ')].join(' ').toLowerCase().includes(normalizedQuery),
+      [item.name, item.symbol ?? '', item.aliases.join(' '), item.meaning, item.code, item.examples.join(' ')].join(' ').toLowerCase().includes(normalizedQuery),
     )
   }, [normalizedQuery])
 
@@ -131,7 +235,7 @@ export function SemanticPage() {
     }
 
     const upperQuery = query.trim().toUpperCase()
-    const exactMatch = nativeDictionary.find((item) => item.name === upperQuery || item.code === query.trim())
+    const exactMatch = nativeDictionary.find((item) => item.name === upperQuery || item.code === query.trim() || item.symbol === query.trim() || item.aliases.includes(query.trim()))
     return exactMatch ?? matches[0] ?? null
   }, [matches, normalizedQuery, query])
 
@@ -173,6 +277,7 @@ export function SemanticPage() {
               <div>
                 <p className="text-sm text-slate-500">Meaning</p>
                 <p className="mt-2 font-semibold">{entry.meaning}</p>
+                {entry.symbol ? <p className="mt-2 text-sm text-slate-500">Symbol: <code className="native-code">{entry.symbol}</code></p> : null}
               </div>
               <div>
                 <p className="text-sm text-slate-500">Natural outputs</p>
@@ -203,6 +308,7 @@ type Mode = (typeof modes)[number]
 export function NativePlayground() {
   const [mode, setMode] = useState<Mode>('Native Encoder')
   const [value, setValue] = useState('HELLO')
+  const [showCanonicalDecode, setShowCanonicalDecode] = useState(false)
 
   const output = useMemo(() => {
     if (mode === 'Native Encoder') {
@@ -217,10 +323,22 @@ export function NativePlayground() {
     return ''
   }, [mode, value])
 
+  const canonicalDecodeOutput = useMemo(() => {
+    if (mode !== 'Native Decoder' || !showCanonicalDecode) {
+      return ''
+    }
+
+    return nativeDecode(value, { mode: 'canonical' })
+  }, [mode, showCanonicalDecode, value])
+
   const setModeDefaults = (selectedMode: Mode) => {
     setMode(selectedMode)
     if (selectedMode === 'Native Decoder') {
       setValue('6667677667767676')
+      return
+    }
+    if (selectedMode === 'Native Encoder') {
+      setValue('HELLO, WORLD!')
       return
     }
     setValue('HELLO')
@@ -267,10 +385,20 @@ export function NativePlayground() {
               </label>
               <span className="native-live">LIVE INTERPRETER</span>
             </div>
-            <textarea className="native-input mt-4 min-h-28 sm:min-h-32" value={value} onChange={(e) => setValue(e.target.value)} />
+            <textarea className="native-input mt-4 min-h-28 sm:min-h-32" value={value} onChange={(e) => setValue(e.target.value)} placeholder={mode === 'Native Decoder' ? 'Paste SIT codes such as 6667677667767676 7666667676676776 ...' : mode === 'Semantic Explorer' ? 'Try HELLO, ?, or TRUST' : 'Try HELLO, WORLD! or [PLAN] -- BUILD.'} />
+            {mode === 'Native Decoder' ? (
+              <label className="mt-4 inline-flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+                <input
+                  type="checkbox"
+                  checked={showCanonicalDecode}
+                  onChange={(event) => setShowCanonicalDecode(event.target.checked)}
+                />
+                Show canonical token names
+              </label>
+            ) : null}
             {mode !== 'Native Decoder' ? (
               <div className="native-suggestions">
-                {['HELLO', 'CREATE', 'JOY', 'SYSTEM'].map((concept) => (
+                {['HELLO, WORLD!', '@USER = VALUE', '<CODE> | #TAG', 'CODE\\FILE'].map((concept) => (
                   <button key={concept} type="button" onClick={() => setValue(concept)}>
                     {concept}
                   </button>
@@ -282,6 +410,15 @@ export function NativePlayground() {
               <span className="text-xs opacity-70">Instant semantic resolution</span>
             </div>
             <pre className="native-output mt-2">{output || '-'}</pre>
+            {canonicalDecodeOutput ? (
+              <>
+                <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold">Canonical tokens</p>
+                  <span className="text-xs opacity-70">Diagnostic decode mode</span>
+                </div>
+                <pre className="native-output mt-2">{canonicalDecodeOutput}</pre>
+              </>
+            ) : null}
           </>
         )}
       </article>

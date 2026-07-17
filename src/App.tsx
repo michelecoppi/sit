@@ -1,13 +1,20 @@
-import { useEffect } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
 import Layout from './components/Layout'
-import HomePage from './pages/HomePage'
-import DocumentationPage from './pages/DocumentationPage'
-import RoadmapPage from './pages/RoadmapPage'
-import AboutPage from './pages/AboutPage'
-import RfcPage from './pages/RfcPage'
-import { AlphabetPage, CharacterExplorerPage, DictionaryPage, GrammarPage, NativePage, SemanticPage } from './pages/NativePages'
-import PlaygroundHub from './pages/PlaygroundHub'
+
+const HomePage = lazy(() => import('./pages/HomePage'))
+const DocumentationPage = lazy(() => import('./pages/DocumentationPage'))
+const RoadmapPage = lazy(() => import('./pages/RoadmapPage'))
+const AboutPage = lazy(() => import('./pages/AboutPage'))
+const RfcPage = lazy(() => import('./pages/RfcPage'))
+const PlaygroundHub = lazy(() => import('./pages/PlaygroundHub'))
+const NativePage = lazy(() => import('./pages/NativePages').then((module) => ({ default: module.NativePage })))
+const AlphabetPage = lazy(() => import('./pages/NativePages').then((module) => ({ default: module.AlphabetPage })))
+const GrammarPage = lazy(() => import('./pages/NativePages').then((module) => ({ default: module.GrammarPage })))
+const PunctuationPage = lazy(() => import('./pages/NativePages').then((module) => ({ default: module.PunctuationPage })))
+const DictionaryPage = lazy(() => import('./pages/NativePages').then((module) => ({ default: module.DictionaryPage })))
+const SemanticPage = lazy(() => import('./pages/NativePages').then((module) => ({ default: module.SemanticPage })))
+const CharacterExplorerPage = lazy(() => import('./pages/NativePages').then((module) => ({ default: module.CharacterExplorerPage })))
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -24,20 +31,23 @@ function App() {
     <HashRouter>
       <ScrollToTop />
       <Layout title="SIT Standard">
-        <Routes>
-          <Route path="/" element={<HomePage />} />
-          <Route path="/docs" element={<DocumentationPage />} />
-          <Route path="/playground" element={<PlaygroundHub />} />
-          <Route path="/roadmap" element={<RoadmapPage />} />
-          <Route path="/about" element={<AboutPage />} />
-          <Route path="/rfc" element={<RfcPage />} />
-          <Route path="/native" element={<NativePage />} />
-          <Route path="/alphabet" element={<AlphabetPage />} />
-          <Route path="/grammar" element={<GrammarPage />} />
-          <Route path="/dictionary" element={<DictionaryPage />} />
-          <Route path="/semantic" element={<SemanticPage />} />
-          <Route path="/explorer" element={<CharacterExplorerPage />} />
-        </Routes>
+        <Suspense fallback={<div className="native-card">Loading SIT registry...</div>}>
+          <Routes>
+            <Route path="/" element={<HomePage />} />
+            <Route path="/docs" element={<DocumentationPage />} />
+            <Route path="/playground" element={<PlaygroundHub />} />
+            <Route path="/roadmap" element={<RoadmapPage />} />
+            <Route path="/about" element={<AboutPage />} />
+            <Route path="/rfc" element={<RfcPage />} />
+            <Route path="/native" element={<NativePage />} />
+            <Route path="/alphabet" element={<AlphabetPage />} />
+            <Route path="/grammar" element={<GrammarPage />} />
+            <Route path="/punctuation" element={<PunctuationPage />} />
+            <Route path="/dictionary" element={<DictionaryPage />} />
+            <Route path="/semantic" element={<SemanticPage />} />
+            <Route path="/explorer" element={<CharacterExplorerPage />} />
+          </Routes>
+        </Suspense>
       </Layout>
     </HashRouter>
   )

@@ -1,7 +1,12 @@
 import { useEffect, useMemo, useState } from 'react'
-import { nativeDictionary, nativeCategories } from '../data/native'
+import { isPunctuationEntry, nativeCategories, type NativeEntry, nativeDictionary } from '../data/native'
 
-export default function AlphabetTable() {
+type AlphabetTableProps = {
+  entries?: NativeEntry[]
+  showPunctuationFilter?: boolean
+}
+
+export default function AlphabetTable({ entries = nativeDictionary, showPunctuationFilter = true }: AlphabetTableProps) {
   const [filter, setFilter] = useState('')
   const [category, setCategory] = useState('All')
   const [page, setPage] = useState(1)
@@ -23,11 +28,23 @@ export default function AlphabetTable() {
     return [1, '...', current - 1, current, current + 1, '...', total] as const
   }
 
-  const rows = useMemo(() => nativeDictionary.filter((entry) => {
-    const matchesCategory = category === 'All' || entry.category === category
-    const matchesFilter = `${entry.name} ${entry.meaning} ${entry.code}`.toLowerCase().includes(filter.toLowerCase())
+  const availableFilters = useMemo(() => {
+    const categoryFilters = nativeCategories.filter((item) => entries.some((entry) => entry.category === item))
+    const includesPunctuation = entries.some((entry) => isPunctuationEntry(entry))
+    const onlyPunctuation = entries.length > 0 && entries.every((entry) => isPunctuationEntry(entry))
+
+    if (onlyPunctuation) {
+      return [] as string[]
+    }
+
+    return ['All', ...(includesPunctuation && showPunctuationFilter ? ['Punctuation'] : []), ...categoryFilters]
+  }, [entries, showPunctuationFilter])
+
+  const rows = useMemo(() => entries.filter((entry) => {
+    const matchesCategory = category === 'All' || (category === 'Punctuation' ? isPunctuationEntry(entry) : entry.category === category)
+    const matchesFilter = `${entry.name} ${entry.symbol ?? ''} ${entry.aliases.join(' ')} ${entry.meaning} ${entry.code}`.toLowerCase().includes(filter.toLowerCase())
     return matchesCategory && matchesFilter
-  }), [category, filter])
+  }), [category, entries, filter])
 
   const totalPages = Math.max(1, Math.ceil(rows.length / pageSize))
   const currentPage = Math.min(page, totalPages)
@@ -42,6 +59,17 @@ export default function AlphabetTable() {
   }, [filter, category])
 
   useEffect(() => {
+    if (availableFilters.length > 0 && !availableFilters.includes(category)) {
+      setCategory('All')
+      return
+    }
+
+    if (availableFilters.length === 0 && category !== 'All') {
+      setCategory('All')
+    }
+  }, [availableFilters, category])
+
+  useEffect(() => {
     if (page > totalPages) {
       setPage(totalPages)
     }
@@ -50,14 +78,17 @@ export default function AlphabetTable() {
   return <div className="space-y-4">
     <div className="flex flex-wrap gap-3">
       <input className="native-input" value={filter} onChange={(e) => setFilter(e.target.value)} placeholder="Search symbols, meanings, or codes" />
-      <div className="flex flex-wrap gap-2">{['All', ...nativeCategories].map((item) => <button key={item} type="button" className={category === item ? 'native-tab native-tab-active' : 'native-tab'} onClick={() => setCategory(item)}>{item}</button>)}</div>
+      {availableFilters.length > 0 ? <div className="flex flex-wrap gap-2">{availableFilters.map((item) => <button key={item} type="button" className={category === item ? 'native-tab native-tab-active' : 'native-tab'} onClick={() => setCategory(item)}>{item}</button>)}</div> : null}
     </div>
     {rows.length ? <div className="flex flex-wrap items-center justify-between gap-3 text-sm text-slate-500"><p>Showing {(currentPage - 1) * pageSize + 1}-{Math.min(currentPage * pageSize, rows.length)} of {rows.length} entries</p><p>Page {currentPage} / {totalPages}</p></div> : null}
     <div className="space-y-3 md:hidden">
       {paginatedRows.map((entry) => (
         <article key={entry.id} className="native-card">
           <div className="flex items-start justify-between gap-3">
-            <h3 className="text-base font-semibold">{entry.name}</h3>
+            <div>
+              <h3 className="text-base font-semibold">{entry.name}</h3>
+              {entry.symbol ? <p className="mt-1 text-sm text-slate-500">Symbol: <code className="native-code">{entry.symbol}</code></p> : null}
+            </div>
             <span className="native-pill">{entry.category}</span>
           </div>
           <code className="native-code mt-3 inline-block">{entry.code}</code>
@@ -66,7 +97,7 @@ export default function AlphabetTable() {
         </article>
       ))}
     </div>
-    <div className="hidden overflow-x-auto rounded-3xl border border-slate-200 dark:border-slate-800 md:block"><table className="w-full min-w-[740px] text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-widest text-slate-500 dark:bg-slate-950"><tr><th>Name</th><th>Native code</th><th>Meaning</th><th>Category</th><th>Example</th></tr></thead><tbody>{paginatedRows.map((entry) => <tr key={entry.id} className="border-t border-slate-200 dark:border-slate-800"><td className="font-semibold">{entry.name}</td><td><code className="native-code">{entry.code}</code></td><td>{entry.meaning}</td><td><span className="native-pill">{entry.category}</span></td><td>{entry.examples[0]}</td></tr>)}</tbody></table></div>
+    <div className="hidden overflow-x-auto rounded-3xl border border-slate-200 dark:border-slate-800 md:block"><table className="w-full min-w-[740px] text-left text-sm"><thead className="bg-slate-50 text-xs uppercase tracking-widest text-slate-500 dark:bg-slate-950"><tr><th>Token</th><th>Native code</th><th>Meaning</th><th>Category</th><th>Example</th></tr></thead><tbody>{paginatedRows.map((entry) => <tr key={entry.id} className="border-t border-slate-200 dark:border-slate-800"><td><div className="font-semibold">{entry.name}</div>{entry.symbol ? <code className="native-code mt-1 inline-block">{entry.symbol}</code> : null}</td><td><code className="native-code">{entry.code}</code></td><td>{entry.meaning}</td><td><span className="native-pill">{entry.category}</span></td><td>{entry.examples[0]}</td></tr>)}</tbody></table></div>
     {rows.length > pageSize ? <div className="flex flex-wrap items-center justify-center gap-2"><button type="button" className="native-tab" disabled={currentPage === 1} onClick={() => setPage((value) => Math.max(1, value - 1))}>Previous</button>{smartPages.map((item, index) => item === '...' ? <span key={`ellipsis-${index}`} className="px-2 text-slate-500">...</span> : <button key={item} type="button" className={currentPage === item ? 'native-tab native-tab-active' : 'native-tab'} onClick={() => setPage(item)}>{item}</button>)}<button type="button" className="native-tab" disabled={currentPage === totalPages} onClick={() => setPage((value) => Math.min(totalPages, value + 1))}>Next</button></div> : null}
     {!rows.length ? <p className="text-slate-500">No official native entry found.</p> : null}
   </div>

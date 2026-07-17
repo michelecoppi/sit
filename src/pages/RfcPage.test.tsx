@@ -23,4 +23,18 @@ describe('RfcPage', () => {
       expect(screen.queryByRole('dialog', { name: /rfc-0001 memo/i })).not.toBeInTheDocument()
     })
   })
+
+  it('includes the punctuation grammar RFC memo', () => {
+    render(
+      <MemoryRouter>
+        <RfcPage />
+      </MemoryRouter>,
+    )
+
+    fireEvent.click(screen.getByRole('button', { name: /read memo for rfc-0006/i }))
+
+    expect(screen.getByRole('dialog', { name: /rfc-0006 memo/i })).toBeInTheDocument()
+    expect(screen.getByText(/defines punctuation marks and symbolic operators as first-class native tokens/i)).toBeInTheDocument()
+    expect(screen.getByRole('link', { name: /open punctuation page/i })).toHaveAttribute('href', '/punctuation')
+  })
 })
