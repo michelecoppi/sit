@@ -8,9 +8,9 @@ import { nativeDecode, nativeDictionary, nativeEncode } from '../data/native'
 function Header({ eyebrow, title, children }: { eyebrow: string; title: string; children: ReactNode }) {
   return (
     <section className="native-hero">
-      <p className="text-sm font-semibold uppercase tracking-[.28em] text-blue-600">{eyebrow}</p>
-      <h1 className="mt-3 text-4xl font-semibold tracking-tight sm:text-5xl">{title}</h1>
-      <div className="mt-5 max-w-3xl text-lg leading-8 text-slate-600 dark:text-slate-300">{children}</div>
+      <p className="text-xs font-semibold uppercase tracking-[.24em] text-blue-600 sm:text-sm sm:tracking-[.28em]">{eyebrow}</p>
+      <h1 className="mt-2 text-2xl font-semibold tracking-tight sm:mt-3 sm:text-4xl lg:text-5xl">{title}</h1>
+      <div className="mt-4 max-w-3xl text-base leading-7 text-slate-600 sm:mt-5 sm:text-lg sm:leading-8 dark:text-slate-300">{children}</div>
     </section>
   )
 }
@@ -261,13 +261,13 @@ export function NativePlayground() {
           </div>
         ) : (
           <>
-            <div className="flex flex-wrap items-center justify-between gap-3">
-              <label className="font-semibold">
+            <div className="flex flex-wrap items-start justify-between gap-3 sm:items-center">
+              <label className="text-sm font-semibold sm:text-base">
                 {mode === 'Native Decoder' ? 'Native SIT sequence' : mode === 'Semantic Explorer' ? 'Concept' : 'Word or native concepts'}
               </label>
               <span className="native-live">LIVE INTERPRETER</span>
             </div>
-            <textarea className="native-input mt-4 min-h-32" value={value} onChange={(e) => setValue(e.target.value)} />
+            <textarea className="native-input mt-4 min-h-28 sm:min-h-32" value={value} onChange={(e) => setValue(e.target.value)} />
             {mode !== 'Native Decoder' ? (
               <div className="native-suggestions">
                 {['HELLO', 'CREATE', 'JOY', 'SYSTEM'].map((concept) => (
@@ -277,7 +277,7 @@ export function NativePlayground() {
                 ))}
               </div>
             ) : null}
-            <div className="mt-6 flex items-center justify-between">
+            <div className="mt-6 flex flex-wrap items-center justify-between gap-2">
               <p className="text-sm font-semibold">Native result</p>
               <span className="text-xs opacity-70">Instant semantic resolution</span>
             </div>

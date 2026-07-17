@@ -16,25 +16,25 @@ const sections = [
 export default function DocumentationPage() {
   return (
     <div className="space-y-8">
-      <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+      <motion.section initial={{ opacity: 0, y: 20 }} animate={{ opacity: 1, y: 0 }} className="rounded-[2rem] border border-slate-200 bg-white p-5 shadow-sm sm:p-8 dark:border-slate-800 dark:bg-slate-900">
         <div className="max-w-3xl">
           <p className="text-sm font-semibold uppercase tracking-[0.3em] text-blue-600">IEEE-inspired documentation</p>
-          <h1 className="mt-3 text-4xl font-semibold tracking-tight text-slate-900 dark:text-white">SIT Encoding Standard Documentation</h1>
-          <p className="mt-5 text-lg leading-8 text-slate-600 dark:text-slate-300">This document is intentionally polished enough to pass a casual glance from an overconfident standards committee.</p>
+          <h1 className="mt-3 text-2xl font-semibold tracking-tight text-slate-900 sm:text-4xl dark:text-white">SIT Encoding Standard Documentation</h1>
+          <p className="mt-4 text-base leading-7 text-slate-600 sm:mt-5 sm:text-lg sm:leading-8 dark:text-slate-300">This document is intentionally polished enough to pass a casual glance from an overconfident standards committee.</p>
         </div>
       </motion.section>
 
       <div className="grid gap-6 lg:grid-cols-[1.1fr_0.9fr]">
         <div className="space-y-6">
           {sections.map((section, index) => (
-            <motion.article key={section.title} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }} className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+            <motion.article key={section.title} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.04 }} className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-slate-900">
               <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{section.title}</h2>
               <p className="mt-3 text-sm leading-7 text-slate-600 dark:text-slate-400">{section.body}</p>
             </motion.article>
           ))}
         </div>
 
-        <motion.aside initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+        <motion.aside initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} className="rounded-[1.5rem] border border-slate-200 bg-white p-4 shadow-sm sm:p-6 dark:border-slate-800 dark:bg-slate-900">
           <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">Reference snippet</h2>
           <pre className="mt-4 overflow-x-auto rounded-2xl bg-slate-900 p-4 text-sm text-slate-100">
 {`// Binary to SIT

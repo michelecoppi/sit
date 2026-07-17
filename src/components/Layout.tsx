@@ -69,8 +69,8 @@ export default function Layout({ children, title }: LayoutProps) {
 
   return (
     <div className="min-h-screen bg-[var(--bg)] text-[var(--foreground)] transition-colors duration-300">
-      <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-4 sm:px-6 lg:px-8">
+        <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
+          <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-6 sm:py-4 lg:px-8">
           <button
             type="button"
             onClick={() => {
@@ -84,7 +84,7 @@ export default function Layout({ children, title }: LayoutProps) {
             <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-blue-600 text-lg font-semibold text-white">
               <img src={`${import.meta.env.BASE_URL}sit-icon.svg`} alt="SIT icon" className="h-full w-full object-cover" />
             </div>
-            <div className="text-left">
+            <div className="hidden text-left sm:block">
               <div className="text-sm font-semibold tracking-[0.2em] text-slate-900 dark:text-slate-100">SIT</div>
               <div className="text-xs text-slate-500 dark:text-slate-400">Symbolic Information Token</div>
             </div>
@@ -133,7 +133,7 @@ export default function Layout({ children, title }: LayoutProps) {
         </div>
 
         {menuOpen ? (
-          <div className="border-t border-slate-200 bg-white px-4 py-4 dark:border-slate-800 dark:bg-slate-950 md:hidden">
+          <div className="border-t border-slate-200 bg-white px-4 py-4 dark:border-slate-800 dark:bg-slate-950 xl:hidden">
             <div className="flex flex-col gap-2">
               {navItems.map((item) => {
                 const Icon = item.icon
@@ -169,7 +169,7 @@ export default function Layout({ children, title }: LayoutProps) {
         ) : null}
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-10 sm:px-6 lg:px-8">{children}</main>
+      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8">{children}</main>
 
       <footer className="border-t border-slate-200 bg-slate-50/80 py-10 dark:border-slate-800 dark:bg-slate-950/70">
         <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 text-sm text-slate-600 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8 dark:text-slate-400">
@@ -209,7 +209,7 @@ export default function Layout({ children, title }: LayoutProps) {
               role="dialog"
               aria-modal="true"
               aria-label="Ceremonial hall"
-              className="max-w-lg rounded-3xl border border-blue-200 bg-white p-8 text-center shadow-2xl dark:border-blue-900 dark:bg-slate-900"
+              className="max-w-lg rounded-3xl border border-blue-200 bg-white p-5 text-center shadow-2xl sm:p-8 dark:border-blue-900 dark:bg-slate-900"
             >
               <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-xl font-semibold text-white">
                 <img src={`${import.meta.env.BASE_URL}sit-icon.svg`} alt="SIT icon" className="h-full w-full object-cover" />
