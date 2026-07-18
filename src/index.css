@@ -71,7 +71,9 @@ pre {
 .native-output-long { max-height: 22rem; overflow: auto; }
 .native-copy-btn { border: 1px solid rgb(34 211 238 / .45); border-radius: 999px; background: rgb(8 47 73 / .62); color: rgb(165 243 252); font-size: .74rem; font-weight: 700; letter-spacing: .04em; padding: .32rem .72rem; transition: .2s; }
 .native-copy-btn:hover { border-color: rgb(34 211 238); background: rgb(14 116 144 / .55); }
-.native-copy-status { margin-top: .6rem; font-size: .75rem; color: rgb(125 211 252); }
+.native-copy-feedback { border: 1px solid transparent; border-radius: 999px; min-height: 2.1rem; display: inline-flex; align-items: center; justify-content: center; padding: .32rem .7rem; font-size: .68rem; font-weight: 700; letter-spacing: .02em; text-align: center; }
+.native-copy-feedback-success { border-color: rgb(110 231 183 / .55); background: rgb(6 78 59 / .62); color: rgb(209 250 229); }
+.native-copy-feedback-error { border-color: rgb(253 164 175 / .55); background: rgb(76 5 25 / .62); color: rgb(255 228 230); }
 .native-pill { border-radius: 999px; background: rgb(219 234 254); color: rgb(30 64 175); padding: .25rem .6rem; font-size: .75rem; font-weight: 600; }
 .native-tab { border: 1px solid rgb(203 213 225); border-radius: 999px; background: white; padding: .55rem .9rem; font-size: .875rem; font-weight: 600; color: rgb(51 65 85); }
 .native-tab-active { border-color: rgb(37 99 235); background: rgb(37 99 235); color: white; }
@@ -131,7 +133,8 @@ th, td { padding: 1rem; vertical-align: top; }
 
   .native-tab,
   .native-suggestions button,
-  .native-live {
+  .native-live,
+  .native-copy-feedback {
     min-height: 2.75rem;
     display: inline-flex;
     align-items: center;
@@ -188,5 +191,9 @@ th, td { padding: 1rem; vertical-align: top; }
     font-size: 0.62rem;
     letter-spacing: 0.08em;
     padding: 0.3rem 0.55rem;
+  }
+
+  .native-copy-feedback {
+    width: 100%;
   }
 }

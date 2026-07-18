@@ -25,6 +25,13 @@ const outputClassName = 'mt-3 min-h-32 overflow-auto rounded-[1.2rem] border bor
 const hintClassName = 'mt-3 rounded-[1.1rem] border border-slate-200/80 bg-slate-50/80 px-4 py-3 text-sm text-slate-600 shadow-sm dark:border-slate-700 dark:bg-slate-950/60 dark:text-slate-300'
 const actionButtonClassName = 'inline-flex min-h-11 items-center gap-1.5 rounded-full border border-slate-300 px-3 py-2 text-xs font-semibold text-slate-700 transition hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200'
 
+type CopyFeedbackTone = 'success' | 'error'
+type CopyFeedback = {
+  key: string
+  message: string
+  tone: CopyFeedbackTone
+}
+
 export default function PlaygroundPage() {
   const [activeTab, setActiveTab] = useState<Tab>('Encoder')
   const [encoderInput, setEncoderInput] = useState('CIAO')
@@ -36,6 +43,7 @@ export default function PlaygroundPage() {
   const [validatorInput, setValidatorInput] = useState('67678667')
   const [conversionCount, setConversionCount] = useState(0)
   const [statusMessage, setStatusMessage] = useState<string | null>(null)
+  const [copyFeedback, setCopyFeedback] = useState<CopyFeedback | null>(null)
 
   const encodedOutput = useMemo(() => encodeTextToSit(encoderInput), [encoderInput])
   const decodedOutput = useMemo(() => decodeSitToText(decoderInput), [decoderInput])
@@ -46,27 +54,61 @@ export default function PlaygroundPage() {
   const validation = useMemo(() => validateSit(validatorInput), [validatorInput])
 
   useEffect(() => {
-    if (!statusMessage) {
+    if (!copyFeedback) {
       return
     }
 
-    const timeout = window.setTimeout(() => setStatusMessage(null), 1800)
+    const timeout = window.setTimeout(() => setCopyFeedback(null), 1800)
     return () => window.clearTimeout(timeout)
-  }, [statusMessage])
+  }, [copyFeedback])
 
-  const handleCopy = async (value: string) => {
+  const handleCopy = async (value: string, copyKey: string) => {
+    const normalizedValue = value.trim()
+
+    if (!normalizedValue) {
+      setCopyFeedback({
+        key: copyKey,
+        message: 'Nothing to copy yet.',
+        tone: 'error',
+      })
+      return
+    }
+
     try {
       if (!navigator.clipboard?.writeText) {
         throw new Error('Clipboard unavailable')
       }
 
-      await navigator.clipboard.writeText(value)
-      setStatusMessage('Copied SIT payload to the clipboard.')
+      await navigator.clipboard.writeText(normalizedValue)
+      setCopyFeedback({
+        key: copyKey,
+        message: 'Copied. Ready to paste.',
+        tone: 'success',
+      })
     } catch {
-      setStatusMessage('Clipboard is unavailable, so the output is ready to copy manually.')
+      setCopyFeedback({
+        key: copyKey,
+        message: 'Clipboard blocked. Copy manually from the output.',
+        tone: 'error',
+      })
     }
 
     setConversionCount((value) => value + 1)
+  }
+
+  const renderCopyFeedback = (copyKey: string) => {
+    if (!copyFeedback || copyFeedback.key !== copyKey) {
+      return null
+    }
+
+    return (
+      <span
+        role="status"
+        className={`inline-flex min-h-11 w-full items-center justify-center rounded-full border px-3 py-2 text-xs font-semibold sm:w-auto ${copyFeedback.tone === 'success' ? 'border-emerald-300 bg-emerald-50 text-emerald-700 dark:border-emerald-800 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-rose-300 bg-rose-50 text-rose-700 dark:border-rose-800 dark:bg-rose-950/40 dark:text-rose-300'}`}
+      >
+        {copyFeedback.message}
+      </span>
+    )
   }
 
   const downloadFile = (value: string, filename: string) => {
@@ -156,9 +198,10 @@ export default function PlaygroundPage() {
                   </div>
                   <textarea value={encoderInput} onChange={(event) => setEncoderInput(event.target.value)} className={textareaClassName} spellCheck={false} />
                   <div className="mt-4 flex flex-wrap gap-3">
-                    <button type="button" onClick={() => handleCopy(encodedOutput)} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
+                    <button type="button" onClick={() => handleCopy(encodedOutput, 'encoder-input-copy')} className="inline-flex min-h-11 items-center gap-2 rounded-full bg-blue-600 px-4 py-2 text-sm font-semibold text-white transition hover:bg-blue-700">
                       <ClipboardDocumentIcon className="h-4 w-4" /> Copy SIT
                     </button>
+                    {renderCopyFeedback('encoder-input-copy')}
                     <button type="button" onClick={() => downloadFile(encodedOutput, 'sample.sit')} className="inline-flex min-h-11 items-center gap-2 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200">
                       <ArrowDownTrayIcon className="h-4 w-4" /> Download .sit
                     </button>
@@ -171,9 +214,10 @@ export default function PlaygroundPage() {
                       <h3 className="mt-1 text-base font-semibold text-slate-900 dark:text-white">SIT payload</h3>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => handleCopy(encodedOutput)} className={actionButtonClassName}>
+                      <button type="button" onClick={() => handleCopy(encodedOutput, 'encoder-output-copy')} className={actionButtonClassName}>
                         <ClipboardDocumentIcon className="h-3.5 w-3.5" /> Copy output
                       </button>
+                      {renderCopyFeedback('encoder-output-copy')}
                       <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Readable rows</span>
                     </div>
                   </div>
@@ -214,9 +258,10 @@ export default function PlaygroundPage() {
                       <h3 className="mt-1 text-base font-semibold text-slate-900 dark:text-white">Decoded text</h3>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => handleCopy(decodedOutput)} className={actionButtonClassName}>
+                      <button type="button" onClick={() => handleCopy(decodedOutput, 'decoder-output-copy')} className={actionButtonClassName}>
                         <ClipboardDocumentIcon className="h-3.5 w-3.5" /> Copy output
                       </button>
+                      {renderCopyFeedback('decoder-output-copy')}
                       <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Plain text</span>
                     </div>
                   </div>
@@ -258,9 +303,10 @@ export default function PlaygroundPage() {
                       <h3 className="mt-1 text-base font-semibold text-slate-900 dark:text-white">SIT</h3>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => handleCopy(binaryToSit)} className={actionButtonClassName}>
+                      <button type="button" onClick={() => handleCopy(binaryToSit, 'binary-to-sit-copy')} className={actionButtonClassName}>
                         <ClipboardDocumentIcon className="h-3.5 w-3.5" /> Copy output
                       </button>
+                      {renderCopyFeedback('binary-to-sit-copy')}
                       <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Symbolic</span>
                     </div>
                   </div>
@@ -283,9 +329,10 @@ export default function PlaygroundPage() {
                       <h3 className="mt-1 text-base font-semibold text-slate-900 dark:text-white">Binary</h3>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => handleCopy(sitToBinary)} className={actionButtonClassName}>
+                      <button type="button" onClick={() => handleCopy(sitToBinary, 'sit-to-binary-copy')} className={actionButtonClassName}>
                         <ClipboardDocumentIcon className="h-3.5 w-3.5" /> Copy output
                       </button>
+                      {renderCopyFeedback('sit-to-binary-copy')}
                       <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Bits</span>
                     </div>
                   </div>
@@ -326,9 +373,10 @@ export default function PlaygroundPage() {
                       <h3 className="mt-1 text-base font-semibold text-slate-900 dark:text-white">Batch SIT output</h3>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => handleCopy(batchToSit)} className={actionButtonClassName}>
+                      <button type="button" onClick={() => handleCopy(batchToSit, 'batch-to-sit-copy')} className={actionButtonClassName}>
                         <ClipboardDocumentIcon className="h-3.5 w-3.5" /> Copy output
                       </button>
+                      {renderCopyFeedback('batch-to-sit-copy')}
                       <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Structured blocks</span>
                     </div>
                   </div>
@@ -351,9 +399,10 @@ export default function PlaygroundPage() {
                       <h3 className="mt-1 text-base font-semibold text-slate-900 dark:text-white">Decoded text</h3>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => handleCopy(sitToBatch)} className={actionButtonClassName}>
+                      <button type="button" onClick={() => handleCopy(sitToBatch, 'sit-to-batch-copy')} className={actionButtonClassName}>
                         <ClipboardDocumentIcon className="h-3.5 w-3.5" /> Copy output
                       </button>
+                      {renderCopyFeedback('sit-to-batch-copy')}
                       <span className="rounded-full border border-slate-200 bg-white px-3 py-1 text-xs font-medium text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">Multi-line</span>
                     </div>
                   </div>
@@ -393,9 +442,10 @@ export default function PlaygroundPage() {
                       <h3 className="mt-1 text-base font-semibold text-slate-900 dark:text-white">Compliance report</h3>
                     </div>
                     <div className="flex items-center gap-2">
-                      <button type="button" onClick={() => handleCopy(`${validation.message}\n${validation.error}`)} className={actionButtonClassName}>
+                      <button type="button" onClick={() => handleCopy(`${validation.message}\n${validation.error}`, 'compliance-copy')} className={actionButtonClassName}>
                         <ClipboardDocumentIcon className="h-3.5 w-3.5" /> Copy output
                       </button>
+                      {renderCopyFeedback('compliance-copy')}
                       <span className={`rounded-full border px-3 py-1 text-xs font-medium ${validation.valid ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300'}`}>{validation.valid ? 'Compliant' : 'Review needed'}</span>
                     </div>
                   </div>

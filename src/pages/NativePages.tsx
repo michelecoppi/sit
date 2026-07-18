@@ -304,14 +304,30 @@ export function CharacterExplorerPage() {
 
 const modes = ['Native Encoder', 'Native Decoder', 'Semantic Explorer', 'Official Alphabet', 'Dictionary Explorer'] as const
 type Mode = (typeof modes)[number]
+type CopyFeedbackTarget = 'result' | 'canonical'
+type CopyFeedbackTone = 'success' | 'error'
+type NativeCopyFeedback = {
+  target: CopyFeedbackTarget
+  message: string
+  tone: CopyFeedbackTone
+}
 
 export function NativePlayground() {
   const [mode, setMode] = useState<Mode>('Native Encoder')
   const [value, setValue] = useState('HELLO')
   const [showCanonicalDecode, setShowCanonicalDecode] = useState(false)
-  const [copyStatus, setCopyStatus] = useState('')
+  const [copyFeedback, setCopyFeedback] = useState<NativeCopyFeedback | null>(null)
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
   const deferredValue = useDeferredValue(value)
+
+  useEffect(() => {
+    if (!copyFeedback) {
+      return
+    }
+
+    const timeout = window.setTimeout(() => setCopyFeedback(null), 1800)
+    return () => window.clearTimeout(timeout)
+  }, [copyFeedback])
 
   useEffect(() => {
     const input = inputRef.current
@@ -325,11 +341,15 @@ export function NativePlayground() {
     input.style.overflowY = input.scrollHeight > maxHeight ? 'auto' : 'hidden'
   }, [mode, value])
 
-  const handleCopy = async (text: string, label: string) => {
+  const handleCopy = async (text: string, label: string, target: CopyFeedbackTarget) => {
     const normalizedText = text.trim()
 
     if (!normalizedText) {
-      setCopyStatus('No output available to copy yet.')
+      setCopyFeedback({
+        target,
+        message: 'Nothing to copy yet.',
+        tone: 'error',
+      })
       return
     }
 
@@ -339,10 +359,33 @@ export function NativePlayground() {
       }
 
       await navigator.clipboard.writeText(normalizedText)
-      setCopyStatus(`${label} copied to clipboard.`)
+      setCopyFeedback({
+        target,
+        message: `${label} copied.`,
+        tone: 'success',
+      })
     } catch {
-      setCopyStatus('Clipboard unavailable. Select the output manually to copy it.')
+      setCopyFeedback({
+        target,
+        message: 'Clipboard blocked. Copy manually from the output.',
+        tone: 'error',
+      })
     }
+  }
+
+  const renderCopyFeedback = (target: CopyFeedbackTarget) => {
+    if (!copyFeedback || copyFeedback.target !== target) {
+      return null
+    }
+
+    return (
+      <span
+        role="status"
+        className={copyFeedback.tone === 'success' ? 'native-copy-feedback native-copy-feedback-success' : 'native-copy-feedback native-copy-feedback-error'}
+      >
+        {copyFeedback.message}
+      </span>
+    )
   }
 
   const output = useMemo(() => {
@@ -368,7 +411,7 @@ export function NativePlayground() {
 
   const setModeDefaults = (selectedMode: Mode) => {
     setMode(selectedMode)
-    setCopyStatus('')
+    setCopyFeedback(null)
     if (selectedMode === 'Native Decoder') {
       setValue('6667677667767676')
       return
@@ -448,16 +491,16 @@ export function NativePlayground() {
                   <button
                     type="button"
                     className="native-copy-btn"
-                    onClick={() => handleCopy(output, mode === 'Native Encoder' ? 'Encoded output' : 'Decoded output')}
+                    onClick={() => handleCopy(output, mode === 'Native Encoder' ? 'Encoded output' : 'Decoded output', 'result')}
                   >
                     Copy result
                   </button>
                 ) : null}
+                {renderCopyFeedback('result')}
                 <span className="text-xs opacity-70">Instant semantic resolution</span>
               </div>
             </div>
             <pre className="native-output native-output-long mt-2">{output || '-'}</pre>
-            {copyStatus ? <p role="status" className="native-copy-status">{copyStatus}</p> : null}
             {canonicalDecodeOutput ? (
               <>
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
@@ -466,10 +509,11 @@ export function NativePlayground() {
                     <button
                       type="button"
                       className="native-copy-btn"
-                      onClick={() => handleCopy(canonicalDecodeOutput, 'Canonical tokens')}
+                      onClick={() => handleCopy(canonicalDecodeOutput, 'Canonical tokens', 'canonical')}
                     >
                       Copy canonical
                     </button>
+                    {renderCopyFeedback('canonical')}
                     <span className="text-xs opacity-70">Diagnostic decode mode</span>
                   </div>
                 </div>
