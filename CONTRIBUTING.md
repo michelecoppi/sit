@@ -16,17 +16,34 @@ npm run dev      # vite dev server
 ```bash
 npm run build    # tsc -b && vite build — must pass
 npm test         # vitest run
-npm run lint      # oxlint
+npm run lint     # oxlint
 ```
 
 ## Conventions
 
-- No semicolons, single quotes, 2-space indent — match existing files.
+- Single quotes and 2-space indent — match existing files.
+- Avoid statement-ending semicolons in app code; keep surrounding file style
+  when editing TypeScript types/interfaces.
 - Encoding logic (the `6`/`7` mapping, grouping, validation) lives in
   `src/utils/`, framework-free, and needs a test. Don't put standard logic in
   components.
 - New route → lazy import in `src/App.tsx`.
 - Don't add a dependency for what a few lines of code can do.
+
+## API Integration Notes
+
+- This project works in standalone mode by default.
+- Optional SIT Core integration is enabled via `VITE_API_URL`.
+- If you touch profile/auth flows (`src/App.tsx` and `src/pages/ProfilePage.tsx`),
+  ensure behavior is correct both with and without `VITE_API_URL` configured.
+- Do not log, commit, or expose real auth tokens in code, tests, screenshots,
+  or issues.
+
+## Testing Expectations
+
+- UI/route changes should include or update relevant tests when practical.
+- Changes to API-dependent behavior should validate graceful fallback behavior
+  when API is unavailable.
 
 ## Tone
 

@@ -2,11 +2,27 @@
 
 ## Reporting a Legacy Vulnerability
 
-The SIT Standard has no backend, no auth, no database and no network calls —
-it's a static browser encoder/decoder. Report anything security-relevant
-anyway (XSS, dependency CVEs, build pipeline issues) via a
+The SIT Standard is primarily a static browser app, but it can optionally
+integrate with SIT Core through `VITE_API_URL` for authentication and profile
+lookup features. Report anything security-relevant anyway (XSS, dependency
+CVEs, token handling, OAuth flow issues, API integration risks, build pipeline
+issues) via a
 [private security advisory](../../security/advisories/new) on this repo.
 Do not open a public issue for it.
+
+## Scope
+
+Security reports are especially useful for:
+
+- Client-side XSS or injection vectors.
+- Unsafe handling of auth tokens in browser storage or URL parameters.
+- API misuse, CORS misconfiguration assumptions, or insecure transport usage
+  when `VITE_API_URL` is configured.
+- Dependency and supply-chain vulnerabilities.
+- CI/CD and deployment pipeline weaknesses.
+
+When reporting API-related issues, include the endpoint, expected behavior,
+observed behavior, and whether the issue occurs only with SIT Core enabled.
 
 ## Response
 
