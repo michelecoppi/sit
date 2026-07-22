@@ -1200,7 +1200,7 @@ function PublicLookup() {
 // ---------------------------------------------------------------------------
 
 export default function ProfilePage() {
-  const [tab, setTab] = useState<'public' | 'private'>('public')
+  const [tab, setTab] = useState<'public' | 'private'>('private')
   const { status, logout } = useAuth()
 
   const handleLogout = () => {
