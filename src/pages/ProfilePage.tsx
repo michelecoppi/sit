@@ -14,75 +14,13 @@ import {
   CodeBracketIcon,
   ArrowsRightLeftIcon,
 } from '@heroicons/react/24/outline'
+import AccountLinkSuccessModal from '../components/account/AccountLinkSuccessModal'
+import ConnectedAccountsCard from '../components/account/ConnectedAccountsCard'
+import LinkProviderModal from '../components/account/LinkProviderModal'
+import { AccountProvider, useAccount } from '../context/AccountContext'
+import type { LinkCodeResponse } from '../types/account'
+import type { ResearcherProfile } from '../types/profile'
 import { clearSitToken, getSitToken } from '../utils/authToken'
-
-// ---------------------------------------------------------------------------
-// Types — mirrors GET /api/profile/:researcherId response exactly
-// ---------------------------------------------------------------------------
-
-interface ResearcherProfile {
-  researcherId: string
-  displayName: string
-  rank: string
-  xp: number
-  level: number
-  preferredVersion: string
-  messagesEncoded: number
-  messagesDecoded: number
-  syteProcessed: number
-}
-
-interface MeProfile extends ResearcherProfile {
-  preferredLanguage: string
-  autoTranslation: boolean
-  createdAt: string
-  updatedAt: string
-}
-
-interface MeSummary {
-  achievementCount: number
-  linkedAccountCount: number
-  recentTranslationCount: number
-  lastTranslationAt: string | null
-}
-
-interface RecentTranslation {
-  id: number
-  messageId: string
-  guildId: string
-  channelId: string
-  sourceContent: string
-  decodedContent: string
-  detectedStandard: string
-  compliance: number
-  syteCount: number
-  createdAt: string
-}
-
-interface AchievementAward {
-  awardedAt: string
-  achievement: {
-    code: string
-    title: string
-    description: string
-    xpReward: number
-  }
-}
-
-interface LinkedAccount {
-  provider: string
-  providerId: string
-  createdAt: string
-  updatedAt: string
-}
-
-interface MeResponse {
-  profile: MeProfile
-  summary: MeSummary
-  recentTranslations: RecentTranslation[]
-  achievements: AchievementAward[]
-  linkedAccounts: LinkedAccount[]
-}
 
 type JwtPayload = {
   exp?: number
@@ -90,6 +28,8 @@ type JwtPayload = {
   sub?: string
   [key: string]: unknown
 }
+
+const DEFAULT_LINK_CODE_TTL_SECONDS = 10 * 60
 
 // ---------------------------------------------------------------------------
 // Demo data — matches the real API response shape
@@ -231,7 +171,7 @@ function LoginPrompt() {
       </div>
       <h3 className="mt-4 text-xl font-semibold text-slate-900 dark:text-slate-100">Private profile</h3>
       <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
-        Login with Discord to access your personal dashboard, achievements, translation history and full stats.
+        Sign in with an available provider to access your personal dashboard, achievements, translation history and full stats.
       </p>
       <button
         type="button"
@@ -247,7 +187,7 @@ function LoginPrompt() {
         <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
           <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.003.025.015.05.031.062a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
         </svg>
-        Login with Discord
+        Continue with Discord
       </button>
       {!import.meta.env.VITE_API_URL && (
         <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
@@ -310,58 +250,81 @@ function createTokenBackedProfile(payload: JwtPayload | null): ResearcherProfile
   }
 }
 
+function resolveLinkCodeTtl(response: LinkCodeResponse) {
+  if (typeof response.expiresInSeconds === 'number' && response.expiresInSeconds > 0) {
+    return Math.max(1, Math.floor(response.expiresInSeconds))
+  }
+
+  if (response.expiresAt) {
+    const expiryTime = new Date(response.expiresAt).getTime()
+    if (!Number.isNaN(expiryTime)) {
+      const remainingSeconds = Math.floor((expiryTime - Date.now()) / 1000)
+      return Math.max(1, remainingSeconds)
+    }
+  }
+
+  return DEFAULT_LINK_CODE_TTL_SECONDS
+}
+
 function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
   const token = getSitToken()
   const payload = decodeJwtPayload(token)
   const researcherId = getFirstStringClaim(payload, ['researcherId', 'researcher_id', 'sub'])
   const displayName = getFirstStringClaim(payload, ['displayName', 'name', 'preferred_username', 'username'])
-  const [meData, setMeData] = useState<MeResponse | null>(null)
-  const [isLoadingProfile, setIsLoadingProfile] = useState(false)
-  const [profileError, setProfileError] = useState<string | null>(null)
+  const { meData, providers, isLoading, profileError, providersError, refreshAll, refreshProvidersOnly, generateLinkCode } = useAccount()
+  const [actionProvider, setActionProvider] = useState<string | null>(null)
+  const [linkingProvider, setLinkingProvider] = useState<string | null>(null)
+  const [linkCode, setLinkCode] = useState<string | null>(null)
+  const [linkCodeTtlSeconds, setLinkCodeTtlSeconds] = useState(DEFAULT_LINK_CODE_TTL_SECONDS)
+  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
+  const [isLinkExpired, setIsLinkExpired] = useState(false)
+  const [successProvider, setSuccessProvider] = useState<string | null>(null)
+  const [linkError, setLinkError] = useState<string | null>(null)
+
+  const handleConnectProvider = async (providerName: string) => {
+    setActionProvider(providerName)
+    setLinkError(null)
+
+    try {
+      const result = await generateLinkCode(providerName)
+      setLinkingProvider(result.provider)
+      setLinkCode(result.code)
+      setLinkCodeTtlSeconds(resolveLinkCodeTtl(result))
+      setIsLinkExpired(false)
+      setIsLinkModalOpen(true)
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to start provider linking right now.'
+      setLinkError(message)
+    } finally {
+      setActionProvider(null)
+    }
+  }
 
   useEffect(() => {
-    const apiUrl = import.meta.env.VITE_API_URL
-    if (!apiUrl || !token) return
+    if (!isLinkModalOpen || !linkingProvider) return
 
-    let cancelled = false
-
-    const loadProfile = async () => {
-      setIsLoadingProfile(true)
-      setProfileError(null)
-
+    let active = true
+    const intervalId = window.setInterval(async () => {
       try {
-        const response = await fetch(`${apiUrl}/api/me`, {
-          headers: {
-            'Content-Type': 'application/json',
-            Authorization: `Bearer ${token}`,
-          },
-        })
+        const latestProviders = await refreshProvidersOnly()
+        const linkedProvider = latestProviders.find((provider) => provider.provider === linkingProvider)
 
-        if (!response.ok) {
-          throw new Error(`profile_${response.status}`)
-        }
-
-        const data: MeResponse = await response.json()
-        if (!cancelled) {
-          setMeData(data)
+        if (active && linkedProvider?.connected) {
+          setIsLinkModalOpen(false)
+          setSuccessProvider(linkingProvider)
+          setIsLinkExpired(false)
+          setLinkCode(null)
         }
       } catch {
-        if (!cancelled) {
-          setProfileError('Live profile data is currently unavailable. Showing token-based details only.')
-        }
-      } finally {
-        if (!cancelled) {
-          setIsLoadingProfile(false)
-        }
+        // Keep polling; refresh button and next poll can recover transient API issues.
       }
-    }
-
-    loadProfile()
+    }, 3000)
 
     return () => {
-      cancelled = true
+      active = false
+      window.clearInterval(intervalId)
     }
-  }, [token])
+  }, [isLinkModalOpen, linkingProvider, refreshProvidersOnly])
 
   const fallbackProfile = createTokenBackedProfile(payload)
   const liveProfile: ResearcherProfile | null = meData ? meData.profile : null
@@ -373,7 +336,7 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-5">
       {effectiveProfile && <ProfileCard profile={effectiveProfile} isDemo={!meData && !import.meta.env.VITE_API_URL} />}
 
-      {isLoadingProfile && (
+      {isLoading && (
         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
           Loading live profile data...
         </div>
@@ -440,28 +403,26 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
         </div>
       ) : null}
 
-      {meData?.linkedAccounts.length ? (
-        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Linked Accounts</h4>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2">
-            {meData.linkedAccounts.map((account) => (
-              <div key={`${account.provider}-${account.providerId}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
-                <p className="text-sm font-semibold uppercase text-slate-900 dark:text-slate-100">{account.provider}</p>
-                <p className="mt-1 font-mono text-xs text-slate-500 dark:text-slate-400">{account.providerId}</p>
-                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Linked {formatIsoDate(account.createdAt)}</p>
-              </div>
-            ))}
-          </div>
-        </div>
-      ) : null}
+      <ConnectedAccountsCard
+        providers={providers}
+        isLoading={isLoading}
+        error={linkError ?? providersError}
+        actionProvider={actionProvider}
+        onRefresh={() => {
+          void refreshAll()
+        }}
+        onConnect={(providerName) => {
+          void handleConnectProvider(providerName)
+        }}
+      />
 
       <div className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 p-8 shadow-sm dark:border-emerald-900 dark:bg-emerald-950/30">
         <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
           <CheckCircleIcon className="h-7 w-7" />
         </div>
-        <h3 className="mt-4 text-center text-xl font-semibold text-slate-900 dark:text-slate-100">Discord account connected</h3>
+        <h3 className="mt-4 text-center text-xl font-semibold text-slate-900 dark:text-slate-100">Researcher session active</h3>
         <p className="mx-auto mt-2 max-w-lg text-center text-sm text-slate-600 dark:text-slate-300">
-          Your session is active. Session details and access controls are available below.
+          Your SIT identity is active. Profile details and account access controls are available below.
         </p>
 
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -478,7 +439,49 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
           Log out
         </button>
       </div>
+
+      {linkingProvider && linkCode && (
+        <LinkProviderModal
+          provider={linkingProvider}
+          code={linkCode}
+          expiresInSeconds={linkCodeTtlSeconds}
+          isOpen={isLinkModalOpen}
+          isExpired={isLinkExpired}
+          onExpired={() => {
+            setIsLinkExpired(true)
+          }}
+          onGenerateNewCode={() => {
+            void handleConnectProvider(linkingProvider)
+          }}
+          onClose={() => {
+            setIsLinkModalOpen(false)
+            setIsLinkExpired(false)
+          }}
+        />
+      )}
+
+      {successProvider && (
+        <AccountLinkSuccessModal
+          provider={successProvider}
+          isOpen={Boolean(successProvider)}
+          onClose={() => {
+            setSuccessProvider(null)
+          }}
+        />
+      )}
     </motion.div>
+  )
+}
+
+function PrivateProfilePanel({ onLogout }: { onLogout: () => void }) {
+  const token = getSitToken()
+
+  if (!token) return <LoginPrompt />
+
+  return (
+    <AccountProvider token={token}>
+      <AuthenticatedDashboard onLogout={onLogout} />
+    </AccountProvider>
   )
 }
 
@@ -664,7 +667,7 @@ export default function ProfilePage() {
               Profiles
             </h1>
             <p className="mt-5 max-w-2xl text-lg leading-8 text-slate-600 dark:text-slate-300">
-              Look up any registered SIT researcher by ID, or access your private dashboard after authenticating with Discord.
+              Look up any registered SIT researcher by ID, or access your private identity dashboard after authentication.
             </p>
           </div>
           <div className="flex flex-col justify-center gap-5 bg-gradient-to-br from-blue-50 via-white to-slate-100 p-8 md:p-12 dark:from-slate-950 dark:via-slate-900 dark:to-blue-950">
@@ -712,7 +715,7 @@ export default function ProfilePage() {
         </motion.div>
       ) : (
         <motion.div key="private" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          {isAuthenticated ? <AuthenticatedDashboard onLogout={handleLogout} /> : <LoginPrompt />}
+          {isAuthenticated ? <PrivateProfilePanel onLogout={handleLogout} /> : <LoginPrompt />}
         </motion.div>
       )}
     </div>
