@@ -11,6 +11,7 @@ import {
   SparklesIcon,
   Bars3Icon,
   XMarkIcon,
+  UserCircleIcon,
 } from '@heroicons/react/24/outline'
 
 type LayoutProps = {
@@ -25,6 +26,7 @@ const navItems = [
   { href: '/roadmap', label: 'Roadmap', icon: MapIcon },
   { href: '/about', label: 'About', icon: InformationCircleIcon },
   { href: '/rfc', label: 'RFC', icon: AcademicCapIcon },
+  { href: '/profile', label: 'Profile', icon: UserCircleIcon },
 ]
 
 export default function Layout({ children, title }: LayoutProps) {

@@ -2,6 +2,16 @@ import { Suspense, lazy, useEffect } from 'react'
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
 import Layout from './components/Layout'
 
+// Handle OAuth redirect: backend sends FRONTEND_URL?token=JWT (outside the hash)
+const params = new URLSearchParams(window.location.search)
+const oauthToken = params.get('token')
+if (oauthToken) {
+  localStorage.setItem('sit_token', oauthToken)
+  // Remove the token from the URL without triggering a reload
+  const cleanUrl = window.location.pathname + window.location.hash
+  window.history.replaceState(null, '', cleanUrl)
+}
+
 const HomePage = lazy(() => import('./pages/HomePage'))
 const DocumentationPage = lazy(() => import('./pages/DocumentationPage'))
 const RoadmapPage = lazy(() => import('./pages/RoadmapPage'))
@@ -15,6 +25,7 @@ const PunctuationPage = lazy(() => import('./pages/NativePages').then((module) =
 const DictionaryPage = lazy(() => import('./pages/NativePages').then((module) => ({ default: module.DictionaryPage })))
 const SemanticPage = lazy(() => import('./pages/NativePages').then((module) => ({ default: module.SemanticPage })))
 const CharacterExplorerPage = lazy(() => import('./pages/NativePages').then((module) => ({ default: module.CharacterExplorerPage })))
+const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -46,6 +57,7 @@ function App() {
             <Route path="/dictionary" element={<DictionaryPage />} />
             <Route path="/semantic" element={<SemanticPage />} />
             <Route path="/explorer" element={<CharacterExplorerPage />} />
+            <Route path="/profile" element={<ProfilePage />} />
           </Routes>
         </Suspense>
       </Layout>
