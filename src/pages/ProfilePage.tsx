@@ -1,4 +1,4 @@
-import { useState, useRef } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   UserCircleIcon,
@@ -29,6 +29,65 @@ interface ResearcherProfile {
   messagesEncoded: number
   messagesDecoded: number
   syteProcessed: number
+}
+
+interface MeProfile extends ResearcherProfile {
+  preferredLanguage: string
+  autoTranslation: boolean
+  createdAt: string
+  updatedAt: string
+}
+
+interface MeSummary {
+  achievementCount: number
+  linkedAccountCount: number
+  recentTranslationCount: number
+  lastTranslationAt: string | null
+}
+
+interface RecentTranslation {
+  id: number
+  messageId: string
+  guildId: string
+  channelId: string
+  sourceContent: string
+  decodedContent: string
+  detectedStandard: string
+  compliance: number
+  syteCount: number
+  createdAt: string
+}
+
+interface AchievementAward {
+  awardedAt: string
+  achievement: {
+    code: string
+    title: string
+    description: string
+    xpReward: number
+  }
+}
+
+interface LinkedAccount {
+  provider: string
+  providerId: string
+  createdAt: string
+  updatedAt: string
+}
+
+interface MeResponse {
+  profile: MeProfile
+  summary: MeSummary
+  recentTranslations: RecentTranslation[]
+  achievements: AchievementAward[]
+  linkedAccounts: LinkedAccount[]
+}
+
+type JwtPayload = {
+  exp?: number
+  iat?: number
+  sub?: string
+  [key: string]: unknown
 }
 
 // ---------------------------------------------------------------------------
@@ -198,28 +257,226 @@ function LoginPrompt() {
   )
 }
 
-function AuthenticatedPrompt({ onLogout }: { onLogout: () => void }) {
+function decodeJwtPayload(token: string | null): JwtPayload | null {
+  if (!token) return null
+
+  const [, payload] = token.split('.')
+  if (!payload) return null
+
+  try {
+    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
+    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=')
+    const decoded = atob(padded)
+    return JSON.parse(decoded) as JwtPayload
+  } catch {
+    return null
+  }
+}
+
+function getFirstStringClaim(payload: JwtPayload | null, keys: string[]) {
+  if (!payload) return null
+  for (const key of keys) {
+    const value = payload[key]
+    if (typeof value === 'string' && value.trim()) return value
+  }
+  return null
+}
+
+function formatUnixTimestamp(value: unknown) {
+  if (typeof value !== 'number' || Number.isNaN(value)) return 'Not provided'
+  return new Date(value * 1000).toLocaleString()
+}
+
+function formatIsoDate(value: string | null | undefined) {
+  if (!value) return 'Not available'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Not available'
+  return date.toLocaleString()
+}
+
+function createTokenBackedProfile(payload: JwtPayload | null): ResearcherProfile | null {
+  const researcherId = getFirstStringClaim(payload, ['researcherId', 'researcher_id', 'sub'])
+  const displayName = getFirstStringClaim(payload, ['displayName', 'name', 'preferred_username', 'username'])
+  const preferredVersion = getFirstStringClaim(payload, ['preferredVersion', 'preferred_version'])
+
+  if (!researcherId && !displayName) return null
+
+  return {
+    ...DEMO_PROFILE,
+    researcherId: researcherId ?? 'SIT-UNKNOWN',
+    displayName: displayName ?? 'Authenticated Researcher',
+    preferredVersion: preferredVersion ?? DEMO_PROFILE.preferredVersion,
+  }
+}
+
+function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
+  const token = localStorage.getItem('sit_token')
+  const payload = decodeJwtPayload(token)
+  const researcherId = getFirstStringClaim(payload, ['researcherId', 'researcher_id', 'sub'])
+  const displayName = getFirstStringClaim(payload, ['displayName', 'name', 'preferred_username', 'username'])
+  const [meData, setMeData] = useState<MeResponse | null>(null)
+  const [isLoadingProfile, setIsLoadingProfile] = useState(false)
+  const [profileError, setProfileError] = useState<string | null>(null)
+
+  useEffect(() => {
+    const apiUrl = import.meta.env.VITE_API_URL
+    if (!apiUrl || !token) return
+
+    let cancelled = false
+
+    const loadProfile = async () => {
+      setIsLoadingProfile(true)
+      setProfileError(null)
+
+      try {
+        const response = await fetch(`${apiUrl}/api/me`, {
+          headers: {
+            'Content-Type': 'application/json',
+            Authorization: `Bearer ${token}`,
+          },
+        })
+
+        if (!response.ok) {
+          throw new Error(`profile_${response.status}`)
+        }
+
+        const data: MeResponse = await response.json()
+        if (!cancelled) {
+          setMeData(data)
+        }
+      } catch {
+        if (!cancelled) {
+          setProfileError('Live profile data is currently unavailable. Showing token-based details only.')
+        }
+      } finally {
+        if (!cancelled) {
+          setIsLoadingProfile(false)
+        }
+      }
+    }
+
+    loadProfile()
+
+    return () => {
+      cancelled = true
+    }
+  }, [token])
+
+  const fallbackProfile = createTokenBackedProfile(payload)
+  const liveProfile: ResearcherProfile | null = meData ? meData.profile : null
+  const effectiveProfile = liveProfile ?? fallbackProfile
+  const effectiveDisplayName = meData?.profile.displayName ?? displayName
+  const effectiveResearcherId = meData?.profile.researcherId ?? researcherId
+
   return (
-    <motion.div
-      initial={{ opacity: 0, y: 12 }}
-      animate={{ opacity: 1, y: 0 }}
-      transition={{ duration: 0.4 }}
-      className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 p-8 text-center shadow-sm dark:border-emerald-900 dark:bg-emerald-950/30"
-    >
-      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
-        <CheckCircleIcon className="h-7 w-7" />
+    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-5">
+      <div className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 p-8 shadow-sm dark:border-emerald-900 dark:bg-emerald-950/30">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
+          <CheckCircleIcon className="h-7 w-7" />
+        </div>
+        <h3 className="mt-4 text-center text-xl font-semibold text-slate-900 dark:text-slate-100">Discord account connected</h3>
+        <p className="mx-auto mt-2 max-w-lg text-center text-sm text-slate-600 dark:text-slate-300">
+          Your session is active. Private profile information is now available below.
+        </p>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <StatCard label="Display Name" value={effectiveDisplayName ?? 'Not available'} icon={UserCircleIcon} accent="blue" />
+          <StatCard label="Researcher ID" value={effectiveResearcherId ?? 'Not available'} icon={CodeBracketIcon} accent="violet" />
+          <StatCard label="Token Expires" value={formatUnixTimestamp(payload?.exp)} icon={LockClosedIcon} accent="emerald" />
+        </div>
+
+        <button
+          type="button"
+          onClick={onLogout}
+          className="mt-6 inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+        >
+          Log out
+        </button>
       </div>
-      <h3 className="mt-4 text-xl font-semibold text-slate-900 dark:text-slate-100">Discord account connected</h3>
-      <p className="mx-auto mt-2 max-w-sm text-sm text-slate-600 dark:text-slate-300">
-        Authentication token detected in your browser session. You are logged in.
-      </p>
-      <button
-        type="button"
-        onClick={onLogout}
-        className="mt-6 inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-      >
-        Log out
-      </button>
+
+      {isLoadingProfile && (
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+          Loading live profile data...
+        </div>
+      )}
+
+      {profileError && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
+          {profileError}
+        </div>
+      )}
+
+      {meData && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
+          <StatCard label="Achievements" value={meData.summary.achievementCount} icon={StarIcon} accent="amber" />
+          <StatCard label="Linked Accounts" value={meData.summary.linkedAccountCount} icon={UserCircleIcon} accent="blue" />
+          <StatCard label="Recent Translations" value={meData.summary.recentTranslationCount} icon={ArrowsRightLeftIcon} accent="violet" />
+          <StatCard label="Last Translation" value={formatIsoDate(meData.summary.lastTranslationAt)} icon={ChartBarIcon} accent="emerald" />
+        </div>
+      )}
+
+      {meData?.profile && (
+        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Preferences</h4>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            <StatCard label="Version" value={meData.profile.preferredVersion} icon={CodeBracketIcon} accent="blue" />
+            <StatCard label="Language" value={meData.profile.preferredLanguage.toUpperCase()} icon={BoltIcon} accent="violet" />
+            <StatCard label="Auto Translation" value={meData.profile.autoTranslation ? 'Enabled' : 'Disabled'} icon={CheckCircleIcon} accent="emerald" />
+            <StatCard label="Profile Updated" value={formatIsoDate(meData.profile.updatedAt)} icon={ArrowPathIcon} accent="amber" />
+          </div>
+        </div>
+      )}
+
+      {meData?.recentTranslations.length ? (
+        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Recent Translations</h4>
+          <div className="mt-4 space-y-3">
+            {meData.recentTranslations.slice(0, 5).map((entry) => (
+              <div key={entry.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                <div className="flex flex-wrap items-center justify-between gap-2">
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{entry.detectedStandard} · {entry.compliance}% compliance</p>
+                  <p className="text-xs text-slate-500 dark:text-slate-400">{formatIsoDate(entry.createdAt)}</p>
+                </div>
+                <p className="mt-2 font-mono text-xs text-slate-500 dark:text-slate-400">Message ID: {entry.messageId}</p>
+                <p className="mt-2 text-sm text-slate-600 dark:text-slate-300">{entry.decodedContent}</p>
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">{entry.syteCount.toLocaleString()} SYTE processed</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {meData?.achievements.length ? (
+        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Achievements</h4>
+          <div className="mt-4 space-y-3">
+            {meData.achievements.map((award) => (
+              <div key={`${award.achievement.code}-${award.awardedAt}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{award.achievement.title}</p>
+                <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{award.achievement.description}</p>
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">+{award.achievement.xpReward} XP · Awarded {formatIsoDate(award.awardedAt)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {meData?.linkedAccounts.length ? (
+        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Linked Accounts</h4>
+          <div className="mt-4 grid gap-3 sm:grid-cols-2">
+            {meData.linkedAccounts.map((account) => (
+              <div key={`${account.provider}-${account.providerId}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
+                <p className="text-sm font-semibold uppercase text-slate-900 dark:text-slate-100">{account.provider}</p>
+                <p className="mt-1 font-mono text-xs text-slate-500 dark:text-slate-400">{account.providerId}</p>
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">Linked {formatIsoDate(account.createdAt)}</p>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+
+      {effectiveProfile && <ProfileCard profile={effectiveProfile} isDemo={!meData && !import.meta.env.VITE_API_URL} />}
     </motion.div>
   )
 }
@@ -454,7 +711,7 @@ export default function ProfilePage() {
         </motion.div>
       ) : (
         <motion.div key="private" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          {isAuthenticated ? <AuthenticatedPrompt onLogout={handleLogout} /> : <LoginPrompt />}
+          {isAuthenticated ? <AuthenticatedDashboard onLogout={handleLogout} /> : <LoginPrompt />}
         </motion.div>
       )}
     </div>
