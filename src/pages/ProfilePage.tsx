@@ -14,6 +14,7 @@ import {
   CodeBracketIcon,
   ArrowsRightLeftIcon,
 } from '@heroicons/react/24/outline'
+import { clearSitToken, getSitToken } from '../utils/authToken'
 
 // ---------------------------------------------------------------------------
 // Types — mirrors GET /api/profile/:researcherId response exactly
@@ -310,7 +311,7 @@ function createTokenBackedProfile(payload: JwtPayload | null): ResearcherProfile
 }
 
 function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
-  const token = localStorage.getItem('sit_token')
+  const token = getSitToken()
   const payload = decodeJwtPayload(token)
   const researcherId = getFirstStringClaim(payload, ['researcherId', 'researcher_id', 'sub'])
   const displayName = getFirstStringClaim(payload, ['displayName', 'name', 'preferred_username', 'username'])
@@ -637,10 +638,10 @@ function PublicLookup() {
 
 export default function ProfilePage() {
   const [tab, setTab] = useState<'public' | 'private'>('public')
-  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(localStorage.getItem('sit_token')))
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getSitToken()))
 
   const handleLogout = () => {
-    localStorage.removeItem('sit_token')
+    clearSitToken()
     setIsAuthenticated(false)
   }
 
