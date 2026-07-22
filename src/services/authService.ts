@@ -33,7 +33,7 @@ export async function createLoginTicket(provider: 'telegram'): Promise<CreateLog
   const payload = await parseResponsePayload(response)
 
   if (!response.ok) {
-    throwApiError(response.status, payload, 'Unable to generate a login ticket right now.')
+    throwApiError(response.status, payload, 'Unable to generate a login ticket right now.', false)
   }
 
   const ticket = typeof (payload as { ticket?: unknown })?.ticket === 'string'
@@ -67,7 +67,7 @@ export async function getLoginStatus(ticket: string): Promise<LoginStatusRespons
   const payload = await parseResponsePayload(response)
 
   if (!response.ok) {
-    throwApiError(response.status, payload, 'Unable to verify login status right now.')
+    throwApiError(response.status, payload, 'Unable to verify login status right now.', false)
   }
 
   const status = normalizeTicketStatus((payload as { status?: unknown })?.status)

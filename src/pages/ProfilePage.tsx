@@ -356,6 +356,7 @@ function LoginPrompt() {
     setOauthError(null)
 
     try {
+      sessionStorage.removeItem(TELEGRAM_LOGIN_TICKET_STORAGE_KEY)
       prepareOAuthBridgeToken()
       window.location.href = getDiscordLoginUrl()
     } catch (error) {
@@ -634,6 +635,7 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
     if (providerName === 'discord') {
       clearAuthError()
       setLinkError(null)
+      sessionStorage.removeItem(TELEGRAM_LOGIN_TICKET_STORAGE_KEY)
       prepareOAuthBridgeToken()
       window.location.href = getDiscordLoginUrl()
       return
