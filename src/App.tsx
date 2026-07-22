@@ -2,14 +2,47 @@ import { Suspense, lazy, useEffect } from 'react'
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
 import Layout from './components/Layout'
 
-// Handle OAuth redirect: backend sends FRONTEND_URL?token=JWT (outside the hash)
-const params = new URLSearchParams(window.location.search)
-const oauthToken = params.get('token')
+const extractOAuthToken = () => {
+  const searchParams = new URLSearchParams(window.location.search)
+  const fromSearch = searchParams.get('token')
+  if (fromSearch) return fromSearch
+
+  const hash = window.location.hash
+  const hashQueryIndex = hash.indexOf('?')
+  if (hashQueryIndex === -1) return null
+
+  const hashParams = new URLSearchParams(hash.slice(hashQueryIndex + 1))
+  return hashParams.get('token')
+}
+
+const removeOAuthTokenFromUrl = () => {
+  const searchParams = new URLSearchParams(window.location.search)
+  if (searchParams.has('token')) {
+    searchParams.delete('token')
+  }
+
+  let cleanedHash = window.location.hash
+  const hashQueryIndex = cleanedHash.indexOf('?')
+  if (hashQueryIndex !== -1) {
+    const hashPath = cleanedHash.slice(0, hashQueryIndex)
+    const hashParams = new URLSearchParams(cleanedHash.slice(hashQueryIndex + 1))
+    if (hashParams.has('token')) {
+      hashParams.delete('token')
+      const hashQuery = hashParams.toString()
+      cleanedHash = hashQuery ? `${hashPath}?${hashQuery}` : hashPath
+    }
+  }
+
+  const search = searchParams.toString()
+  const cleanUrl = `${window.location.pathname}${search ? `?${search}` : ''}${cleanedHash}`
+  window.history.replaceState(null, '', cleanUrl)
+}
+
+// Handle OAuth redirect from both search params and hash-based routes.
+const oauthToken = extractOAuthToken()
 if (oauthToken) {
   localStorage.setItem('sit_token', oauthToken)
-  // Remove the token from the URL without triggering a reload
-  const cleanUrl = window.location.pathname + window.location.hash
-  window.history.replaceState(null, '', cleanUrl)
+  removeOAuthTokenFromUrl()
 }
 
 const HomePage = lazy(() => import('./pages/HomePage'))

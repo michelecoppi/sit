@@ -198,6 +198,32 @@ function LoginPrompt() {
   )
 }
 
+function AuthenticatedPrompt({ onLogout }: { onLogout: () => void }) {
+  return (
+    <motion.div
+      initial={{ opacity: 0, y: 12 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.4 }}
+      className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 p-8 text-center shadow-sm dark:border-emerald-900 dark:bg-emerald-950/30"
+    >
+      <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
+        <CheckCircleIcon className="h-7 w-7" />
+      </div>
+      <h3 className="mt-4 text-xl font-semibold text-slate-900 dark:text-slate-100">Discord account connected</h3>
+      <p className="mx-auto mt-2 max-w-sm text-sm text-slate-600 dark:text-slate-300">
+        Authentication token detected in your browser session. You are logged in.
+      </p>
+      <button
+        type="button"
+        onClick={onLogout}
+        className="mt-6 inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+      >
+        Log out
+      </button>
+    </motion.div>
+  )
+}
+
 // ---------------------------------------------------------------------------
 // Public profile lookup form
 // ---------------------------------------------------------------------------
@@ -354,6 +380,12 @@ function PublicLookup() {
 
 export default function ProfilePage() {
   const [tab, setTab] = useState<'public' | 'private'>('public')
+  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(localStorage.getItem('sit_token')))
+
+  const handleLogout = () => {
+    localStorage.removeItem('sit_token')
+    setIsAuthenticated(false)
+  }
 
   return (
     <div className="space-y-8">
@@ -422,7 +454,7 @@ export default function ProfilePage() {
         </motion.div>
       ) : (
         <motion.div key="private" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          <LoginPrompt />
+          {isAuthenticated ? <AuthenticatedPrompt onLogout={handleLogout} /> : <LoginPrompt />}
         </motion.div>
       )}
     </div>
