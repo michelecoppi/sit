@@ -49,7 +49,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         return null
       }
 
-      const message = error instanceof Error ? error.message : 'Sessione non valida o scaduta.'
+      const message = error instanceof Error ? error.message : 'Invalid or expired session.'
       setAuthError(message)
       setStatus(getSitToken() ? 'authenticated' : 'anonymous')
       return null

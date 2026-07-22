@@ -45,7 +45,7 @@ export function setUnauthorizedHandler(handler: ((message: string) => void) | nu
   unauthorizedHandler = handler
 }
 
-export function handleUnauthorizedSession(message = 'Sessione non valida o scaduta.') {
+export function handleUnauthorizedSession(message = 'Invalid or expired session.') {
   clearSitToken()
   unauthorizedHandler?.(message)
 }

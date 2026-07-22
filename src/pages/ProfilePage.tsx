@@ -248,7 +248,7 @@ function LoginPrompt() {
       const elapsed = Date.now() - startedAt
       if (elapsed > timeoutMs) {
         stopPolling(true)
-        setTelegramError('Timeout di verifica raggiunto. Genera un nuovo ticket Telegram.')
+        setTelegramError('Verification timeout reached. Generate a new Telegram ticket.')
         setTelegramStatus('cancelled')
         return
       }
@@ -285,7 +285,7 @@ function LoginPrompt() {
           }
           return
         }
-        setTelegramError('Errore temporaneo nel controllo ticket. Continuiamo a riprovare...')
+        setTelegramError('Temporary error while checking the ticket. Retrying...')
       }
     }
 
@@ -316,7 +316,7 @@ function LoginPrompt() {
       window.open(response.loginUrl, '_blank', 'noopener,noreferrer')
       startPolling(snapshot)
     } catch (error) {
-      setTelegramError(error instanceof Error ? error.message : 'Impossibile avviare il login Telegram.')
+      setTelegramError(error instanceof Error ? error.message : 'Unable to start Telegram login.')
     } finally {
       setTelegramLoading(false)
     }
@@ -361,7 +361,7 @@ function LoginPrompt() {
       window.location.href = getDiscordLoginUrl()
     } catch (error) {
       setDiscordLoading(false)
-      setOauthError(error instanceof Error ? error.message : 'Impossibile avviare il login Discord.')
+      setOauthError(error instanceof Error ? error.message : 'Unable to start Discord login.')
     }
   }
 
@@ -567,7 +567,7 @@ function getTranslationService(entry: RecentTranslation): Exclude<ServiceFilter,
 }
 
 function serviceLabel(service: ServiceFilter) {
-  if (service === 'all') return 'Tutti i servizi'
+  if (service === 'all') return 'All services'
   if (service === 'discord') return 'Discord'
   if (service === 'telegram') return 'Telegram'
   return service
@@ -698,7 +698,7 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
   const effectiveResearcherId = me?.profile.researcherId ?? researcherId
 
   const availableFilters = useMemo(() => {
-    const discovered = new Set<Exclude<ServiceFilter, 'all'>>()
+    const discovered = new Set<Exclude<ServiceFilter, 'all'>>(SUPPORTED_SERVICE_FILTERS)
 
     providers.forEach((provider) => {
       const normalized = normalizeService(provider.provider)
@@ -715,8 +715,12 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
       if (normalized) discovered.add(normalized)
     })
 
-    const sortedDiscovered = [...discovered].sort((a, b) => a.localeCompare(b))
-    return ['all', ...sortedDiscovered] as ServiceFilter[]
+    const discoveredList = [...discovered]
+    const extraFilters = discoveredList
+      .filter((service) => !SUPPORTED_SERVICE_FILTERS.includes(service))
+      .sort((a, b) => a.localeCompare(b))
+
+    return ['all', ...SUPPORTED_SERVICE_FILTERS, ...extraFilters] as ServiceFilter[]
   }, [me?.linkedAccounts, me?.recentTranslations, providers])
 
   useEffect(() => {
@@ -725,24 +729,41 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
     }
   }, [activeServiceFilter, availableFilters])
 
-  const filteredLinkedAccounts = useMemo(() => {
+  const linkedAccountsForFiltering = useMemo(() => {
     if (!me) return []
-    if (activeServiceFilter === 'all') return me.linkedAccounts
 
-    return me.linkedAccounts.filter((account) => normalizeService(account.provider) === activeServiceFilter)
-  }, [activeServiceFilter, me])
+    if (me.linkedAccounts.length) {
+      return me.linkedAccounts
+    }
+
+    return providers
+      .filter((provider) => provider.connected)
+      .map((provider) => ({
+        provider: provider.provider,
+        providerId: provider.username ?? provider.displayName ?? provider.provider,
+        createdAt: provider.connectedAt ?? '',
+        updatedAt: provider.connectedAt ?? '',
+      }))
+  }, [me, providers])
+
+  const filteredLinkedAccounts = useMemo(() => {
+    if (activeServiceFilter === 'all') return linkedAccountsForFiltering
+
+    return linkedAccountsForFiltering.filter((account) => normalizeService(account.provider) === activeServiceFilter)
+  }, [activeServiceFilter, linkedAccountsForFiltering])
+
+  const canFilterTranslationsByProvider = useMemo(() => {
+    if (!me?.recentTranslations.length) return false
+    return me.recentTranslations.some((entry) => getTranslationService(entry) !== null)
+  }, [me?.recentTranslations])
 
   const filteredRecentTranslations = useMemo(() => {
     if (!me) return []
     if (activeServiceFilter === 'all') return me.recentTranslations
+    if (!canFilterTranslationsByProvider) return me.recentTranslations
 
     return me.recentTranslations.filter((entry) => getTranslationService(entry) === activeServiceFilter)
-  }, [activeServiceFilter, me])
-
-  const hasProviderTaggedTranslations = useMemo(() => {
-    if (!me?.recentTranslations.length) return false
-    return me.recentTranslations.some((entry) => getTranslationService(entry) !== null)
-  }, [me?.recentTranslations])
+  }, [activeServiceFilter, canFilterTranslationsByProvider, me])
 
   const filteredStats = useMemo(() => {
     if (!me) return null
@@ -776,8 +797,8 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
         <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <div className="flex flex-wrap items-center justify-between gap-3">
             <div>
-              <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100">Filtro statistiche per servizio</h4>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Espandibile a nuovi provider appena il backend li espone.</p>
+              <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100">Service stats filter</h4>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Expandable to new providers as soon as the backend exposes them.</p>
             </div>
             <div className="flex flex-wrap items-center gap-2">
               {availableFilters.map((filterValue) => (
@@ -797,9 +818,9 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
             </div>
           </div>
 
-          {activeServiceFilter !== 'all' && !hasProviderTaggedTranslations && (
+          {activeServiceFilter !== 'all' && !canFilterTranslationsByProvider && (
             <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
-              Le traduzioni recenti non includono ancora il campo provider: il filtro e applicato ai dati che espongono il servizio.
+              Recent translations do not include provider metadata yet. Translation stats are currently shown across all services.
             </p>
           )}
         </div>

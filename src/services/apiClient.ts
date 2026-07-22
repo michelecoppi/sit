@@ -13,16 +13,16 @@ export class ApiClientError extends Error {
 }
 
 const ERROR_MESSAGES: Record<string, string> = {
-  invalid_provider: 'Provider non supportato.',
-  missing_bearer_token: 'Effettua login per continuare.',
-  invalid_token: 'Sessione non valida, accedi di nuovo.',
-  provider_already_linked: 'Provider gia collegato a un profilo.',
-  invalid_code: 'Codice non valido.',
-  expired_code: 'Codice scaduto.',
-  invalid_login_ticket: 'Ticket di login non valido.',
-  expired_login_ticket: 'Ticket scaduto.',
-  used_login_ticket: 'Ticket gia usato.',
-  too_many_requests: 'Troppe richieste, riprova tra poco.',
+  invalid_provider: 'Unsupported provider.',
+  missing_bearer_token: 'Please sign in to continue.',
+  invalid_token: 'Invalid session, please sign in again.',
+  provider_already_linked: 'Provider already linked to a profile.',
+  invalid_code: 'Invalid code.',
+  expired_code: 'Expired code.',
+  invalid_login_ticket: 'Invalid login ticket.',
+  expired_login_ticket: 'Ticket expired.',
+  used_login_ticket: 'Ticket already used.',
+  too_many_requests: 'Too many requests, please try again shortly.',
 }
 
 function parseErrorCode(payload: unknown): string | null {

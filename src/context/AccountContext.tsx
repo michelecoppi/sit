@@ -51,7 +51,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
   const generateLinkCode = useCallback(async (provider: ProviderType) => {
     if (status !== 'authenticated') {
-      throw new Error('Effettua login per continuare.')
+      throw new Error('Please sign in to continue.')
     }
 
     const result = await linkProvider(token, provider)
