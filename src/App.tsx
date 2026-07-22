@@ -1,6 +1,7 @@
 import { Suspense, lazy, useEffect } from 'react'
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
 import Layout from './components/Layout'
+import { setSitToken } from './utils/authToken'
 
 const extractOAuthToken = () => {
   const searchParams = new URLSearchParams(window.location.search)
@@ -41,7 +42,7 @@ const removeOAuthTokenFromUrl = () => {
 // Handle OAuth redirect from both search params and hash-based routes.
 const oauthToken = extractOAuthToken()
 if (oauthToken) {
-  localStorage.setItem('sit_token', oauthToken)
+  setSitToken(oauthToken)
   removeOAuthTokenFromUrl()
 }
 
