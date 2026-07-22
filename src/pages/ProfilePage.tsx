@@ -566,6 +566,21 @@ function statisticsFilterLabel(filter: StatisticsFilter) {
   return filter
 }
 
+function registeredUsersLabel(filter: StatisticsFilter) {
+  if (filter === 'global') return 'Total Users'
+  return `Total Users on ${statisticsFilterLabel(filter)}`
+}
+
+function resolveRegisteredUsersCount(data: StatisticsSnapshotResponse) {
+  if (typeof data.registeredUsers === 'number') return data.registeredUsers
+  if (typeof data.users === 'number') return data.users
+  if (data.users && typeof data.users === 'object' && typeof data.users.countUsers === 'number') {
+    return data.users.countUsers
+  }
+
+  return data.snapshot.global.registeredUsers
+}
+
 function translationFilterLabel(filter: TranslationFilter) {
   if (filter === 'all') return 'All'
   if (filter === 'discord') return 'Discord'
@@ -578,7 +593,29 @@ function selectStatisticsSummary(
   selected: StatisticsFilter,
 ): StatisticsSummary | null {
   if (selected === 'global') {
-    return data.snapshot.global
+    const providerSummaries = data.providers
+      .map((provider) => data.snapshot.byProvider[provider])
+      .filter((summary): summary is StatisticsSummary => Boolean(summary))
+
+    if (!providerSummaries.length) {
+      return data.snapshot.global
+    }
+
+    return providerSummaries.reduce<StatisticsSummary>((accumulator, summary) => ({
+      registeredUsers: resolveRegisteredUsersCount(data),
+      totalMessages: accumulator.totalMessages + summary.totalMessages,
+      totalEncodings: accumulator.totalEncodings + summary.totalEncodings,
+      totalDecodings: accumulator.totalDecodings + summary.totalDecodings,
+      totalSyte: accumulator.totalSyte + summary.totalSyte,
+      mostActiveUser: data.snapshot.global.mostActiveUser,
+    }), {
+      registeredUsers: resolveRegisteredUsersCount(data),
+      totalMessages: 0,
+      totalEncodings: 0,
+      totalDecodings: 0,
+      totalSyte: 0,
+      mostActiveUser: data.snapshot.global.mostActiveUser,
+    })
   }
 
   return data.snapshot.byProvider[selected] ?? null
@@ -852,7 +889,7 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
 
       {selectedStatsSummary && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatCard label="Registered Users" value={selectedStatsSummary.registeredUsers} icon={UserCircleIcon} accent="blue" />
+          <StatCard label={registeredUsersLabel(activeStatisticsFilter)} value={selectedStatsSummary.registeredUsers} icon={UserCircleIcon} accent="blue" />
           <StatCard label="Total Messages" value={selectedStatsSummary.totalMessages} icon={ChatBubbleLeftRightIcon} accent="violet" />
           <StatCard label="Total Encodings" value={selectedStatsSummary.totalEncodings} icon={CodeBracketIcon} accent="emerald" />
           <StatCard label="Total Decodings" value={selectedStatsSummary.totalDecodings} icon={ArrowsRightLeftIcon} accent="amber" />

@@ -10,6 +10,10 @@ export interface StatisticsSummary {
 }
 
 export interface StatisticsSnapshotResponse {
+  registeredUsers?: number
+  users?: number | {
+    countUsers?: number
+  }
   providers: StatisticsProvider[]
   snapshot: {
     global: StatisticsSummary

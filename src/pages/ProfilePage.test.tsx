@@ -118,14 +118,15 @@ vi.mock('../context/AccountContext', () => ({
 describe('ProfilePage', () => {
   it('uses statistics snapshot and switches between global and provider summaries', async () => {
     mockGetStatisticsSnapshot.mockResolvedValue({
+      users: { countUsers: 4 },
       providers: ['discord', 'telegram'],
       snapshot: {
         global: {
           registeredUsers: 12,
-          totalMessages: 340,
-          totalEncodings: 120,
-          totalDecodings: 210,
-          totalSyte: 5820,
+          totalMessages: 999,
+          totalEncodings: 999,
+          totalDecodings: 999,
+          totalSyte: 999,
           mostActiveUser: 'Alice',
         },
         byProvider: {
@@ -161,7 +162,7 @@ describe('ProfilePage', () => {
     expect(screen.getAllByRole('button', { name: 'Discord' }).length).toBeGreaterThan(0)
     expect(screen.getAllByRole('button', { name: 'Telegram' }).length).toBeGreaterThan(0)
 
-    expect(screen.getByText('12')).toBeInTheDocument()
+    expect(screen.getByText('4')).toBeInTheDocument()
     expect(screen.getByText('340')).toBeInTheDocument()
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Discord' })[0])
@@ -175,14 +176,15 @@ describe('ProfilePage', () => {
 
   it('filters recent translations by provider', async () => {
     mockGetStatisticsSnapshot.mockResolvedValue({
+      users: { countUsers: 4 },
       providers: ['discord', 'telegram'],
       snapshot: {
         global: {
           registeredUsers: 12,
-          totalMessages: 340,
-          totalEncodings: 120,
-          totalDecodings: 210,
-          totalSyte: 5820,
+          totalMessages: 999,
+          totalEncodings: 999,
+          totalDecodings: 999,
+          totalSyte: 999,
           mostActiveUser: 'Alice',
         },
         byProvider: {
