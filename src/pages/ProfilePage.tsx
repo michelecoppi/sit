@@ -370,29 +370,7 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-5">
-      <div className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 p-8 shadow-sm dark:border-emerald-900 dark:bg-emerald-950/30">
-        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
-          <CheckCircleIcon className="h-7 w-7" />
-        </div>
-        <h3 className="mt-4 text-center text-xl font-semibold text-slate-900 dark:text-slate-100">Discord account connected</h3>
-        <p className="mx-auto mt-2 max-w-lg text-center text-sm text-slate-600 dark:text-slate-300">
-          Your session is active. Private profile information is now available below.
-        </p>
-
-        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatCard label="Display Name" value={effectiveDisplayName ?? 'Not available'} icon={UserCircleIcon} accent="blue" />
-          <StatCard label="Researcher ID" value={effectiveResearcherId ?? 'Not available'} icon={CodeBracketIcon} accent="violet" />
-          <StatCard label="Token Expires" value={formatUnixTimestamp(payload?.exp)} icon={LockClosedIcon} accent="emerald" />
-        </div>
-
-        <button
-          type="button"
-          onClick={onLogout}
-          className="mt-6 inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-        >
-          Log out
-        </button>
-      </div>
+      {effectiveProfile && <ProfileCard profile={effectiveProfile} isDemo={!meData && !import.meta.env.VITE_API_URL} />}
 
       {isLoadingProfile && (
         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
@@ -476,7 +454,29 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
         </div>
       ) : null}
 
-      {effectiveProfile && <ProfileCard profile={effectiveProfile} isDemo={!meData && !import.meta.env.VITE_API_URL} />}
+      <div className="rounded-[1.5rem] border border-emerald-200 bg-emerald-50 p-8 shadow-sm dark:border-emerald-900 dark:bg-emerald-950/30">
+        <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-emerald-100 text-emerald-600 dark:bg-emerald-900/40 dark:text-emerald-300">
+          <CheckCircleIcon className="h-7 w-7" />
+        </div>
+        <h3 className="mt-4 text-center text-xl font-semibold text-slate-900 dark:text-slate-100">Discord account connected</h3>
+        <p className="mx-auto mt-2 max-w-lg text-center text-sm text-slate-600 dark:text-slate-300">
+          Your session is active. Session details and access controls are available below.
+        </p>
+
+        <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <StatCard label="Display Name" value={effectiveDisplayName ?? 'Not available'} icon={UserCircleIcon} accent="blue" />
+          <StatCard label="Researcher ID" value={effectiveResearcherId ?? 'Not available'} icon={CodeBracketIcon} accent="violet" />
+          <StatCard label="Token Expires" value={formatUnixTimestamp(payload?.exp)} icon={LockClosedIcon} accent="emerald" />
+        </div>
+
+        <button
+          type="button"
+          onClick={onLogout}
+          className="mt-6 inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-5 py-2.5 text-sm font-semibold text-slate-700 shadow-sm transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+        >
+          Log out
+        </button>
+      </div>
     </motion.div>
   )
 }
