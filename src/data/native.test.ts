@@ -53,4 +53,9 @@ describe('native punctuation registry', () => {
     expect(nativeDecode(encoded)).toBe('@USER = VALUE | CODE\\FILE')
     expect(nativeDecode(encoded, { mode: 'canonical' })).toBe('ATSIGN USER EQUALSSIGN VALUE PIPE CODE BACKSLASH FILE')
   })
+
+  it('surfaces stray unregistered symbols as unknown tokens instead of dropping them', () => {
+    expect(nativeEncode('%')).toBe('[unknown:%]')
+    expect(nativeEncode('A % B')).toContain('[unknown:%]')
+  })
 })

@@ -1292,7 +1292,7 @@ const punctuationAliasPattern = Array.from(
   ),
 ).map((alias) => alias.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')).join('|')
 
-const nativeTokenPattern = new RegExp(`${punctuationAliasPattern}|[A-Za-z0-9]+|\S`, 'g')
+const nativeTokenPattern = new RegExp(`${punctuationAliasPattern}|[A-Za-z0-9]+|\\S`, 'g')
 const closingPunctuation = new Set([',', '.', ':', ';', '?', '!', '...', ')', ']', '}', '>'])
 const openingPunctuation = new Set(['(', '[', '{', '<', '@', '#'])
 const joinPunctuation = new Set(["'", '"', '-', '--', '/', '\\'])
