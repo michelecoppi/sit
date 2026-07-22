@@ -22,10 +22,12 @@ import LinkProviderModal from '../components/account/LinkProviderModal'
 import { AccountProvider, useAccount } from '../context/AccountContext'
 import { useAuth } from '../context/AuthContext'
 import { createLoginTicket, getDiscordLoginUrl, getLoginStatus } from '../services/authService'
+import { getStatisticsSnapshot } from '../services/profileService'
 import { ApiClientError } from '../services/apiClient'
 import type { LinkCodeResponse } from '../types/account'
 import type { TelegramLoginTicketSnapshot } from '../types/auth'
 import type { RecentTranslation, ResearcherProfile } from '../types/profile'
+import type { StatisticsSnapshotResponse, StatisticsSummary } from '../types/statistics'
 import { prepareOAuthBridgeToken } from '../utils/authToken'
 import { consumeOAuthCallbackError } from '../utils/oauthCallbackState'
 
@@ -43,7 +45,8 @@ const TELEGRAM_LOGIN_TICKET_STORAGE_KEY = 'sit_telegram_login_ticket'
 const OAUTH_DEBUG_STORAGE_KEY = 'sit_oauth_callback_debug'
 const SUPPORTED_SERVICE_FILTERS = ['discord', 'telegram'] as const
 
-type ServiceFilter = 'all' | (typeof SUPPORTED_SERVICE_FILTERS)[number]
+type ProviderFilter = string
+type ServiceFilter = 'global' | ProviderFilter
 
 function getPollIntervalMs() {
   const configured = Number(import.meta.env.VITE_LOGIN_POLL_INTERVAL_MS)
@@ -544,7 +547,7 @@ function resolveLinkCodeTtl(response: LinkCodeResponse) {
   return DEFAULT_LINK_CODE_TTL_SECONDS
 }
 
-function normalizeService(value: unknown): Exclude<ServiceFilter, 'all'> | null {
+function normalizeService(value: unknown): ProviderFilter | null {
   if (typeof value !== 'string') return null
   const normalized = value.trim().toLowerCase()
   if (normalized === 'discord') return 'discord'
@@ -552,7 +555,7 @@ function normalizeService(value: unknown): Exclude<ServiceFilter, 'all'> | null 
   return null
 }
 
-function getTranslationService(entry: RecentTranslation): Exclude<ServiceFilter, 'all'> | null {
+function getTranslationService(entry: RecentTranslation): ProviderFilter | null {
   const withService = entry as RecentTranslation & {
     provider?: unknown
     sourceProvider?: unknown
@@ -565,10 +568,21 @@ function getTranslationService(entry: RecentTranslation): Exclude<ServiceFilter,
 }
 
 function serviceLabel(service: ServiceFilter) {
-  if (service === 'all') return 'All services'
+  if (service === 'global') return 'Global'
   if (service === 'discord') return 'Discord'
   if (service === 'telegram') return 'Telegram'
   return service
+}
+
+function selectStatisticsSummary(
+  data: StatisticsSnapshotResponse,
+  selected: ServiceFilter,
+): StatisticsSummary | null {
+  if (selected === 'global') {
+    return data.snapshot.global
+  }
+
+  return data.snapshot.byProvider[selected] ?? null
 }
 
 function mapOAuthCallbackError(code: string) {
@@ -617,7 +631,10 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
   const [isLinkExpired, setIsLinkExpired] = useState(false)
   const [successProvider, setSuccessProvider] = useState<string | null>(null)
   const [linkError, setLinkError] = useState<string | null>(null)
-  const [activeServiceFilter, setActiveServiceFilter] = useState<ServiceFilter>('all')
+  const [activeServiceFilter, setActiveServiceFilter] = useState<ServiceFilter>('global')
+  const [statisticsSnapshot, setStatisticsSnapshot] = useState<StatisticsSnapshotResponse | null>(null)
+  const [statisticsLoading, setStatisticsLoading] = useState(false)
+  const [statisticsError, setStatisticsError] = useState<string | null>(null)
 
   useEffect(() => {
     const oauthCode = consumeOAuthCallbackError()
@@ -626,6 +643,36 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
     const debugHint = consumeOAuthCallbackDebugHint()
     setLinkError(debugHint ? `${baseError} ${debugHint}` : baseError)
   }, [])
+
+  useEffect(() => {
+    let mounted = true
+
+    const loadStatistics = async () => {
+      setStatisticsLoading(true)
+      setStatisticsError(null)
+
+      try {
+        const snapshot = await getStatisticsSnapshot(token)
+        if (mounted) {
+          setStatisticsSnapshot(snapshot)
+        }
+      } catch (error) {
+        if (mounted) {
+          setStatisticsError(error instanceof Error ? error.message : 'Unable to load statistics snapshot.')
+        }
+      } finally {
+        if (mounted) {
+          setStatisticsLoading(false)
+        }
+      }
+    }
+
+    void loadStatistics()
+
+    return () => {
+      mounted = false
+    }
+  }, [token])
 
   const handleConnectProvider = async (providerName: string) => {
     if (providerName === 'discord') {
@@ -694,7 +741,13 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
   const effectiveResearcherId = me?.profile.researcherId ?? researcherId
 
   const availableFilters = useMemo(() => {
-    const discovered = new Set<Exclude<ServiceFilter, 'all'>>(SUPPORTED_SERVICE_FILTERS)
+    const discovered = new Set<ProviderFilter>(SUPPORTED_SERVICE_FILTERS)
+    const supportedFiltersSet = new Set<string>(SUPPORTED_SERVICE_FILTERS)
+
+    statisticsSnapshot?.providers.forEach((provider) => {
+      const normalized = normalizeService(provider)
+      if (normalized) discovered.add(normalized)
+    })
 
     providers.forEach((provider) => {
       const normalized = normalizeService(provider.provider)
@@ -713,40 +766,22 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
 
     const discoveredList = [...discovered]
     const extraFilters = discoveredList
-      .filter((service) => !SUPPORTED_SERVICE_FILTERS.includes(service))
+      .filter((service) => !supportedFiltersSet.has(service))
       .sort((a, b) => a.localeCompare(b))
 
-    return ['all', ...SUPPORTED_SERVICE_FILTERS, ...extraFilters] as ServiceFilter[]
-  }, [me?.linkedAccounts, me?.recentTranslations, providers])
+    return ['global', ...SUPPORTED_SERVICE_FILTERS, ...extraFilters] as ServiceFilter[]
+  }, [me?.linkedAccounts, me?.recentTranslations, providers, statisticsSnapshot?.providers])
 
   useEffect(() => {
     if (!availableFilters.includes(activeServiceFilter)) {
-      setActiveServiceFilter('all')
+      setActiveServiceFilter('global')
     }
   }, [activeServiceFilter, availableFilters])
 
-  const linkedAccountsForFiltering = useMemo(() => {
-    if (!me) return []
-
-    if (me.linkedAccounts.length) {
-      return me.linkedAccounts
-    }
-
-    return providers
-      .filter((provider) => provider.connected)
-      .map((provider) => ({
-        provider: provider.provider,
-        providerId: provider.username ?? provider.displayName ?? provider.provider,
-        createdAt: provider.connectedAt ?? '',
-        updatedAt: provider.connectedAt ?? '',
-      }))
-  }, [me, providers])
-
-  const filteredLinkedAccounts = useMemo(() => {
-    if (activeServiceFilter === 'all') return linkedAccountsForFiltering
-
-    return linkedAccountsForFiltering.filter((account) => normalizeService(account.provider) === activeServiceFilter)
-  }, [activeServiceFilter, linkedAccountsForFiltering])
+  const selectedStatsSummary = useMemo(() => {
+    if (!statisticsSnapshot) return null
+    return selectStatisticsSummary(statisticsSnapshot, activeServiceFilter)
+  }, [activeServiceFilter, statisticsSnapshot])
 
   const canFilterTranslationsByProvider = useMemo(() => {
     if (!me?.recentTranslations.length) return false
@@ -755,35 +790,11 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
 
   const filteredRecentTranslations = useMemo(() => {
     if (!me) return []
-    if (activeServiceFilter === 'all') return me.recentTranslations
+    if (activeServiceFilter === 'global') return me.recentTranslations
     if (!canFilterTranslationsByProvider) return me.recentTranslations
 
     return me.recentTranslations.filter((entry) => getTranslationService(entry) === activeServiceFilter)
   }, [activeServiceFilter, canFilterTranslationsByProvider, me])
-
-  const filteredStats = useMemo(() => {
-    if (!me) return null
-
-    if (activeServiceFilter === 'all') {
-      return {
-        achievementCount: me.summary.achievementCount,
-        linkedAccountCount: me.summary.linkedAccountCount,
-        recentTranslationCount: me.summary.recentTranslationCount,
-        lastTranslationAt: me.summary.lastTranslationAt,
-      }
-    }
-
-    const lastTranslation = filteredRecentTranslations
-      .slice()
-      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
-
-    return {
-      achievementCount: me.summary.achievementCount,
-      linkedAccountCount: filteredLinkedAccounts.length,
-      recentTranslationCount: filteredRecentTranslations.length,
-      lastTranslationAt: lastTranslation?.createdAt ?? null,
-    }
-  }, [activeServiceFilter, filteredLinkedAccounts.length, filteredRecentTranslations, me])
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-5">
@@ -814,11 +825,23 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
             </div>
           </div>
 
-          {activeServiceFilter !== 'all' && !canFilterTranslationsByProvider && (
+          {activeServiceFilter !== 'global' && !canFilterTranslationsByProvider && (
             <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
               Recent translations do not include provider metadata yet. Translation stats are currently shown across all services.
             </p>
           )}
+        </div>
+      )}
+
+      {statisticsLoading && (
+        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+          Loading statistics snapshot...
+        </div>
+      )}
+
+      {statisticsError && (
+        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
+          {statisticsError}
         </div>
       )}
 
@@ -834,12 +857,14 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
         </div>
       )}
 
-      {me && filteredStats && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Achievements" value={filteredStats.achievementCount} icon={StarIcon} accent="amber" />
-          <StatCard label="Linked Accounts" value={filteredStats.linkedAccountCount} icon={UserCircleIcon} accent="blue" />
-          <StatCard label="Recent Translations" value={filteredStats.recentTranslationCount} icon={ArrowsRightLeftIcon} accent="violet" />
-          <StatCard label="Last Translation" value={formatIsoDate(filteredStats.lastTranslationAt)} icon={ChartBarIcon} accent="emerald" />
+      {selectedStatsSummary && (
+        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+          <StatCard label="Registered Users" value={selectedStatsSummary.registeredUsers} icon={UserCircleIcon} accent="blue" />
+          <StatCard label="Total Messages" value={selectedStatsSummary.totalMessages} icon={ChatBubbleLeftRightIcon} accent="violet" />
+          <StatCard label="Total Encodings" value={selectedStatsSummary.totalEncodings} icon={CodeBracketIcon} accent="emerald" />
+          <StatCard label="Total Decodings" value={selectedStatsSummary.totalDecodings} icon={ArrowsRightLeftIcon} accent="amber" />
+          <StatCard label="Total SYTE" value={selectedStatsSummary.totalSyte} icon={ChartBarIcon} accent="blue" />
+          <StatCard label="Most Active User" value={selectedStatsSummary.mostActiveUser || 'N/A'} icon={StarIcon} accent="violet" />
         </div>
       )}
 
