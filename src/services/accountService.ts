@@ -43,7 +43,7 @@ export async function getProviders(token: string): Promise<ConnectedAccount[]> {
   const payload = await parseResponsePayload(response)
 
   if (!response.ok) {
-    throwApiError(response.status, payload, 'Unable to load providers right now.')
+    throwApiError(response.status, payload, 'Unable to load providers right now.', false)
   }
 
   const accountPayload = payload as AccountProvidersResponse & Record<string, unknown>
@@ -86,7 +86,7 @@ export async function linkProvider(token: string, provider: ProviderType): Promi
   const payload = (await parseResponsePayload(response)) as Record<string, unknown> | null
 
   if (!response.ok) {
-    throwApiError(response.status, payload, 'Unable to generate a link code right now.')
+    throwApiError(response.status, payload, 'Unable to generate a link code right now.', false)
   }
 
   const code = typeof payload?.code === 'string' ? payload.code : ''
@@ -114,6 +114,6 @@ export async function disconnectProvider(token: string, provider: ProviderType):
   const payload = await parseResponsePayload(response)
 
   if (!response.ok) {
-    throwApiError(response.status, payload, 'Unable to disconnect provider right now.')
+    throwApiError(response.status, payload, 'Unable to disconnect provider right now.', false)
   }
 }

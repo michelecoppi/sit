@@ -5,11 +5,35 @@ import { useAuth } from './context/AuthContext'
 import { consumeOAuthBridgeToken, setSitToken } from './utils/authToken'
 
 const OAUTH_ERROR_STORAGE_KEY = 'sit_oauth_callback_error'
+const OAUTH_DEBUG_STORAGE_KEY = 'sit_oauth_callback_debug'
+
+function getFirstParamValue(params: URLSearchParams, keys: string[]) {
+  for (const key of keys) {
+    const value = params.get(key)
+    if (value && value.trim()) return value.trim()
+  }
+  return null
+}
+
+function extractTokenFromRawUrl(rawUrl: string) {
+  const pattern = /(?:\?|&|#)(?:token|access_token|jwt)=([^&#]+)/i
+  const match = rawUrl.match(pattern)
+  if (!match?.[1]) return null
+
+  try {
+    return decodeURIComponent(match[1]).trim()
+  } catch {
+    return match[1].trim()
+  }
+}
 
 const extractOAuthCallback = () => {
+  const tokenKeys = ['token', 'access_token', 'jwt']
+  const errorKeys = ['error', 'oauth_error']
+
   const searchParams = new URLSearchParams(window.location.search)
-  const fromSearch = searchParams.get('token')
-  const fromSearchError = searchParams.get('error')
+  const fromSearch = getFirstParamValue(searchParams, tokenKeys)
+  const fromSearchError = getFirstParamValue(searchParams, errorKeys)
   if (fromSearch || fromSearchError) {
     return {
       token: fromSearch,
@@ -19,19 +43,34 @@ const extractOAuthCallback = () => {
 
   const hash = window.location.hash
   const hashQueryIndex = hash.indexOf('?')
-  if (hashQueryIndex === -1) return { token: null, error: null }
+  if (hashQueryIndex !== -1) {
+    const hashParams = new URLSearchParams(hash.slice(hashQueryIndex + 1))
+    const fromHash = getFirstParamValue(hashParams, tokenKeys)
+    const fromHashError = getFirstParamValue(hashParams, errorKeys)
 
-  const hashParams = new URLSearchParams(hash.slice(hashQueryIndex + 1))
+    if (fromHash || fromHashError) {
+      return {
+        token: fromHash,
+        error: fromHashError,
+      }
+    }
+  }
+
+  const fromRawUrl = extractTokenFromRawUrl(window.location.href)
+
   return {
-    token: hashParams.get('token'),
-    error: hashParams.get('error'),
+    token: fromRawUrl,
+    error: null,
   }
 }
 
 const removeOAuthCallbackFromUrl = () => {
   const searchParams = new URLSearchParams(window.location.search)
   searchParams.delete('token')
+  searchParams.delete('access_token')
+  searchParams.delete('jwt')
   searchParams.delete('error')
+  searchParams.delete('oauth_error')
 
   let cleanedHash = window.location.hash
   const hashQueryIndex = cleanedHash.indexOf('?')
@@ -39,7 +78,10 @@ const removeOAuthCallbackFromUrl = () => {
     const hashPath = cleanedHash.slice(0, hashQueryIndex)
     const hashParams = new URLSearchParams(cleanedHash.slice(hashQueryIndex + 1))
     hashParams.delete('token')
+    hashParams.delete('access_token')
+    hashParams.delete('jwt')
     hashParams.delete('error')
+    hashParams.delete('oauth_error')
     const hashQuery = hashParams.toString()
     cleanedHash = hashQuery ? `${hashPath}?${hashQuery}` : hashPath
   }
@@ -82,6 +124,16 @@ function OAuthCallbackHandler() {
     if (!token && !error) return
 
     const bridgeToken = consumeOAuthBridgeToken()
+    const hasSearchParams = window.location.search.includes('=')
+    const hasHashQuery = window.location.hash.includes('?')
+
+    sessionStorage.setItem(OAUTH_DEBUG_STORAGE_KEY, JSON.stringify({
+      hasToken: Boolean(token),
+      hasError: Boolean(error),
+      hasSearchParams,
+      hasHashQuery,
+      hashPrefix: window.location.hash.slice(0, 24),
+    }))
 
     removeOAuthCallbackFromUrl()
 
@@ -118,6 +170,13 @@ export function consumeOAuthCallbackError() {
   if (!error) return null
   sessionStorage.removeItem(OAUTH_ERROR_STORAGE_KEY)
   return error
+}
+
+export function consumeOAuthCallbackDebug() {
+  const payload = sessionStorage.getItem(OAUTH_DEBUG_STORAGE_KEY)
+  if (!payload) return null
+  sessionStorage.removeItem(OAUTH_DEBUG_STORAGE_KEY)
+  return payload
 }
 
 function App() {

@@ -111,10 +111,10 @@ export function resolveApiErrorMessage(status: number, payload: unknown, fallbac
   }
 }
 
-export function throwApiError(status: number, payload: unknown, fallbackMessage: string): never {
+export function throwApiError(status: number, payload: unknown, fallbackMessage: string, clearSessionOnUnauthorized = true): never {
   const { message, code } = resolveApiErrorMessage(status, payload, fallbackMessage)
 
-  if (status === 401) {
+  if (status === 401 && clearSessionOnUnauthorized) {
     handleUnauthorizedSession(message)
   }
 

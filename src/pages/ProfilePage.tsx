@@ -40,6 +40,7 @@ const DEFAULT_LOGIN_POLL_INTERVAL_MS = 2000
 const DEFAULT_LOGIN_POLL_TIMEOUT_MS = 180000
 const TELEGRAM_LOGIN_TICKET_STORAGE_KEY = 'sit_telegram_login_ticket'
 const OAUTH_ERROR_STORAGE_KEY = 'sit_oauth_callback_error'
+const OAUTH_DEBUG_STORAGE_KEY = 'sit_oauth_callback_debug'
 const SUPPORTED_SERVICE_FILTERS = ['discord', 'telegram'] as const
 
 type ServiceFilter = 'all' | (typeof SUPPORTED_SERVICE_FILTERS)[number]
@@ -214,7 +215,9 @@ function LoginPrompt() {
     if (!code) return
 
     sessionStorage.removeItem(OAUTH_ERROR_STORAGE_KEY)
-    setOauthError(mapOAuthCallbackError(code))
+    const baseError = mapOAuthCallbackError(code)
+    const debugHint = consumeOAuthCallbackDebugHint()
+    setOauthError(debugHint ? `${baseError} ${debugHint}` : baseError)
   }
 
   const startPolling = (snapshot: TelegramLoginTicketSnapshot) => {
@@ -581,6 +584,26 @@ function mapOAuthCallbackError(code: string) {
   return 'Login Discord non completato. Riprova dal pulsante di accesso.'
 }
 
+function consumeOAuthCallbackDebugHint() {
+  const raw = sessionStorage.getItem(OAUTH_DEBUG_STORAGE_KEY)
+  if (!raw) return null
+
+  sessionStorage.removeItem(OAUTH_DEBUG_STORAGE_KEY)
+
+  try {
+    const data = JSON.parse(raw) as {
+      hasToken?: boolean
+      hasError?: boolean
+      hasSearchParams?: boolean
+      hasHashQuery?: boolean
+    }
+
+    return `Debug OAuth: token=${data.hasToken ? 'yes' : 'no'}, error=${data.hasError ? 'yes' : 'no'}, search=${data.hasSearchParams ? 'yes' : 'no'}, hashQuery=${data.hasHashQuery ? 'yes' : 'no'}.`
+  } catch {
+    return null
+  }
+}
+
 function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
   const { token, me, authError, clearAuthError } = useAuth()
   const payload = decodeJwtPayload(token)
@@ -602,7 +625,9 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
     if (!oauthCode) return
 
     sessionStorage.removeItem(OAUTH_ERROR_STORAGE_KEY)
-    setLinkError(mapOAuthCallbackError(oauthCode))
+    const baseError = mapOAuthCallbackError(oauthCode)
+    const debugHint = consumeOAuthCallbackDebugHint()
+    setLinkError(debugHint ? `${baseError} ${debugHint}` : baseError)
   }, [])
 
   const handleConnectProvider = async (providerName: string) => {
