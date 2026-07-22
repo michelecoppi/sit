@@ -2,6 +2,7 @@ import { Suspense, lazy, useEffect } from 'react'
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
 import Layout from './components/Layout'
 import { useAuth } from './context/AuthContext'
+import { consumeOAuthBridgeToken, setSitToken } from './utils/authToken'
 
 const OAUTH_ERROR_STORAGE_KEY = 'sit_oauth_callback_error'
 
@@ -80,20 +81,31 @@ function OAuthCallbackHandler() {
     const { token, error } = extractOAuthCallback()
     if (!token && !error) return
 
+    const bridgeToken = consumeOAuthBridgeToken()
+
     removeOAuthCallbackFromUrl()
 
     if (error) {
+      if (bridgeToken) {
+        setSitToken(bridgeToken)
+      }
       sessionStorage.setItem(OAUTH_ERROR_STORAGE_KEY, error)
       return
     }
 
     const normalizedToken = token?.trim() ?? ''
     if (!normalizedToken) {
+      if (bridgeToken) {
+        setSitToken(bridgeToken)
+      }
       sessionStorage.setItem(OAUTH_ERROR_STORAGE_KEY, 'missing_token')
       return
     }
 
     void completeLogin(normalizedToken).catch(() => {
+      if (bridgeToken) {
+        setSitToken(bridgeToken)
+      }
       sessionStorage.setItem(OAUTH_ERROR_STORAGE_KEY, 'invalid_token')
     })
   }, [completeLogin])

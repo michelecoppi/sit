@@ -26,6 +26,7 @@ import { ApiClientError } from '../services/apiClient'
 import type { LinkCodeResponse } from '../types/account'
 import type { TelegramLoginTicketSnapshot } from '../types/auth'
 import type { RecentTranslation, ResearcherProfile } from '../types/profile'
+import { prepareOAuthBridgeToken } from '../utils/authToken'
 
 type JwtPayload = {
   exp?: number
@@ -213,18 +214,7 @@ function LoginPrompt() {
     if (!code) return
 
     sessionStorage.removeItem(OAUTH_ERROR_STORAGE_KEY)
-
-    if (code === 'missing_token') {
-      setOauthError('Callback Discord non valida: token mancante. Riprova il login.')
-      return
-    }
-
-    if (code === 'invalid_token') {
-      setOauthError('Callback Discord completata ma token non valido. Effettua di nuovo il login.')
-      return
-    }
-
-    setOauthError('Login Discord non completato. Riprova dal pulsante di accesso.')
+    setOauthError(mapOAuthCallbackError(code))
   }
 
   const startPolling = (snapshot: TelegramLoginTicketSnapshot) => {
@@ -363,6 +353,7 @@ function LoginPrompt() {
     setOauthError(null)
 
     try {
+      prepareOAuthBridgeToken()
       window.location.href = getDiscordLoginUrl()
     } catch (error) {
       setDiscordLoading(false)
@@ -578,6 +569,18 @@ function serviceLabel(service: ServiceFilter) {
   return service
 }
 
+function mapOAuthCallbackError(code: string) {
+  if (code === 'missing_token') {
+    return 'Callback Discord non valida: token mancante. Riprova il login.'
+  }
+
+  if (code === 'invalid_token') {
+    return 'Callback Discord completata ma token non valido. Effettua di nuovo il login.'
+  }
+
+  return 'Login Discord non completato. Riprova dal pulsante di accesso.'
+}
+
 function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
   const { token, me, authError, clearAuthError } = useAuth()
   const payload = decodeJwtPayload(token)
@@ -594,10 +597,19 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
   const [linkError, setLinkError] = useState<string | null>(null)
   const [activeServiceFilter, setActiveServiceFilter] = useState<ServiceFilter>('all')
 
+  useEffect(() => {
+    const oauthCode = sessionStorage.getItem(OAUTH_ERROR_STORAGE_KEY)
+    if (!oauthCode) return
+
+    sessionStorage.removeItem(OAUTH_ERROR_STORAGE_KEY)
+    setLinkError(mapOAuthCallbackError(oauthCode))
+  }, [])
+
   const handleConnectProvider = async (providerName: string) => {
     if (providerName === 'discord') {
       clearAuthError()
       setLinkError(null)
+      prepareOAuthBridgeToken()
       window.location.href = getDiscordLoginUrl()
       return
     }
