@@ -47,9 +47,9 @@ export default function ConnectedAccountsCard({
 
       {!isLoading && !providers.length && !error && (
         <div className="mt-4 rounded-2xl border border-slate-200 bg-slate-50 px-4 py-3 text-sm text-slate-600 dark:border-slate-700 dark:bg-slate-800/40 dark:text-slate-300">
-          <p>No providers available for this identity yet.</p>
+          <p>No supported providers available for this identity yet.</p>
           <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">
-            Telegram is shown only when SIT Core returns it from /api/account/providers.
+            This dashboard currently supports Discord and Telegram only.
           </p>
         </div>
       )}

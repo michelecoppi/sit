@@ -13,6 +13,12 @@ import {
   throwApiError,
 } from './apiClient'
 
+const SUPPORTED_PROVIDERS = new Set(['discord', 'telegram'])
+
+function keepSupportedProviders(providers: ConnectedAccount[]) {
+  return providers.filter((provider) => SUPPORTED_PROVIDERS.has(provider.provider))
+}
+
 function getLinkCodeExpiry(payload: Record<string, unknown>) {
   const expiresAt = typeof payload.expiresAt === 'string' ? payload.expiresAt : null
 
@@ -43,14 +49,14 @@ export async function getProviders(token: string): Promise<ConnectedAccount[]> {
   const accountPayload = payload as AccountProvidersResponse & Record<string, unknown>
 
   if (Array.isArray(accountPayload.providers)) {
-    return accountPayload.providers.map(toConnectedAccount)
+    return keepSupportedProviders(accountPayload.providers.map(toConnectedAccount))
   }
 
   if (!payload || typeof payload !== 'object') {
     return []
   }
 
-  return Object.entries(payload).flatMap(([provider, connected]) => {
+  const mappedProviders = Object.entries(payload).flatMap(([provider, connected]) => {
     if (typeof connected !== 'boolean') return []
     return [
       toConnectedAccount({
@@ -60,6 +66,8 @@ export async function getProviders(token: string): Promise<ConnectedAccount[]> {
       }),
     ]
   })
+
+  return keepSupportedProviders(mappedProviders)
 }
 
 export async function refreshProviders(token: string): Promise<ConnectedAccount[]> {

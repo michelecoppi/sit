@@ -1,4 +1,4 @@
-import { useEffect, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   UserCircleIcon,
@@ -25,7 +25,7 @@ import { createLoginTicket, getDiscordLoginUrl, getLoginStatus } from '../servic
 import { ApiClientError } from '../services/apiClient'
 import type { LinkCodeResponse } from '../types/account'
 import type { TelegramLoginTicketSnapshot } from '../types/auth'
-import type { ResearcherProfile } from '../types/profile'
+import type { RecentTranslation, ResearcherProfile } from '../types/profile'
 
 type JwtPayload = {
   exp?: number
@@ -39,6 +39,9 @@ const DEFAULT_LOGIN_POLL_INTERVAL_MS = 2000
 const DEFAULT_LOGIN_POLL_TIMEOUT_MS = 180000
 const TELEGRAM_LOGIN_TICKET_STORAGE_KEY = 'sit_telegram_login_ticket'
 const OAUTH_ERROR_STORAGE_KEY = 'sit_oauth_callback_error'
+const SUPPORTED_SERVICE_FILTERS = ['discord', 'telegram'] as const
+
+type ServiceFilter = 'all' | (typeof SUPPORTED_SERVICE_FILTERS)[number]
 
 function getPollIntervalMs() {
   const configured = Number(import.meta.env.VITE_LOGIN_POLL_INTERVAL_MS)
@@ -379,7 +382,7 @@ function LoginPrompt() {
       </div>
       <h3 className="mt-4 text-center text-xl font-semibold text-slate-900 dark:text-slate-100">Private profile</h3>
       <p className="mx-auto mt-2 max-w-sm text-center text-sm text-slate-500 dark:text-slate-400">
-        Sign in with an available provider to access your personal dashboard, achievements, translation history and full stats.
+        Sign in with Discord or Telegram to access your personal dashboard, achievements, translation history and full stats.
       </p>
 
       <div className="mt-6 grid gap-3 sm:grid-cols-2">
@@ -548,6 +551,33 @@ function resolveLinkCodeTtl(response: LinkCodeResponse) {
   return DEFAULT_LINK_CODE_TTL_SECONDS
 }
 
+function normalizeService(value: unknown): Exclude<ServiceFilter, 'all'> | null {
+  if (typeof value !== 'string') return null
+  const normalized = value.trim().toLowerCase()
+  if (normalized === 'discord') return 'discord'
+  if (normalized === 'telegram') return 'telegram'
+  return null
+}
+
+function getTranslationService(entry: RecentTranslation): Exclude<ServiceFilter, 'all'> | null {
+  const withService = entry as RecentTranslation & {
+    provider?: unknown
+    sourceProvider?: unknown
+    service?: unknown
+  }
+
+  return normalizeService(withService.provider)
+    ?? normalizeService(withService.sourceProvider)
+    ?? normalizeService(withService.service)
+}
+
+function serviceLabel(service: ServiceFilter) {
+  if (service === 'all') return 'Tutti i servizi'
+  if (service === 'discord') return 'Discord'
+  if (service === 'telegram') return 'Telegram'
+  return service
+}
+
 function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
   const { token, me, authError, clearAuthError } = useAuth()
   const payload = decodeJwtPayload(token)
@@ -562,6 +592,7 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
   const [isLinkExpired, setIsLinkExpired] = useState(false)
   const [successProvider, setSuccessProvider] = useState<string | null>(null)
   const [linkError, setLinkError] = useState<string | null>(null)
+  const [activeServiceFilter, setActiveServiceFilter] = useState<ServiceFilter>('all')
 
   const handleConnectProvider = async (providerName: string) => {
     setActionProvider(providerName)
@@ -615,9 +646,113 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
   const effectiveDisplayName = me?.profile.displayName ?? displayName
   const effectiveResearcherId = me?.profile.researcherId ?? researcherId
 
+  const availableFilters = useMemo(() => {
+    const discovered = new Set<Exclude<ServiceFilter, 'all'>>()
+
+    providers.forEach((provider) => {
+      const normalized = normalizeService(provider.provider)
+      if (normalized) discovered.add(normalized)
+    })
+
+    me?.linkedAccounts.forEach((account) => {
+      const normalized = normalizeService(account.provider)
+      if (normalized) discovered.add(normalized)
+    })
+
+    me?.recentTranslations.forEach((translation) => {
+      const normalized = getTranslationService(translation)
+      if (normalized) discovered.add(normalized)
+    })
+
+    const sortedDiscovered = [...discovered].sort((a, b) => a.localeCompare(b))
+    return ['all', ...sortedDiscovered] as ServiceFilter[]
+  }, [me?.linkedAccounts, me?.recentTranslations, providers])
+
+  useEffect(() => {
+    if (!availableFilters.includes(activeServiceFilter)) {
+      setActiveServiceFilter('all')
+    }
+  }, [activeServiceFilter, availableFilters])
+
+  const filteredLinkedAccounts = useMemo(() => {
+    if (!me) return []
+    if (activeServiceFilter === 'all') return me.linkedAccounts
+
+    return me.linkedAccounts.filter((account) => normalizeService(account.provider) === activeServiceFilter)
+  }, [activeServiceFilter, me])
+
+  const filteredRecentTranslations = useMemo(() => {
+    if (!me) return []
+    if (activeServiceFilter === 'all') return me.recentTranslations
+
+    return me.recentTranslations.filter((entry) => getTranslationService(entry) === activeServiceFilter)
+  }, [activeServiceFilter, me])
+
+  const hasProviderTaggedTranslations = useMemo(() => {
+    if (!me?.recentTranslations.length) return false
+    return me.recentTranslations.some((entry) => getTranslationService(entry) !== null)
+  }, [me?.recentTranslations])
+
+  const filteredStats = useMemo(() => {
+    if (!me) return null
+
+    if (activeServiceFilter === 'all') {
+      return {
+        achievementCount: me.summary.achievementCount,
+        linkedAccountCount: me.summary.linkedAccountCount,
+        recentTranslationCount: me.summary.recentTranslationCount,
+        lastTranslationAt: me.summary.lastTranslationAt,
+      }
+    }
+
+    const lastTranslation = filteredRecentTranslations
+      .slice()
+      .sort((a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime())[0]
+
+    return {
+      achievementCount: me.summary.achievementCount,
+      linkedAccountCount: filteredLinkedAccounts.length,
+      recentTranslationCount: filteredRecentTranslations.length,
+      lastTranslationAt: lastTranslation?.createdAt ?? null,
+    }
+  }, [activeServiceFilter, filteredLinkedAccounts.length, filteredRecentTranslations, me])
+
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-5">
       {effectiveProfile && <ProfileCard profile={effectiveProfile} isDemo={!me && !import.meta.env.VITE_API_URL} />}
+
+      {me && (
+        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
+          <div className="flex flex-wrap items-center justify-between gap-3">
+            <div>
+              <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100">Filtro statistiche per servizio</h4>
+              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Espandibile a nuovi provider appena il backend li espone.</p>
+            </div>
+            <div className="flex flex-wrap items-center gap-2">
+              {availableFilters.map((filterValue) => (
+                <button
+                  key={filterValue}
+                  type="button"
+                  onClick={() => setActiveServiceFilter(filterValue)}
+                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
+                    activeServiceFilter === filterValue
+                      ? 'border-blue-600 bg-blue-600 text-white'
+                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
+                  }`}
+                >
+                  {serviceLabel(filterValue)}
+                </button>
+              ))}
+            </div>
+          </div>
+
+          {activeServiceFilter !== 'all' && !hasProviderTaggedTranslations && (
+            <p className="mt-3 rounded-xl border border-amber-200 bg-amber-50 px-3 py-2 text-xs text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
+              Le traduzioni recenti non includono ancora il campo provider: il filtro e applicato ai dati che espongono il servizio.
+            </p>
+          )}
+        </div>
+      )}
 
       {isLoading && (
         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
@@ -631,12 +766,12 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
         </div>
       )}
 
-      {me && (
+      {me && filteredStats && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Achievements" value={me.summary.achievementCount} icon={StarIcon} accent="amber" />
-          <StatCard label="Linked Accounts" value={me.summary.linkedAccountCount} icon={UserCircleIcon} accent="blue" />
-          <StatCard label="Recent Translations" value={me.summary.recentTranslationCount} icon={ArrowsRightLeftIcon} accent="violet" />
-          <StatCard label="Last Translation" value={formatIsoDate(me.summary.lastTranslationAt)} icon={ChartBarIcon} accent="emerald" />
+          <StatCard label="Achievements" value={filteredStats.achievementCount} icon={StarIcon} accent="amber" />
+          <StatCard label="Linked Accounts" value={filteredStats.linkedAccountCount} icon={UserCircleIcon} accent="blue" />
+          <StatCard label="Recent Translations" value={filteredStats.recentTranslationCount} icon={ArrowsRightLeftIcon} accent="violet" />
+          <StatCard label="Last Translation" value={formatIsoDate(filteredStats.lastTranslationAt)} icon={ChartBarIcon} accent="emerald" />
         </div>
       )}
 
@@ -652,11 +787,11 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
         </div>
       )}
 
-      {me?.recentTranslations.length ? (
+      {filteredRecentTranslations.length ? (
         <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Recent Translations</h4>
+          <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Recent Translations · {serviceLabel(activeServiceFilter)}</h4>
           <div className="mt-4 space-y-3">
-            {me.recentTranslations.slice(0, 5).map((entry) => (
+            {filteredRecentTranslations.slice(0, 5).map((entry) => (
               <div key={entry.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{entry.detectedStandard} · {entry.compliance}% compliance</p>

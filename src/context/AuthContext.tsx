@@ -51,6 +51,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (error) {
       const message = error instanceof Error ? error.message : 'Sessione non valida o scaduta.'
       setAuthError(message)
+      setStatus(getSitToken() ? 'authenticated' : 'anonymous')
       return null
     } finally {
       setIsBootstrapping(false)
@@ -76,10 +77,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     setStatus('loading')
     setAuthError(null)
 
-    const profile = await refreshMe()
-    if (!profile) {
-      throw new Error('Unable to bootstrap your authenticated session.')
-    }
+    await refreshMe()
   }, [refreshMe])
 
   const clearAuthError = useCallback(() => {
