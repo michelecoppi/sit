@@ -566,11 +566,6 @@ function statisticsFilterLabel(filter: StatisticsFilter) {
   return filter
 }
 
-function registeredUsersLabel(filter: StatisticsFilter) {
-  if (filter === 'global') return 'Total Users'
-  return `Total Users on ${statisticsFilterLabel(filter)}`
-}
-
 function resolveRegisteredUsersCount(data: StatisticsSnapshotResponse) {
   if (typeof data.registeredUsers === 'number') return data.registeredUsers
   if (typeof data.users === 'number') return data.users
@@ -798,6 +793,11 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
     return selectStatisticsSummary(statisticsSnapshot, activeStatisticsFilter)
   }, [activeStatisticsFilter, statisticsSnapshot])
 
+  const totalUsers = useMemo(() => {
+    if (!statisticsSnapshot) return null
+    return resolveRegisteredUsersCount(statisticsSnapshot)
+  }, [statisticsSnapshot])
+
   const filteredRecentTranslations = useMemo(() => {
     if (!me) return []
     if (activeTranslationFilter === 'all') return me.recentTranslations
@@ -889,7 +889,7 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
 
       {selectedStatsSummary && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatCard label={registeredUsersLabel(activeStatisticsFilter)} value={selectedStatsSummary.registeredUsers} icon={UserCircleIcon} accent="blue" />
+          <StatCard label="Total Users" value={totalUsers ?? selectedStatsSummary.registeredUsers} icon={UserCircleIcon} accent="blue" />
           <StatCard label="Total Messages" value={selectedStatsSummary.totalMessages} icon={ChatBubbleLeftRightIcon} accent="violet" />
           <StatCard label="Total Encodings" value={selectedStatsSummary.totalEncodings} icon={CodeBracketIcon} accent="emerald" />
           <StatCard label="Total Decodings" value={selectedStatsSummary.totalDecodings} icon={ArrowsRightLeftIcon} accent="amber" />
