@@ -449,7 +449,7 @@ export default function PlaygroundPage() {
                       <span className={`rounded-full border px-3 py-1 text-xs font-medium ${validation.valid ? 'border-emerald-200 bg-emerald-50 text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300' : 'border-rose-200 bg-rose-50 text-rose-700 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-300'}`}>{validation.valid ? 'Compliant' : 'Review needed'}</span>
                     </div>
                   </div>
-                  <pre className={outputClassName}>{validation.message}\n{validation.error}</pre>
+                  <pre className={outputClassName}>{`${validation.message}\n${validation.error}`}</pre>
                   <div className={hintClassName}>Only the symbols 6, 7, spaces, and line breaks are considered compliant within the SIT standard.</div>
                 </div>
               </div>
