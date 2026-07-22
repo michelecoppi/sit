@@ -595,6 +595,13 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
   const [activeServiceFilter, setActiveServiceFilter] = useState<ServiceFilter>('all')
 
   const handleConnectProvider = async (providerName: string) => {
+    if (providerName === 'discord') {
+      clearAuthError()
+      setLinkError(null)
+      window.location.href = getDiscordLoginUrl()
+      return
+    }
+
     setActionProvider(providerName)
     clearAuthError()
     setLinkError(null)

@@ -17,6 +17,8 @@ export default function ProviderCard({
   onConnect: (providerName: string) => void
 }) {
   const canConnect = !provider.connected && provider.status !== 'LOADING' && !isActionBusy
+  const isDiscord = provider.provider === 'discord'
+  const profileCaption = provider.displayName ?? provider.username ?? (provider.connected ? 'Account linked' : 'No linked profile yet')
 
   return (
     <div className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/40">
@@ -25,7 +27,7 @@ export default function ProviderCard({
           <ProviderAvatar provider={provider.provider} avatarUrl={provider.avatarUrl} displayName={provider.displayName} />
           <div className="min-w-0">
             <h5 className="text-sm font-semibold text-slate-900 dark:text-slate-100">{providerLabel(provider.provider)}</h5>
-            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{provider.displayName ?? provider.username ?? 'No linked profile yet'}</p>
+            <p className="mt-0.5 text-xs text-slate-500 dark:text-slate-400">{profileCaption}</p>
             {provider.connectedAt && (
               <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Connected since {new Date(provider.connectedAt).toLocaleDateString()}</p>
             )}
@@ -49,10 +51,12 @@ export default function ProviderCard({
             disabled={!canConnect}
             onClick={() => onConnect(provider.provider)}
             aria-label={`Connect ${providerLabel(provider.provider)}`}
-            className="inline-flex items-center gap-1.5 rounded-full bg-blue-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-blue-700 disabled:cursor-not-allowed disabled:opacity-50"
+            className={`inline-flex items-center gap-1.5 rounded-full px-3 py-1.5 text-xs font-semibold text-white transition disabled:cursor-not-allowed disabled:opacity-50 ${
+              isDiscord ? 'bg-[#5865F2] hover:bg-[#4752C4]' : 'bg-blue-600 hover:bg-blue-700'
+            }`}
           >
             <LinkIcon className="h-3.5 w-3.5" />
-            Connect
+            {isDiscord ? 'Continue with Discord' : 'Connect'}
           </button>
         )}
       </div>
