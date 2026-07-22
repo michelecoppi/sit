@@ -2,13 +2,13 @@ import { ChatBubbleLeftRightIcon, GlobeAltIcon, UserCircleIcon } from '@heroicon
 import type { ProviderType } from '../../types/account'
 
 const PROVIDER_STYLES: Record<string, string> = {
-  DISCORD: 'from-indigo-500 to-indigo-700',
-  TELEGRAM: 'from-sky-500 to-blue-700',
-  GITHUB: 'from-slate-700 to-slate-900',
-  GOOGLE: 'from-red-500 to-orange-500',
-  MICROSOFT: 'from-cyan-500 to-blue-700',
-  SLACK: 'from-fuchsia-500 to-violet-700',
-  MATRIX: 'from-emerald-500 to-teal-700',
+  discord: 'from-indigo-500 to-indigo-700',
+  telegram: 'from-sky-500 to-blue-700',
+  github: 'from-slate-700 to-slate-900',
+  google: 'from-red-500 to-orange-500',
+  microsoft: 'from-cyan-500 to-blue-700',
+  slack: 'from-fuchsia-500 to-violet-700',
+  matrix: 'from-emerald-500 to-teal-700',
 }
 
 function getProviderInitial(provider: ProviderType) {
@@ -16,8 +16,8 @@ function getProviderInitial(provider: ProviderType) {
 }
 
 function getProviderIcon(provider: ProviderType) {
-  if (provider === 'TELEGRAM') return ChatBubbleLeftRightIcon
-  if (provider === 'WEBSITE_CREDENTIALS') return UserCircleIcon
+  if (provider === 'telegram') return ChatBubbleLeftRightIcon
+  if (provider === 'website_credentials') return UserCircleIcon
   return GlobeAltIcon
 }
 

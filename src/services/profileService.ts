@@ -1,26 +1,18 @@
 import type { MeResponse } from '../types/profile'
-
-function getApiUrl() {
-  const apiUrl = import.meta.env.VITE_API_URL
-  if (!apiUrl) {
-    throw new Error('SIT Core is not configured.')
-  }
-  return apiUrl.replace(/\/+$/, '')
-}
+import { getApiUrl, getAuthHeaders, parseResponsePayload, throwApiError } from './apiClient'
 
 export async function getMe(token: string): Promise<MeResponse> {
   const apiUrl = getApiUrl()
   const response = await fetch(`${apiUrl}/api/me`, {
     method: 'GET',
-    headers: {
-      'Content-Type': 'application/json',
-      Authorization: `Bearer ${token}`,
-    },
+    headers: getAuthHeaders(token),
   })
 
+  const payload = await parseResponsePayload(response)
+
   if (!response.ok) {
-    throw new Error('Live profile data is currently unavailable. Showing token-based details only.')
+    throwApiError(response.status, payload, 'Live profile data is currently unavailable. Showing token-based details only.')
   }
 
-  return (await response.json()) as MeResponse
+  return payload as MeResponse
 }

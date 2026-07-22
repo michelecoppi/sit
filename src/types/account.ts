@@ -30,7 +30,8 @@ export interface LinkCodeResponse {
 }
 
 export interface AccountProvidersResponse {
-  providers: AccountProvider[]
+  providers?: AccountProvider[]
+  [provider: string]: unknown
 }
 
 export function normalizeProviderStatus(status: string | undefined, connected: boolean): ProviderStatus {
@@ -50,7 +51,7 @@ export function normalizeProviderStatus(status: string | undefined, connected: b
 }
 
 export function normalizeProviderName(provider: string): ProviderType {
-  return provider.trim().toUpperCase()
+  return provider.trim().toLowerCase()
 }
 
 export function toConnectedAccount(provider: AccountProvider): ConnectedAccount {

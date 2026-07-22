@@ -1,49 +1,51 @@
 import { Suspense, lazy, useEffect } from 'react'
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
 import Layout from './components/Layout'
-import { setSitToken } from './utils/authToken'
+import { useAuth } from './context/AuthContext'
 
-const extractOAuthToken = () => {
+const OAUTH_ERROR_STORAGE_KEY = 'sit_oauth_callback_error'
+
+const extractOAuthCallback = () => {
   const searchParams = new URLSearchParams(window.location.search)
   const fromSearch = searchParams.get('token')
-  if (fromSearch) return fromSearch
+  const fromSearchError = searchParams.get('error')
+  if (fromSearch || fromSearchError) {
+    return {
+      token: fromSearch,
+      error: fromSearchError,
+    }
+  }
 
   const hash = window.location.hash
   const hashQueryIndex = hash.indexOf('?')
-  if (hashQueryIndex === -1) return null
+  if (hashQueryIndex === -1) return { token: null, error: null }
 
   const hashParams = new URLSearchParams(hash.slice(hashQueryIndex + 1))
-  return hashParams.get('token')
+  return {
+    token: hashParams.get('token'),
+    error: hashParams.get('error'),
+  }
 }
 
-const removeOAuthTokenFromUrl = () => {
+const removeOAuthCallbackFromUrl = () => {
   const searchParams = new URLSearchParams(window.location.search)
-  if (searchParams.has('token')) {
-    searchParams.delete('token')
-  }
+  searchParams.delete('token')
+  searchParams.delete('error')
 
   let cleanedHash = window.location.hash
   const hashQueryIndex = cleanedHash.indexOf('?')
   if (hashQueryIndex !== -1) {
     const hashPath = cleanedHash.slice(0, hashQueryIndex)
     const hashParams = new URLSearchParams(cleanedHash.slice(hashQueryIndex + 1))
-    if (hashParams.has('token')) {
-      hashParams.delete('token')
-      const hashQuery = hashParams.toString()
-      cleanedHash = hashQuery ? `${hashPath}?${hashQuery}` : hashPath
-    }
+    hashParams.delete('token')
+    hashParams.delete('error')
+    const hashQuery = hashParams.toString()
+    cleanedHash = hashQuery ? `${hashPath}?${hashQuery}` : hashPath
   }
 
   const search = searchParams.toString()
   const cleanUrl = `${window.location.pathname}${search ? `?${search}` : ''}${cleanedHash}`
   window.history.replaceState(null, '', cleanUrl)
-}
-
-// Handle OAuth redirect from both search params and hash-based routes.
-const oauthToken = extractOAuthToken()
-if (oauthToken) {
-  setSitToken(oauthToken)
-  removeOAuthTokenFromUrl()
 }
 
 const HomePage = lazy(() => import('./pages/HomePage'))
@@ -71,9 +73,45 @@ function ScrollToTop() {
   return null
 }
 
+function OAuthCallbackHandler() {
+  const { completeLogin } = useAuth()
+
+  useEffect(() => {
+    const { token, error } = extractOAuthCallback()
+    if (!token && !error) return
+
+    removeOAuthCallbackFromUrl()
+
+    if (error) {
+      sessionStorage.setItem(OAUTH_ERROR_STORAGE_KEY, error)
+      return
+    }
+
+    const normalizedToken = token?.trim() ?? ''
+    if (!normalizedToken) {
+      sessionStorage.setItem(OAUTH_ERROR_STORAGE_KEY, 'missing_token')
+      return
+    }
+
+    void completeLogin(normalizedToken).catch(() => {
+      sessionStorage.setItem(OAUTH_ERROR_STORAGE_KEY, 'invalid_token')
+    })
+  }, [completeLogin])
+
+  return null
+}
+
+export function consumeOAuthCallbackError() {
+  const error = sessionStorage.getItem(OAUTH_ERROR_STORAGE_KEY)
+  if (!error) return null
+  sessionStorage.removeItem(OAUTH_ERROR_STORAGE_KEY)
+  return error
+}
+
 function App() {
   return (
     <HashRouter>
+      <OAuthCallbackHandler />
       <ScrollToTop />
       <Layout title="SIT Standard">
         <Suspense fallback={<div className="native-card">Loading SIT registry...</div>}>

@@ -6,37 +6,12 @@ import {
   normalizeProviderName,
   toConnectedAccount,
 } from '../types/account'
-
-function getApiUrl() {
-  const apiUrl = import.meta.env.VITE_API_URL
-  if (!apiUrl) {
-    throw new Error('SIT Core is not configured.')
-  }
-  return apiUrl.replace(/\/+$/, '')
-}
-
-function createAuthHeaders(token: string) {
-  return {
-    'Content-Type': 'application/json',
-    Authorization: `Bearer ${token}`,
-  }
-}
-
-function safeJsonParse<T>(value: string): T | null {
-  try {
-    return JSON.parse(value) as T
-  } catch {
-    return null
-  }
-}
-
-function mapApiError(status: number) {
-  if (status === 401) return 'Your session expired. Please log in again.'
-  if (status === 404) return 'Provider not available right now.'
-  if (status === 409) return 'This account is already linked.'
-  if (status >= 500) return 'SIT Core is temporarily unavailable. Please try again.'
-  return 'Unable to complete the request right now.'
-}
+import {
+  getApiUrl,
+  getAuthHeaders,
+  parseResponsePayload,
+  throwApiError,
+} from './apiClient'
 
 function getLinkCodeExpiry(payload: Record<string, unknown>) {
   const expiresAt = typeof payload.expiresAt === 'string' ? payload.expiresAt : null
@@ -56,19 +31,35 @@ export async function getProviders(token: string): Promise<ConnectedAccount[]> {
   const apiUrl = getApiUrl()
   const response = await fetch(`${apiUrl}/api/account/providers`, {
     method: 'GET',
-    headers: createAuthHeaders(token),
+    headers: getAuthHeaders(token),
   })
 
+  const payload = await parseResponsePayload(response)
+
   if (!response.ok) {
-    throw new Error(mapApiError(response.status))
+    throwApiError(response.status, payload, 'Unable to load providers right now.')
   }
 
-  const payload = (await response.json()) as AccountProvidersResponse
-  if (!Array.isArray(payload.providers)) {
+  const accountPayload = payload as AccountProvidersResponse & Record<string, unknown>
+
+  if (Array.isArray(accountPayload.providers)) {
+    return accountPayload.providers.map(toConnectedAccount)
+  }
+
+  if (!payload || typeof payload !== 'object') {
     return []
   }
 
-  return payload.providers.map(toConnectedAccount)
+  return Object.entries(payload).flatMap(([provider, connected]) => {
+    if (typeof connected !== 'boolean') return []
+    return [
+      toConnectedAccount({
+        provider,
+        connected,
+        status: connected ? 'CONNECTED' : 'NOT_CONNECTED',
+      }),
+    ]
+  })
 }
 
 export async function refreshProviders(token: string): Promise<ConnectedAccount[]> {
@@ -80,24 +71,22 @@ export async function linkProvider(token: string, provider: ProviderType): Promi
   const normalizedProvider = normalizeProviderName(provider)
   const response = await fetch(`${apiUrl}/api/account/link`, {
     method: 'POST',
-    headers: createAuthHeaders(token),
+    headers: getAuthHeaders(token),
     body: JSON.stringify({ provider: normalizedProvider }),
   })
 
-  const rawText = await response.text()
-  const payload = safeJsonParse<Record<string, unknown>>(rawText) ?? {}
+  const payload = (await parseResponsePayload(response)) as Record<string, unknown> | null
 
   if (!response.ok) {
-    const backendMessage = typeof payload.message === 'string' ? payload.message : null
-    throw new Error(backendMessage ?? mapApiError(response.status))
+    throwApiError(response.status, payload, 'Unable to generate a link code right now.')
   }
 
-  const code = typeof payload.code === 'string' ? payload.code : ''
+  const code = typeof payload?.code === 'string' ? payload.code : ''
   if (!code) {
     throw new Error('SIT Core did not return a valid link code.')
   }
 
-  const { expiresAt, expiresInSeconds } = getLinkCodeExpiry(payload)
+  const { expiresAt, expiresInSeconds } = getLinkCodeExpiry(payload ?? {})
   return {
     provider: normalizedProvider,
     code,
@@ -111,10 +100,12 @@ export async function disconnectProvider(token: string, provider: ProviderType):
   const normalizedProvider = normalizeProviderName(provider)
   const response = await fetch(`${apiUrl}/api/account/provider/${encodeURIComponent(normalizedProvider)}`, {
     method: 'DELETE',
-    headers: createAuthHeaders(token),
+    headers: getAuthHeaders(token),
   })
 
+  const payload = await parseResponsePayload(response)
+
   if (!response.ok) {
-    throw new Error(mapApiError(response.status))
+    throwApiError(response.status, payload, 'Unable to disconnect provider right now.')
   }
 }

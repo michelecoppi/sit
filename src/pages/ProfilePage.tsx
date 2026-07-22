@@ -9,6 +9,8 @@ import {
   ArrowPathIcon,
   CheckCircleIcon,
   ExclamationCircleIcon,
+  ChatBubbleLeftRightIcon,
+  XCircleIcon,
   LockClosedIcon,
   SparklesIcon,
   CodeBracketIcon,
@@ -18,9 +20,12 @@ import AccountLinkSuccessModal from '../components/account/AccountLinkSuccessMod
 import ConnectedAccountsCard from '../components/account/ConnectedAccountsCard'
 import LinkProviderModal from '../components/account/LinkProviderModal'
 import { AccountProvider, useAccount } from '../context/AccountContext'
+import { useAuth } from '../context/AuthContext'
+import { createLoginTicket, getDiscordLoginUrl, getLoginStatus } from '../services/authService'
+import { ApiClientError } from '../services/apiClient'
 import type { LinkCodeResponse } from '../types/account'
+import type { TelegramLoginTicketSnapshot } from '../types/auth'
 import type { ResearcherProfile } from '../types/profile'
-import { clearSitToken, getSitToken } from '../utils/authToken'
 
 type JwtPayload = {
   exp?: number
@@ -30,6 +35,22 @@ type JwtPayload = {
 }
 
 const DEFAULT_LINK_CODE_TTL_SECONDS = 10 * 60
+const DEFAULT_LOGIN_POLL_INTERVAL_MS = 2000
+const DEFAULT_LOGIN_POLL_TIMEOUT_MS = 180000
+const TELEGRAM_LOGIN_TICKET_STORAGE_KEY = 'sit_telegram_login_ticket'
+const OAUTH_ERROR_STORAGE_KEY = 'sit_oauth_callback_error'
+
+function getPollIntervalMs() {
+  const configured = Number(import.meta.env.VITE_LOGIN_POLL_INTERVAL_MS)
+  if (!Number.isFinite(configured) || configured <= 0) return DEFAULT_LOGIN_POLL_INTERVAL_MS
+  return configured
+}
+
+function getPollTimeoutMs() {
+  const configured = Number(import.meta.env.VITE_LOGIN_POLL_TIMEOUT_MS)
+  if (!Number.isFinite(configured) || configured <= 0) return DEFAULT_LOGIN_POLL_TIMEOUT_MS
+  return configured
+}
 
 // ---------------------------------------------------------------------------
 // Demo data — matches the real API response shape
@@ -159,38 +180,299 @@ function ProfileCard({ profile, isDemo = false }: { profile: ResearcherProfile; 
 // ---------------------------------------------------------------------------
 
 function LoginPrompt() {
+  const { completeLogin, authError, clearAuthError } = useAuth()
+  const [discordLoading, setDiscordLoading] = useState(false)
+  const [telegramLoading, setTelegramLoading] = useState(false)
+  const [telegramStatus, setTelegramStatus] = useState<'idle' | 'pending' | 'completed' | 'expired' | 'used' | 'cancelled'>('idle')
+  const [telegramError, setTelegramError] = useState<string | null>(null)
+  const [oauthError, setOauthError] = useState<string | null>(null)
+  const [ticketSnapshot, setTicketSnapshot] = useState<TelegramLoginTicketSnapshot | null>(null)
+  const [remainingSeconds, setRemainingSeconds] = useState(0)
+  const pollTimerRef = useRef<number | null>(null)
+  const countdownTimerRef = useRef<number | null>(null)
+
+  const stopPolling = (clearStoredTicket = false) => {
+    if (pollTimerRef.current) {
+      window.clearInterval(pollTimerRef.current)
+      pollTimerRef.current = null
+    }
+    if (countdownTimerRef.current) {
+      window.clearInterval(countdownTimerRef.current)
+      countdownTimerRef.current = null
+    }
+    if (clearStoredTicket) {
+      sessionStorage.removeItem(TELEGRAM_LOGIN_TICKET_STORAGE_KEY)
+    }
+  }
+
+  const recoverOauthError = () => {
+    const code = sessionStorage.getItem(OAUTH_ERROR_STORAGE_KEY)
+    if (!code) return
+
+    sessionStorage.removeItem(OAUTH_ERROR_STORAGE_KEY)
+
+    if (code === 'missing_token') {
+      setOauthError('Callback Discord non valida: token mancante. Riprova il login.')
+      return
+    }
+
+    if (code === 'invalid_token') {
+      setOauthError('Callback Discord completata ma token non valido. Effettua di nuovo il login.')
+      return
+    }
+
+    setOauthError('Login Discord non completato. Riprova dal pulsante di accesso.')
+  }
+
+  const startPolling = (snapshot: TelegramLoginTicketSnapshot) => {
+    if (ticketSnapshot?.ticket === snapshot.ticket && pollTimerRef.current) return
+
+    stopPolling(false)
+    clearAuthError()
+    setOauthError(null)
+    setTelegramError(null)
+    setTelegramStatus('pending')
+    setTicketSnapshot(snapshot)
+
+    const timeoutMs = getPollTimeoutMs()
+    const pollIntervalMs = getPollIntervalMs()
+    const startedAt = snapshot.startedAt
+    const expireAtMs = new Date(snapshot.expiresAt).getTime()
+
+    const tickCountdown = () => {
+      const remaining = Math.max(0, Math.floor((expireAtMs - Date.now()) / 1000))
+      setRemainingSeconds(remaining)
+      if (remaining <= 0) {
+        stopPolling(true)
+        setTelegramStatus('expired')
+      }
+    }
+
+    const pollOnce = async () => {
+      const elapsed = Date.now() - startedAt
+      if (elapsed > timeoutMs) {
+        stopPolling(true)
+        setTelegramError('Timeout di verifica raggiunto. Genera un nuovo ticket Telegram.')
+        setTelegramStatus('cancelled')
+        return
+      }
+
+      try {
+        const statusResponse = await getLoginStatus(snapshot.ticket)
+        if (statusResponse.status === 'COMPLETED') {
+          stopPolling(true)
+          setTelegramStatus('completed')
+          await completeLogin(statusResponse.token)
+          return
+        }
+
+        if (statusResponse.status === 'EXPIRED') {
+          stopPolling(true)
+          setTelegramStatus('expired')
+          return
+        }
+
+        if (statusResponse.status === 'USED') {
+          stopPolling(true)
+          setTelegramStatus('used')
+        }
+      } catch (error) {
+        if (error instanceof ApiClientError) {
+          setTelegramError(error.message)
+          if (error.code === 'expired_login_ticket') {
+            stopPolling(true)
+            setTelegramStatus('expired')
+          }
+          if (error.code === 'used_login_ticket') {
+            stopPolling(true)
+            setTelegramStatus('used')
+          }
+          return
+        }
+        setTelegramError('Errore temporaneo nel controllo ticket. Continuiamo a riprovare...')
+      }
+    }
+
+    tickCountdown()
+    void pollOnce()
+    countdownTimerRef.current = window.setInterval(tickCountdown, 1000)
+    pollTimerRef.current = window.setInterval(() => {
+      void pollOnce()
+    }, pollIntervalMs)
+  }
+
+  const createTelegramTicket = async () => {
+    setTelegramLoading(true)
+    setTelegramError(null)
+    clearAuthError()
+    setOauthError(null)
+
+    try {
+      const response = await createLoginTicket('telegram')
+      const snapshot: TelegramLoginTicketSnapshot = {
+        ticket: response.ticket,
+        loginUrl: response.loginUrl,
+        expiresAt: response.expiresAt,
+        startedAt: Date.now(),
+      }
+
+      sessionStorage.setItem(TELEGRAM_LOGIN_TICKET_STORAGE_KEY, JSON.stringify(snapshot))
+      window.open(response.loginUrl, '_blank', 'noopener,noreferrer')
+      startPolling(snapshot)
+    } catch (error) {
+      setTelegramError(error instanceof Error ? error.message : 'Impossibile avviare il login Telegram.')
+    } finally {
+      setTelegramLoading(false)
+    }
+  }
+
+  useEffect(() => {
+    recoverOauthError()
+
+    const rawTicket = sessionStorage.getItem(TELEGRAM_LOGIN_TICKET_STORAGE_KEY)
+    if (!rawTicket) return
+
+    try {
+      const snapshot = JSON.parse(rawTicket) as TelegramLoginTicketSnapshot
+      const expiresAt = new Date(snapshot.expiresAt).getTime()
+
+      if (Number.isNaN(expiresAt) || expiresAt <= Date.now()) {
+        sessionStorage.removeItem(TELEGRAM_LOGIN_TICKET_STORAGE_KEY)
+        return
+      }
+
+      startPolling(snapshot)
+    } catch {
+      sessionStorage.removeItem(TELEGRAM_LOGIN_TICKET_STORAGE_KEY)
+    }
+
+    return () => {
+      stopPolling(false)
+    }
+  }, [])
+
+  const formattedRemaining = `${String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:${String(remainingSeconds % 60).padStart(2, '0')}`
+
+  const handleDiscordLogin = () => {
+    setDiscordLoading(true)
+    clearAuthError()
+    setTelegramError(null)
+    setOauthError(null)
+
+    try {
+      window.location.href = getDiscordLoginUrl()
+    } catch (error) {
+      setDiscordLoading(false)
+      setOauthError(error instanceof Error ? error.message : 'Impossibile avviare il login Discord.')
+    }
+  }
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 12 }}
       animate={{ opacity: 1, y: 0 }}
       transition={{ duration: 0.4 }}
-      className="rounded-[1.5rem] border border-slate-200 bg-white p-8 text-center shadow-sm dark:border-slate-800 dark:bg-slate-900"
+      className="rounded-[1.5rem] border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900"
     >
       <div className="mx-auto flex h-14 w-14 items-center justify-center rounded-2xl bg-blue-50 text-blue-600 dark:bg-blue-950/40 dark:text-blue-300">
         <LockClosedIcon className="h-7 w-7" />
       </div>
-      <h3 className="mt-4 text-xl font-semibold text-slate-900 dark:text-slate-100">Private profile</h3>
-      <p className="mt-2 text-sm text-slate-500 dark:text-slate-400 max-w-sm mx-auto">
+      <h3 className="mt-4 text-center text-xl font-semibold text-slate-900 dark:text-slate-100">Private profile</h3>
+      <p className="mx-auto mt-2 max-w-sm text-center text-sm text-slate-500 dark:text-slate-400">
         Sign in with an available provider to access your personal dashboard, achievements, translation history and full stats.
       </p>
-      <button
-        type="button"
-        onClick={() => {
-          const apiUrl = import.meta.env.VITE_API_URL
-          if (apiUrl) {
-            window.location.href = `${apiUrl}/api/oauth/discord/login`
-          }
-        }}
-        disabled={!import.meta.env.VITE_API_URL}
-        className="mt-6 inline-flex items-center gap-2 rounded-full bg-[#5865F2] px-5 py-2.5 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4752C4] disabled:cursor-not-allowed disabled:opacity-40"
-      >
-        <svg className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor" aria-hidden="true">
-          <path d="M20.317 4.37a19.791 19.791 0 0 0-4.885-1.515.074.074 0 0 0-.079.037c-.21.375-.444.864-.608 1.25a18.27 18.27 0 0 0-5.487 0 12.64 12.64 0 0 0-.617-1.25.077.077 0 0 0-.079-.037A19.736 19.736 0 0 0 3.677 4.37a.07.07 0 0 0-.032.027C.533 9.046-.32 13.58.099 18.057c.003.025.015.05.031.062a19.9 19.9 0 0 0 5.993 3.03.078.078 0 0 0 .084-.028c.462-.63.874-1.295 1.226-1.994a.076.076 0 0 0-.041-.106 13.1 13.1 0 0 1-1.872-.892.077.077 0 0 1-.008-.128 10.2 10.2 0 0 0 .372-.292.074.074 0 0 1 .077-.01c3.928 1.793 8.18 1.793 12.062 0a.074.074 0 0 1 .078.01c.12.098.246.198.373.292a.077.077 0 0 1-.006.127 12.299 12.299 0 0 1-1.873.892.077.077 0 0 0-.041.107c.36.698.772 1.362 1.225 1.993a.076.076 0 0 0 .084.028 19.839 19.839 0 0 0 6.002-3.03.077.077 0 0 0 .032-.054c.5-5.177-.838-9.674-3.549-13.66a.061.061 0 0 0-.031-.03z" />
-        </svg>
-        Continue with Discord
-      </button>
+
+      <div className="mt-6 grid gap-3 sm:grid-cols-2">
+        <button
+          type="button"
+          onClick={handleDiscordLogin}
+          disabled={discordLoading || telegramLoading || !import.meta.env.VITE_API_URL}
+          className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#5865F2] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4752C4] disabled:cursor-not-allowed disabled:opacity-40"
+        >
+          {discordLoading ? <ArrowPathIcon className="h-4 w-4 animate-spin" /> : <CheckCircleIcon className="h-4 w-4" />}
+          Continua con Discord
+        </button>
+
+        <button
+          type="button"
+          onClick={() => {
+            void createTelegramTicket()
+          }}
+          disabled={telegramLoading || discordLoading || !import.meta.env.VITE_API_URL}
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-300 bg-sky-50 px-5 py-3 text-sm font-semibold text-sky-700 shadow-sm transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300 dark:hover:bg-sky-900/40"
+        >
+          {telegramLoading ? <ArrowPathIcon className="h-4 w-4 animate-spin" /> : <ChatBubbleLeftRightIcon className="h-4 w-4" />}
+          Continua con Telegram
+        </button>
+      </div>
+
+      {telegramStatus === 'pending' && ticketSnapshot && (
+        <div className="mt-5 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-800 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-300">
+          <p className="font-semibold">In attesa conferma su Telegram</p>
+          <p className="mt-1 break-all font-mono text-xs">Ticket: {ticketSnapshot.ticket}</p>
+          <p className="mt-2">Scade tra <span className="font-mono font-semibold">{formattedRemaining}</span></p>
+          <div className="mt-3 flex flex-wrap gap-2">
+            <a
+              href={ticketSnapshot.loginUrl}
+              target="_blank"
+              rel="noreferrer"
+              className="inline-flex items-center rounded-full bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sky-700"
+            >
+              Apri Telegram Bot
+            </a>
+            <button
+              type="button"
+              onClick={() => {
+                stopPolling(true)
+                setTicketSnapshot(null)
+                setTelegramStatus('cancelled')
+              }}
+              className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+            >
+              Annulla polling
+            </button>
+          </div>
+        </div>
+      )}
+
+      {telegramStatus === 'expired' && (
+        <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
+          Ticket Telegram scaduto. Genera un nuovo ticket per continuare.
+        </div>
+      )}
+
+      {telegramStatus === 'used' && (
+        <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
+          Ticket gia usato. Genera un nuovo ticket e riprova.
+        </div>
+      )}
+
+      {telegramStatus !== 'pending' && telegramStatus !== 'completed' && (
+        <div className="mt-4 flex justify-center">
+          <button
+            type="button"
+            onClick={() => {
+              void createTelegramTicket()
+            }}
+            disabled={telegramLoading || !import.meta.env.VITE_API_URL}
+            className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+          >
+            Genera nuovo ticket
+          </button>
+        </div>
+      )}
+
+      {(telegramError || oauthError || authError) && (
+        <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
+          <div className="flex items-start gap-2">
+            <XCircleIcon className="mt-0.5 h-4 w-4 shrink-0" />
+            <p>{telegramError ?? oauthError ?? authError}</p>
+          </div>
+        </div>
+      )}
+
       {!import.meta.env.VITE_API_URL && (
-        <p className="mt-3 text-xs text-slate-400 dark:text-slate-500">
+        <p className="mt-3 text-center text-xs text-slate-400 dark:text-slate-500">
           VITE_API_URL is not configured. Authentication requires SIT Core.
         </p>
       )}
@@ -267,11 +549,11 @@ function resolveLinkCodeTtl(response: LinkCodeResponse) {
 }
 
 function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
-  const token = getSitToken()
+  const { token, me, authError, clearAuthError } = useAuth()
   const payload = decodeJwtPayload(token)
   const researcherId = getFirstStringClaim(payload, ['researcherId', 'researcher_id', 'sub'])
   const displayName = getFirstStringClaim(payload, ['displayName', 'name', 'preferred_username', 'username'])
-  const { meData, providers, isLoading, profileError, providersError, refreshAll, refreshProvidersOnly, generateLinkCode } = useAccount()
+  const { providers, isLoading, providersError, refreshProviders, refreshProvidersOnly, generateLinkCode } = useAccount()
   const [actionProvider, setActionProvider] = useState<string | null>(null)
   const [linkingProvider, setLinkingProvider] = useState<string | null>(null)
   const [linkCode, setLinkCode] = useState<string | null>(null)
@@ -283,6 +565,7 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
 
   const handleConnectProvider = async (providerName: string) => {
     setActionProvider(providerName)
+    clearAuthError()
     setLinkError(null)
 
     try {
@@ -327,14 +610,14 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
   }, [isLinkModalOpen, linkingProvider, refreshProvidersOnly])
 
   const fallbackProfile = createTokenBackedProfile(payload)
-  const liveProfile: ResearcherProfile | null = meData ? meData.profile : null
+  const liveProfile: ResearcherProfile | null = me ? me.profile : null
   const effectiveProfile = liveProfile ?? fallbackProfile
-  const effectiveDisplayName = meData?.profile.displayName ?? displayName
-  const effectiveResearcherId = meData?.profile.researcherId ?? researcherId
+  const effectiveDisplayName = me?.profile.displayName ?? displayName
+  const effectiveResearcherId = me?.profile.researcherId ?? researcherId
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-5">
-      {effectiveProfile && <ProfileCard profile={effectiveProfile} isDemo={!meData && !import.meta.env.VITE_API_URL} />}
+      {effectiveProfile && <ProfileCard profile={effectiveProfile} isDemo={!me && !import.meta.env.VITE_API_URL} />}
 
       {isLoading && (
         <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
@@ -342,38 +625,38 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
         </div>
       )}
 
-      {profileError && (
+      {authError && (
         <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
-          {profileError}
+          {authError}
         </div>
       )}
 
-      {meData && (
+      {me && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-          <StatCard label="Achievements" value={meData.summary.achievementCount} icon={StarIcon} accent="amber" />
-          <StatCard label="Linked Accounts" value={meData.summary.linkedAccountCount} icon={UserCircleIcon} accent="blue" />
-          <StatCard label="Recent Translations" value={meData.summary.recentTranslationCount} icon={ArrowsRightLeftIcon} accent="violet" />
-          <StatCard label="Last Translation" value={formatIsoDate(meData.summary.lastTranslationAt)} icon={ChartBarIcon} accent="emerald" />
+          <StatCard label="Achievements" value={me.summary.achievementCount} icon={StarIcon} accent="amber" />
+          <StatCard label="Linked Accounts" value={me.summary.linkedAccountCount} icon={UserCircleIcon} accent="blue" />
+          <StatCard label="Recent Translations" value={me.summary.recentTranslationCount} icon={ArrowsRightLeftIcon} accent="violet" />
+          <StatCard label="Last Translation" value={formatIsoDate(me.summary.lastTranslationAt)} icon={ChartBarIcon} accent="emerald" />
         </div>
       )}
 
-      {meData?.profile && (
+      {me?.profile && (
         <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Preferences</h4>
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Version" value={meData.profile.preferredVersion} icon={CodeBracketIcon} accent="blue" />
-            <StatCard label="Language" value={meData.profile.preferredLanguage.toUpperCase()} icon={BoltIcon} accent="violet" />
-            <StatCard label="Auto Translation" value={meData.profile.autoTranslation ? 'Enabled' : 'Disabled'} icon={CheckCircleIcon} accent="emerald" />
-            <StatCard label="Profile Updated" value={formatIsoDate(meData.profile.updatedAt)} icon={ArrowPathIcon} accent="amber" />
+            <StatCard label="Version" value={me.profile.preferredVersion} icon={CodeBracketIcon} accent="blue" />
+            <StatCard label="Language" value={me.profile.preferredLanguage.toUpperCase()} icon={BoltIcon} accent="violet" />
+            <StatCard label="Auto Translation" value={me.profile.autoTranslation ? 'Enabled' : 'Disabled'} icon={CheckCircleIcon} accent="emerald" />
+            <StatCard label="Profile Updated" value={formatIsoDate(me.profile.updatedAt)} icon={ArrowPathIcon} accent="amber" />
           </div>
         </div>
       )}
 
-      {meData?.recentTranslations.length ? (
+      {me?.recentTranslations.length ? (
         <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Recent Translations</h4>
           <div className="mt-4 space-y-3">
-            {meData.recentTranslations.slice(0, 5).map((entry) => (
+            {me.recentTranslations.slice(0, 5).map((entry) => (
               <div key={entry.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
                 <div className="flex flex-wrap items-center justify-between gap-2">
                   <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{entry.detectedStandard} · {entry.compliance}% compliance</p>
@@ -388,11 +671,11 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
         </div>
       ) : null}
 
-      {meData?.achievements.length ? (
+      {me?.achievements.length ? (
         <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
           <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Achievements</h4>
           <div className="mt-4 space-y-3">
-            {meData.achievements.map((award) => (
+            {me.achievements.map((award) => (
               <div key={`${award.achievement.code}-${award.awardedAt}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{award.achievement.title}</p>
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{award.achievement.description}</p>
@@ -406,10 +689,10 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
       <ConnectedAccountsCard
         providers={providers}
         isLoading={isLoading}
-        error={linkError ?? providersError}
+        error={linkError ?? providersError ?? authError}
         actionProvider={actionProvider}
         onRefresh={() => {
-          void refreshAll()
+          void refreshProviders()
         }}
         onConnect={(providerName) => {
           void handleConnectProvider(providerName)
@@ -453,6 +736,9 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
           onGenerateNewCode={() => {
             void handleConnectProvider(linkingProvider)
           }}
+          onConfirmCompleted={() => {
+            void refreshProvidersOnly()
+          }}
           onClose={() => {
             setIsLinkModalOpen(false)
             setIsLinkExpired(false)
@@ -474,12 +760,12 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
 }
 
 function PrivateProfilePanel({ onLogout }: { onLogout: () => void }) {
-  const token = getSitToken()
+  const { token } = useAuth()
 
   if (!token) return <LoginPrompt />
 
   return (
-    <AccountProvider token={token}>
+    <AccountProvider>
       <AuthenticatedDashboard onLogout={onLogout} />
     </AccountProvider>
   )
@@ -641,11 +927,10 @@ function PublicLookup() {
 
 export default function ProfilePage() {
   const [tab, setTab] = useState<'public' | 'private'>('public')
-  const [isAuthenticated, setIsAuthenticated] = useState(() => Boolean(getSitToken()))
+  const { token, logout } = useAuth()
 
   const handleLogout = () => {
-    clearSitToken()
-    setIsAuthenticated(false)
+    logout()
   }
 
   return (
@@ -715,7 +1000,7 @@ export default function ProfilePage() {
         </motion.div>
       ) : (
         <motion.div key="private" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          {isAuthenticated ? <PrivateProfilePanel onLogout={handleLogout} /> : <LoginPrompt />}
+          {token ? <PrivateProfilePanel onLogout={handleLogout} /> : <LoginPrompt />}
         </motion.div>
       )}
     </div>
