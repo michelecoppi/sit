@@ -388,7 +388,7 @@ function LoginPrompt() {
           className="inline-flex items-center justify-center gap-2 rounded-xl bg-[#5865F2] px-5 py-3 text-sm font-semibold text-white shadow-sm transition hover:bg-[#4752C4] disabled:cursor-not-allowed disabled:opacity-40"
         >
           {discordLoading ? <ArrowPathIcon className="h-4 w-4 animate-spin" /> : <CheckCircleIcon className="h-4 w-4" />}
-          Continua con Discord
+          Continue with Discord
         </button>
 
         <button
@@ -400,15 +400,15 @@ function LoginPrompt() {
           className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-300 bg-sky-50 px-5 py-3 text-sm font-semibold text-sky-700 shadow-sm transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300 dark:hover:bg-sky-900/40"
         >
           {telegramLoading ? <ArrowPathIcon className="h-4 w-4 animate-spin" /> : <ChatBubbleLeftRightIcon className="h-4 w-4" />}
-          Continua con Telegram
+          Continue with Telegram
         </button>
       </div>
 
       {telegramStatus === 'pending' && ticketSnapshot && (
         <div className="mt-5 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-800 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-300">
-          <p className="font-semibold">In attesa conferma su Telegram</p>
+          <p className="font-semibold">Waiting for Telegram confirmation</p>
           <p className="mt-1 break-all font-mono text-xs">Ticket: {ticketSnapshot.ticket}</p>
-          <p className="mt-2">Scade tra <span className="font-mono font-semibold">{formattedRemaining}</span></p>
+          <p className="mt-2">Expires in <span className="font-mono font-semibold">{formattedRemaining}</span></p>
           <div className="mt-3 flex flex-wrap gap-2">
             <a
               href={ticketSnapshot.loginUrl}
@@ -416,7 +416,7 @@ function LoginPrompt() {
               rel="noreferrer"
               className="inline-flex items-center rounded-full bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sky-700"
             >
-              Apri Telegram Bot
+              Open Telegram Bot
             </a>
             <button
               type="button"
@@ -427,7 +427,7 @@ function LoginPrompt() {
               }}
               className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
             >
-              Annulla polling
+              Cancel polling
             </button>
           </div>
         </div>
@@ -435,13 +435,13 @@ function LoginPrompt() {
 
       {telegramStatus === 'expired' && (
         <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
-          Ticket Telegram scaduto. Genera un nuovo ticket per continuare.
+          Telegram ticket expired. Generate a new ticket to continue.
         </div>
       )}
 
       {telegramStatus === 'used' && (
         <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
-          Ticket gia usato. Genera un nuovo ticket e riprova.
+          Ticket already used. Generate a new ticket and try again.
         </div>
       )}
 
@@ -455,7 +455,7 @@ function LoginPrompt() {
             disabled={telegramLoading || !import.meta.env.VITE_API_URL}
             className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
           >
-            Genera nuovo ticket
+            Generate new ticket
           </button>
         </div>
       )}
@@ -575,14 +575,14 @@ function serviceLabel(service: ServiceFilter) {
 
 function mapOAuthCallbackError(code: string) {
   if (code === 'missing_token') {
-    return 'Callback Discord non valida: token mancante. Riprova il login.'
+    return 'Invalid Discord callback: missing token. Please try logging in again.'
   }
 
   if (code === 'invalid_token') {
-    return 'Callback Discord completata ma token non valido. Effettua di nuovo il login.'
+    return 'Discord callback completed but token is invalid. Please sign in again.'
   }
 
-  return 'Login Discord non completato. Riprova dal pulsante di accesso.'
+  return 'Discord login did not complete. Please retry from the sign-in button.'
 }
 
 function consumeOAuthCallbackDebugHint() {
@@ -946,9 +946,17 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
 }
 
 function PrivateProfilePanel({ onLogout }: { onLogout: () => void }) {
-  const { token } = useAuth()
+  const { status } = useAuth()
 
-  if (!token) return <LoginPrompt />
+  if (status === 'loading') {
+    return (
+      <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 text-sm text-slate-600 shadow-sm dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
+        Verifying session...
+      </div>
+    )
+  }
+
+  if (status !== 'authenticated') return <LoginPrompt />
 
   return (
     <AccountProvider>
@@ -1113,7 +1121,7 @@ function PublicLookup() {
 
 export default function ProfilePage() {
   const [tab, setTab] = useState<'public' | 'private'>('public')
-  const { token, logout } = useAuth()
+  const { status, logout } = useAuth()
 
   const handleLogout = () => {
     logout()
@@ -1186,7 +1194,9 @@ export default function ProfilePage() {
         </motion.div>
       ) : (
         <motion.div key="private" initial={{ opacity: 0 }} animate={{ opacity: 1 }}>
-          {token ? <PrivateProfilePanel onLogout={handleLogout} /> : <LoginPrompt />}
+          {status === 'authenticated' || status === 'loading'
+            ? <PrivateProfilePanel onLogout={handleLogout} />
+            : <LoginPrompt />}
         </motion.div>
       )}
     </div>

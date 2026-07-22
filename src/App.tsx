@@ -73,6 +73,11 @@ const removeOAuthCallbackFromUrl = () => {
   searchParams.delete('oauth_error')
 
   let cleanedHash = window.location.hash
+  const isHashParamOnly = /^#(?:token|access_token|jwt|error|oauth_error)=/i.test(cleanedHash)
+  if (isHashParamOnly) {
+    cleanedHash = ''
+  }
+
   const hashQueryIndex = cleanedHash.indexOf('?')
   if (hashQueryIndex !== -1) {
     const hashPath = cleanedHash.slice(0, hashQueryIndex)
@@ -119,6 +124,10 @@ function ScrollToTop() {
 function OAuthCallbackHandler() {
   const { completeLogin } = useAuth()
 
+  const redirectToProfile = () => {
+    window.location.hash = '#/profile'
+  }
+
   useEffect(() => {
     const { token, error } = extractOAuthCallback()
     if (!token && !error) return
@@ -142,6 +151,7 @@ function OAuthCallbackHandler() {
         setSitToken(bridgeToken)
       }
       sessionStorage.setItem(OAUTH_ERROR_STORAGE_KEY, error)
+      redirectToProfile()
       return
     }
 
@@ -151,8 +161,11 @@ function OAuthCallbackHandler() {
         setSitToken(bridgeToken)
       }
       sessionStorage.setItem(OAUTH_ERROR_STORAGE_KEY, 'missing_token')
+      redirectToProfile()
       return
     }
+
+    redirectToProfile()
 
     void completeLogin(normalizedToken).catch(() => {
       if (bridgeToken) {

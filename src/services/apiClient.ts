@@ -34,6 +34,12 @@ function parseErrorCode(payload: unknown): string | null {
   const nestedCode = (payload as { error?: { code?: unknown } }).error?.code
   if (typeof nestedCode === 'string' && nestedCode.trim()) return nestedCode.trim()
 
+  const snakeCaseCode = (payload as { error_code?: unknown }).error_code
+  if (typeof snakeCaseCode === 'string' && snakeCaseCode.trim()) return snakeCaseCode.trim()
+
+  const detailsCode = (payload as { details?: { code?: unknown } }).details?.code
+  if (typeof detailsCode === 'string' && detailsCode.trim()) return detailsCode.trim()
+
   return null
 }
 

@@ -14,7 +14,13 @@ function notifyTokenListeners() {
 }
 
 export function setSitToken(token: string) {
-  const normalizedToken = token.trim().replace(/^Bearer\s+/i, '')
+  let normalizedToken = token.trim().replace(/^Bearer\s+/i, '')
+  if (
+    (normalizedToken.startsWith('"') && normalizedToken.endsWith('"'))
+    || (normalizedToken.startsWith("'") && normalizedToken.endsWith("'"))
+  ) {
+    normalizedToken = normalizedToken.slice(1, -1).trim()
+  }
   sitToken = normalizedToken || null
   notifyTokenListeners()
 }
