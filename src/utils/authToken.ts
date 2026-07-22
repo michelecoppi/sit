@@ -1,13 +1,6 @@
 let sitToken: string | null = null
 let unauthorizedHandler: ((message: string) => void) | null = null
 const tokenListeners = new Set<(token: string | null) => void>()
-const OAUTH_BRIDGE_STORAGE_KEY = 'sit_oauth_bridge_token'
-const OAUTH_BRIDGE_TTL_MS = 10 * 60 * 1000
-
-type OAuthBridgePayload = {
-  token: string
-  savedAt: number
-}
 
 function notifyTokenListeners() {
   tokenListeners.forEach((listener) => listener(sitToken))
@@ -51,32 +44,9 @@ export function handleUnauthorizedSession(message = 'Invalid or expired session.
 }
 
 export function prepareOAuthBridgeToken() {
-  if (!sitToken) return
-
-  const payload: OAuthBridgePayload = {
-    token: sitToken,
-    savedAt: Date.now(),
-  }
-
-  try {
-    sessionStorage.setItem(OAUTH_BRIDGE_STORAGE_KEY, JSON.stringify(payload))
-  } catch {
-    // Best effort only.
-  }
+  // Intentionally no-op: avoid persisting sensitive session tokens across redirects.
 }
 
 export function consumeOAuthBridgeToken() {
-  try {
-    const raw = sessionStorage.getItem(OAUTH_BRIDGE_STORAGE_KEY)
-    sessionStorage.removeItem(OAUTH_BRIDGE_STORAGE_KEY)
-    if (!raw) return null
-
-    const parsed = JSON.parse(raw) as OAuthBridgePayload
-    if (!parsed?.token || typeof parsed.savedAt !== 'number') return null
-    if (Date.now() - parsed.savedAt > OAUTH_BRIDGE_TTL_MS) return null
-
-    return parsed.token
-  } catch {
-    return null
-  }
+  return null
 }

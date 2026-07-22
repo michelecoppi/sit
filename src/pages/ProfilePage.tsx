@@ -27,6 +27,7 @@ import type { LinkCodeResponse } from '../types/account'
 import type { TelegramLoginTicketSnapshot } from '../types/auth'
 import type { RecentTranslation, ResearcherProfile } from '../types/profile'
 import { prepareOAuthBridgeToken } from '../utils/authToken'
+import { consumeOAuthCallbackError } from '../utils/oauthCallbackState'
 
 type JwtPayload = {
   exp?: number
@@ -39,7 +40,6 @@ const DEFAULT_LINK_CODE_TTL_SECONDS = 10 * 60
 const DEFAULT_LOGIN_POLL_INTERVAL_MS = 2000
 const DEFAULT_LOGIN_POLL_TIMEOUT_MS = 180000
 const TELEGRAM_LOGIN_TICKET_STORAGE_KEY = 'sit_telegram_login_ticket'
-const OAUTH_ERROR_STORAGE_KEY = 'sit_oauth_callback_error'
 const OAUTH_DEBUG_STORAGE_KEY = 'sit_oauth_callback_debug'
 const SUPPORTED_SERVICE_FILTERS = ['discord', 'telegram'] as const
 
@@ -211,10 +211,8 @@ function LoginPrompt() {
   }
 
   const recoverOauthError = () => {
-    const code = sessionStorage.getItem(OAUTH_ERROR_STORAGE_KEY)
+    const code = consumeOAuthCallbackError()
     if (!code) return
-
-    sessionStorage.removeItem(OAUTH_ERROR_STORAGE_KEY)
     const baseError = mapOAuthCallbackError(code)
     const debugHint = consumeOAuthCallbackDebugHint()
     setOauthError(debugHint ? `${baseError} ${debugHint}` : baseError)
@@ -622,10 +620,8 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
   const [activeServiceFilter, setActiveServiceFilter] = useState<ServiceFilter>('all')
 
   useEffect(() => {
-    const oauthCode = sessionStorage.getItem(OAUTH_ERROR_STORAGE_KEY)
+    const oauthCode = consumeOAuthCallbackError()
     if (!oauthCode) return
-
-    sessionStorage.removeItem(OAUTH_ERROR_STORAGE_KEY)
     const baseError = mapOAuthCallbackError(oauthCode)
     const debugHint = consumeOAuthCallbackDebugHint()
     setLinkError(debugHint ? `${baseError} ${debugHint}` : baseError)

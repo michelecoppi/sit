@@ -3,8 +3,8 @@ import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
 import Layout from './components/Layout'
 import { useAuth } from './context/AuthContext'
 import { consumeOAuthBridgeToken, setSitToken } from './utils/authToken'
+import { setOAuthCallbackError } from './utils/oauthCallbackState'
 
-const OAUTH_ERROR_STORAGE_KEY = 'sit_oauth_callback_error'
 const OAUTH_DEBUG_STORAGE_KEY = 'sit_oauth_callback_debug'
 
 function getFirstParamValue(params: URLSearchParams, keys: string[]) {
@@ -150,7 +150,7 @@ function OAuthCallbackHandler() {
       if (bridgeToken) {
         setSitToken(bridgeToken)
       }
-      sessionStorage.setItem(OAUTH_ERROR_STORAGE_KEY, error)
+      setOAuthCallbackError(error)
       redirectToProfile()
       return
     }
@@ -160,7 +160,7 @@ function OAuthCallbackHandler() {
       if (bridgeToken) {
         setSitToken(bridgeToken)
       }
-      sessionStorage.setItem(OAUTH_ERROR_STORAGE_KEY, 'missing_token')
+      setOAuthCallbackError('missing_token')
       redirectToProfile()
       return
     }
@@ -171,18 +171,11 @@ function OAuthCallbackHandler() {
       if (bridgeToken) {
         setSitToken(bridgeToken)
       }
-      sessionStorage.setItem(OAUTH_ERROR_STORAGE_KEY, 'invalid_token')
+      setOAuthCallbackError('invalid_token')
     })
   }, [completeLogin])
 
   return null
-}
-
-export function consumeOAuthCallbackError() {
-  const error = sessionStorage.getItem(OAUTH_ERROR_STORAGE_KEY)
-  if (!error) return null
-  sessionStorage.removeItem(OAUTH_ERROR_STORAGE_KEY)
-  return error
 }
 
 export function consumeOAuthCallbackDebug() {
