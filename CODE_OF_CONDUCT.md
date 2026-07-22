@@ -38,10 +38,10 @@ permanent ban from the project.
 
 ## 5. Reporting
 
-Report unacceptable behavior by opening a private security advisory or
-contacting the maintainers directly (see [SECURITY.md](SECURITY.md) for
-contact channel). Reports are handled confidentially, and faster than the
-Working Group's usual 67-day meeting cycle.
+Report unacceptable behavior by opening a private security advisory (see
+[SECURITY.md](SECURITY.md) for the reporting channel). Reports are handled
+confidentially, and faster than the Working Group's usual 67-day meeting
+cycle.
 
 ## 6. Attribution
 

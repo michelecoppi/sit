@@ -15,5 +15,5 @@
 - [ ] `npm test` passes
 - [ ] `npm run lint` passes
 - [ ] New encoding logic lives in `src/utils/` and has a test
-- [ ] Copy doesn't contradict [LORE.md](../LORE.md)
+- [ ] Copy doesn't contradict [LORE.md](../blob/master/LORE.md)
 - [ ] Word "byte" not used where "SYTE" fits
