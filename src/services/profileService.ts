@@ -1,5 +1,5 @@
 import type { MeResponse } from '../types/profile'
-import type { StatisticsSnapshotResponse, StatisticsSummary } from '../types/statistics'
+import type { StatisticsProvider, StatisticsSnapshotResponse, StatisticsSummary } from '../types/statistics'
 import {
   getApiUrl,
   getAuthHeaders,
@@ -96,8 +96,8 @@ export async function getStatisticsSnapshot(token?: string | null): Promise<Stat
 
   try {
     const global = await getLegacyStatistics(apiUrl, token)
-    const providers = ['discord', 'telegram']
-    const byProvider: Record<string, StatisticsSummary> = {}
+    const providers: StatisticsProvider[] = ['discord', 'telegram']
+    const byProvider: Partial<Record<StatisticsProvider, StatisticsSummary>> = {}
 
     await Promise.all(providers.map(async (provider) => {
       try {
@@ -111,7 +111,7 @@ export async function getStatisticsSnapshot(token?: string | null): Promise<Stat
       providers,
       snapshot: {
         global,
-        byProvider,
+        byProvider: byProvider as Record<StatisticsProvider, StatisticsSummary>,
       },
     }
   } catch {

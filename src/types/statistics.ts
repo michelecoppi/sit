@@ -1,4 +1,4 @@
-export type StatisticsProvider = string
+export type StatisticsProvider = 'discord' | 'telegram'
 
 export interface StatisticsSummary {
   registeredUsers: number
@@ -13,6 +13,6 @@ export interface StatisticsSnapshotResponse {
   providers: StatisticsProvider[]
   snapshot: {
     global: StatisticsSummary
-    byProvider: Record<string, StatisticsSummary>
+    byProvider: Record<StatisticsProvider, StatisticsSummary>
   }
 }

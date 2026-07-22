@@ -27,7 +27,8 @@ export interface MeSummary {
 export interface RecentTranslation {
   id: number
   messageId: string
-  guildId: string
+  provider: 'discord' | 'telegram' | null
+  guildId: string | null
   channelId: string
   sourceContent: string
   decodedContent: string
