@@ -15,22 +15,22 @@ interface AccountContextValue {
 const AccountContext = createContext<AccountContextValue | null>(null)
 
 export function AccountProvider({ children }: { children: React.ReactNode }) {
-  const { token } = useAuth()
+  const { token, status } = useAuth()
   const [providers, setProviders] = useState<ConnectedAccount[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [providersError, setProvidersError] = useState<string | null>(null)
 
   const refreshProvidersOnly = useCallback(async () => {
-    if (!token) return []
+    if (status !== 'authenticated') return []
 
     const nextProviders = await getProviders(token)
     setProviders(nextProviders)
     setProvidersError(null)
     return nextProviders
-  }, [token])
+  }, [status, token])
 
   const refreshProviders = useCallback(async () => {
-    if (!token) {
+    if (status !== 'authenticated') {
       setProviders([])
       setProvidersError(null)
       setIsLoading(false)
@@ -47,10 +47,10 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false)
     }
-  }, [token])
+  }, [status, token])
 
   const generateLinkCode = useCallback(async (provider: ProviderType) => {
-    if (!token) {
+    if (status !== 'authenticated') {
       throw new Error('Effettua login per continuare.')
     }
 
@@ -64,7 +64,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     }))
     setProvidersError(null)
     return result
-  }, [token])
+  }, [status, token])
 
   useEffect(() => {
     void refreshProviders()

@@ -637,7 +637,12 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
       setLinkError(null)
       sessionStorage.removeItem(TELEGRAM_LOGIN_TICKET_STORAGE_KEY)
       prepareOAuthBridgeToken()
-      window.location.href = getDiscordLoginUrl()
+      try {
+        const result = await generateLinkCode('discord')
+        window.location.href = result.loginUrl ?? getDiscordLoginUrl()
+      } catch {
+        window.location.href = getDiscordLoginUrl()
+      }
       return
     }
 
@@ -648,7 +653,7 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
     try {
       const result = await generateLinkCode(providerName)
       setLinkingProvider(result.provider)
-      setLinkCode(result.code)
+      setLinkCode(result.code ?? null)
       setLinkCodeTtlSeconds(resolveLinkCodeTtl(result))
       setIsLinkExpired(false)
       setIsLinkModalOpen(true)

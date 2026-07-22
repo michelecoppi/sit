@@ -28,6 +28,7 @@ export async function createLoginTicket(provider: 'telegram'): Promise<CreateLog
     method: 'POST',
     headers: getAuthHeaders(null),
     body: JSON.stringify({ provider }),
+    credentials: 'include',
   })
 
   const payload = await parseResponsePayload(response)
@@ -62,6 +63,7 @@ export async function getLoginStatus(ticket: string): Promise<LoginStatusRespons
   const response = await fetch(`${apiUrl}/api/auth/login-status?ticket=${encodeURIComponent(ticket)}`, {
     method: 'GET',
     headers: getAuthHeaders(null),
+    credentials: 'include',
   })
 
   const payload = await parseResponsePayload(response)

@@ -14,7 +14,7 @@ function notifyTokenListeners() {
 }
 
 export function setSitToken(token: string) {
-  const normalizedToken = token.trim()
+  const normalizedToken = token.trim().replace(/^Bearer\s+/i, '')
   sitToken = normalizedToken || null
   notifyTokenListeners()
 }

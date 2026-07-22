@@ -1,11 +1,12 @@
 import type { MeResponse } from '../types/profile'
 import { getApiUrl, getAuthHeaders, parseResponsePayload, resolveApiErrorMessage } from './apiClient'
 
-export async function getMe(token: string): Promise<MeResponse> {
+export async function getMe(token?: string | null): Promise<MeResponse> {
   const apiUrl = getApiUrl()
   const response = await fetch(`${apiUrl}/api/me`, {
     method: 'GET',
     headers: getAuthHeaders(token),
+    credentials: 'include',
   })
 
   const payload = await parseResponsePayload(response)

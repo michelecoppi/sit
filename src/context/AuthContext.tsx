@@ -28,18 +28,12 @@ const AuthContext = createContext<AuthContextValue | null>(null)
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [token, setToken] = useState<string | null>(() => getSitToken())
   const [me, setMe] = useState<MeResponse | null>(null)
-  const [status, setStatus] = useState<AuthStatus>(() => (getSitToken() ? 'loading' : 'anonymous'))
+  const [status, setStatus] = useState<AuthStatus>('loading')
   const [authError, setAuthError] = useState<string | null>(null)
   const [isBootstrapping, setIsBootstrapping] = useState(false)
 
   const refreshMe = useCallback(async () => {
     const activeToken = getSitToken()
-
-    if (!activeToken) {
-      setMe(null)
-      setStatus('anonymous')
-      return null
-    }
 
     setIsBootstrapping(true)
 
@@ -49,6 +43,12 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       setStatus('authenticated')
       return profile
     } catch (error) {
+      if (!activeToken) {
+        setMe(null)
+        setStatus('anonymous')
+        return null
+      }
+
       const message = error instanceof Error ? error.message : 'Sessione non valida o scaduta.'
       setAuthError(message)
       setStatus(getSitToken() ? 'authenticated' : 'anonymous')
@@ -107,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }, [logout])
 
   useEffect(() => {
-    if (!token) return
+    if (!token && status !== 'loading') return
     if (status === 'authenticated' && me) return
 
     void refreshMe()

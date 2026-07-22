@@ -12,6 +12,21 @@ export interface AccountProvider {
   status?: string
 }
 
+export interface AccountProviderMapValue {
+  connected?: boolean
+  status?: string
+  username?: string
+  displayName?: string
+  avatarUrl?: string
+  connectedAt?: string
+  profile?: {
+    username?: string
+    displayName?: string
+    avatarUrl?: string
+    connectedAt?: string
+  }
+}
+
 export interface ConnectedAccount {
   provider: ProviderType
   connected: boolean
@@ -24,7 +39,8 @@ export interface ConnectedAccount {
 
 export interface LinkCodeResponse {
   provider: ProviderType
-  code: string
+  code?: string
+  loginUrl?: string
   expiresAt: string | null
   expiresInSeconds: number | null
 }
