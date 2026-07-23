@@ -1,0 +1,26 @@
+name: Project Sync
+
+on:
+  issues:
+    types:
+      - opened
+      - edited
+      - closed
+      - labeled
+
+  pull_request:
+    types:
+      - opened
+      - edited
+      - closed
+      - labeled
+
+jobs:
+  sync:
+    uses: michelecoppi/sit_infrastructure/.github/workflows/reusable-project-sync.yml@main
+
+    with:
+      project-url: ${{ vars.PROJECT_URL }}
+
+    secrets:
+      PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
