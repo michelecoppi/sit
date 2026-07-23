@@ -30,6 +30,7 @@ on:
 
 jobs:
   sync:
+    if: ${{ github.event_name != 'issues' || github.event.issue.pull_request == null }}
     uses: michelecoppi/sit_infrastructure/.github/workflows/reusable-project-sync.yml@main
     with:
       project-url: ${{ vars.PROJECT_URL }}
