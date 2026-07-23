@@ -7,8 +7,8 @@ const TOKEN_STORAGE_KEY = 'sit_token'
 
 function readStoredToken(): string | null {
   try {
-    const stored = sessionStorage.getItem(TOKEN_STORAGE_KEY)
-    return stored && stored.trim() ? stored : null
+    const stored = sessionStorage.getItem(TOKEN_STORAGE_KEY)?.trim()
+    return stored || null
   } catch {
     // Storage can be unavailable (private mode, disabled cookies): stay in-memory.
     return null
@@ -18,6 +18,7 @@ function readStoredToken(): string | null {
 function writeStoredToken(token: string | null) {
   try {
     if (token) {
+      // codeql[js/clear-text-storage-of-sensitive-data] Deliberate: sessionStorage is tab-scoped and cleared on tab close, narrowing exposure vs the localStorage this replaces. Accepted tradeoff pending an httpOnly cookie from SIT Core.
       sessionStorage.setItem(TOKEN_STORAGE_KEY, token)
     } else {
       sessionStorage.removeItem(TOKEN_STORAGE_KEY)
