@@ -7,6 +7,7 @@ import {
   setSitToken,
   setUnauthorizedHandler,
   subscribeSitToken,
+  tokenRestored,
 } from '../utils/authToken'
 
 type AuthStatus = 'anonymous' | 'loading' | 'authenticated'
@@ -110,7 +111,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     if (!token && status !== 'loading') return
     if (status === 'authenticated' && me) return
 
-    void refreshMe()
+    let cancelled = false
+    // Wait for the sessionStorage restore (decrypt) to settle first: on mount
+    // this is the difference between racing a real token in storage against
+    // an in-memory null and briefly bootstrapping as anonymous.
+    void tokenRestored.then(() => {
+      if (!cancelled) void refreshMe()
+    })
+    return () => {
+      cancelled = true
+    }
   }, [me, refreshMe, status, token])
 
   const value = useMemo(() => ({
