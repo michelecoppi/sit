@@ -14,7 +14,7 @@
     "@heroicons/react": "^2.2.0",
     "framer-motion": "^12.42.2",
     "heroicons": "^2.2.0",
-    "react": "^19.2.7",
+    "react": "^19.2.8",
     "react-dom": "^19.2.7",
     "react-router-dom": "^7.18.1"
   },
