@@ -370,7 +370,7 @@ pre {
 }
 
 .profile-button {
-  display: none;
+  display: inline-flex;
 }
 
 .context-bar {
@@ -773,7 +773,6 @@ pre {
 
 @media (min-width: 480px) {
   .brand-copy { display: block; }
-  .profile-button { display: inline-flex; }
   .ceremonial-actions { flex-direction: row; justify-content: center; }
 }
 
