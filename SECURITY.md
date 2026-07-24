@@ -27,8 +27,28 @@ observed behavior, and whether the issue occurs only with SIT Core enabled.
 ## Response
 
 The Working Group meets every 67 days and no meeting has ever ended on
-time. Security reports are the exception — expect a response within a few
+time. Security reports are the exception â€” expect a response within a few
 days, not a fiscal quarter.
+
+## Updating Reusable Workflows
+
+Reusable workflows from other repositories must be pinned to a full, 40-character
+commit SHA. Branches and tags are mutable and must not be used as workflow refs.
+
+To update a pinned workflow:
+
+1. Review the upstream changes and select a trusted commit from the upstream
+   repository's commit history.
+2. Verify that the commit contains the expected reusable workflow, then copy its
+   full SHA from GitHub.
+3. Replace only the SHA after `@` in the caller workflow. Keep the abbreviated
+   SHA in the adjacent comment in sync for readability.
+4. Open a pull request containing the pin update and review the resulting diff.
+5. Run the caller with `workflow_dispatch` and confirm that the expected upstream
+   commit is used and the sync job succeeds before merging.
+
+Search `.github/workflows` for job-level `uses:` entries as part of each update
+to ensure that no reusable workflow reference uses a branch or tag.
 
 ## Supported Versions
 
@@ -38,3 +58,4 @@ days, not a fiscal quarter.
 | SIT 1.0 (Legacy) | Yes |
 | Binary | Legacy, patched only if trivial |
 | ASCII | Transitional technology, not our problem |
+
