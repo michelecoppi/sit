@@ -1,130 +1,104 @@
 import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { logoutSession } from '../services/authService'
+import { ApiClientError } from '../services/apiClient'
 import { getMe } from '../services/profileService'
 import type { MeResponse } from '../types/profile'
-import {
-  clearSitToken,
-  getSitToken,
-  setSitToken,
-  setUnauthorizedHandler,
-  subscribeSitToken,
-  tokenRestored,
-} from '../utils/authToken'
+import { setUnauthorizedHandler } from '../utils/authSession'
 
 type AuthStatus = 'anonymous' | 'loading' | 'authenticated'
 
 interface AuthContextValue {
-  token: string | null
   me: MeResponse | null
   status: AuthStatus
   authError: string | null
   isBootstrapping: boolean
-  completeLogin: (token: string) => Promise<void>
+  completeLogin: () => Promise<void>
   refreshMe: () => Promise<MeResponse | null>
-  logout: (message?: string) => void
+  logout: () => Promise<void>
   clearAuthError: () => void
 }
 
 const AuthContext = createContext<AuthContextValue | null>(null)
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
-  const [token, setToken] = useState<string | null>(() => getSitToken())
   const [me, setMe] = useState<MeResponse | null>(null)
   const [status, setStatus] = useState<AuthStatus>('loading')
   const [authError, setAuthError] = useState<string | null>(null)
   const [isBootstrapping, setIsBootstrapping] = useState(false)
 
-  const refreshMe = useCallback(async () => {
-    const activeToken = getSitToken()
-
+  const loadSession = useCallback(async (propagateError: boolean) => {
     setIsBootstrapping(true)
 
     try {
-      const profile = await getMe(activeToken)
+      const profile = await getMe()
       setMe(profile)
       setStatus('authenticated')
+      setAuthError(null)
       return profile
     } catch (error) {
-      if (!activeToken) {
+      const message = error instanceof Error ? error.message : 'Unable to restore the session.'
+      const unauthorized = error instanceof ApiClientError && error.status === 401
+
+      if (unauthorized) {
         setMe(null)
         setStatus('anonymous')
-        return null
+      } else {
+        setStatus((current) => current === 'authenticated' ? current : 'anonymous')
+        setAuthError(message)
       }
 
-      const message = error instanceof Error ? error.message : 'Invalid or expired session.'
-      setAuthError(message)
-      setStatus(getSitToken() ? 'authenticated' : 'anonymous')
+      if (propagateError) {
+        throw error
+      }
       return null
     } finally {
       setIsBootstrapping(false)
     }
   }, [])
 
-  const logout = useCallback((message?: string) => {
-    clearSitToken()
-    setMe(null)
-    setStatus('anonymous')
-    if (message) {
-      setAuthError(message)
-    }
-  }, [])
+  const refreshMe = useCallback(() => loadSession(false), [loadSession])
 
-  const completeLogin = useCallback(async (nextToken: string) => {
-    const normalizedToken = nextToken.trim()
-    if (!normalizedToken) {
-      throw new Error('Invalid OAuth token received.')
-    }
-
-    setSitToken(normalizedToken)
+  const completeLogin = useCallback(async () => {
     setStatus('loading')
     setAuthError(null)
+    await loadSession(true)
+  }, [loadSession])
 
-    await refreshMe()
-  }, [refreshMe])
+  const logout = useCallback(async () => {
+    setAuthError(null)
+
+    try {
+      await logoutSession()
+      setMe(null)
+      setStatus('anonymous')
+    } catch (error) {
+      const message = error instanceof Error ? error.message : 'Unable to close the session.'
+      setAuthError(message)
+      throw error
+    }
+  }, [])
 
   const clearAuthError = useCallback(() => {
     setAuthError(null)
   }, [])
 
   useEffect(() => {
-    const unsubscribe = subscribeSitToken((nextToken) => {
-      setToken(nextToken)
-      if (!nextToken) {
-        setMe(null)
-        setStatus('anonymous')
-      }
-    })
-
-    return unsubscribe
-  }, [])
-
-  useEffect(() => {
     setUnauthorizedHandler((message) => {
-      logout(message)
+      setMe(null)
+      setStatus('anonymous')
+      setAuthError(message)
     })
 
     return () => {
       setUnauthorizedHandler(null)
     }
-  }, [logout])
+  }, [])
 
   useEffect(() => {
-    if (!token && status !== 'loading') return
-    if (status === 'authenticated' && me) return
-
-    let cancelled = false
-    // Wait for the sessionStorage restore (decrypt) to settle first: on mount
-    // this is the difference between racing a real token in storage against
-    // an in-memory null and briefly bootstrapping as anonymous.
-    void tokenRestored.then(() => {
-      if (!cancelled) void refreshMe()
-    })
-    return () => {
-      cancelled = true
-    }
-  }, [me, refreshMe, status, token])
+    void refreshMe()
+  }, [refreshMe])
 
   const value = useMemo(() => ({
-    token,
     me,
     status,
     authError,
@@ -133,7 +107,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     refreshMe,
     logout,
     clearAuthError,
-  }), [authError, clearAuthError, completeLogin, isBootstrapping, logout, me, refreshMe, status, token])
+  }), [authError, clearAuthError, completeLogin, isBootstrapping, logout, me, refreshMe, status])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }
