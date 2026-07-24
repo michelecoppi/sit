@@ -1,112 +1,227 @@
+import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { ArrowRightIcon, CheckCircleIcon, CubeTransparentIcon, GlobeAltIcon, ShieldCheckIcon, SparklesIcon, CpuChipIcon } from '@heroicons/react/24/outline'
+import {
+  ArrowRightIcon,
+  BeakerIcon,
+  BoltIcon,
+  CheckCircleIcon,
+  CircleStackIcon,
+  ClipboardDocumentCheckIcon,
+  CodeBracketIcon,
+  CommandLineIcon,
+  CubeTransparentIcon,
+  GlobeAltIcon,
+  LanguageIcon,
+  LockClosedIcon,
+  RectangleGroupIcon,
+  SparklesIcon,
+} from '@heroicons/react/24/outline'
 import { Link } from 'react-router-dom'
+import { encodeTextToSit } from '../utils/encoder'
 
-const featureCards = [
-  { title: 'Binary Compatible', description: 'Seamlessly bridges the gap between old school bits and new school symbolism.', icon: CubeTransparentIcon },
-  { title: 'Open Source', description: 'The reference implementation is available for review, critique, and enthusiastic debate.', icon: GlobeAltIcon },
-  { title: 'IEEE-ish', description: 'Structured with conspicuous authority and no immediate evidence of contradiction.', icon: ShieldCheckIcon },
-  { title: 'Browser Encoder', description: 'Encode text directly in the browser without a server or suspicious middleware.', icon: CpuChipIcon },
-  { title: 'Browser Decoder', description: 'Recover your symbolic payload with a reassuringly minimal interface.', icon: SparklesIcon },
-  { title: 'Compliance Checker', description: 'Validate symbolic input and report any deviations with appropriate gravitas.', icon: CheckCircleIcon },
+const capabilities = [
+  {
+    title: 'Deterministic by design',
+    description: 'Every byte maps to an exact eight-symbol token. No ambiguity, hidden state or server round-trip.',
+    icon: CubeTransparentIcon,
+    tone: 'violet',
+  },
+  {
+    title: 'Native semantic layer',
+    description: 'Move beyond binary substitution with a concept-first alphabet, grammar and multilingual resolver.',
+    icon: LanguageIcon,
+    tone: 'teal',
+  },
+  {
+    title: 'Local-first tooling',
+    description: 'Encode, decode and validate entirely in your browser. Your payload never leaves the device.',
+    icon: LockClosedIcon,
+    tone: 'blue',
+  },
+  {
+    title: 'Open specification',
+    description: 'Inspect the reference implementation, RFC registry and every decision behind the standard.',
+    icon: GlobeAltIcon,
+    tone: 'amber',
+  },
 ]
 
-const benchmarks = [
-  { label: 'Internet arguments', value: '100%', accent: 'from-blue-600 to-cyan-500' },
-  { label: 'Storage', value: '0%', accent: 'from-slate-600 to-slate-500' },
-  { label: 'Speed', value: '0%', accent: 'from-emerald-600 to-green-500' },
-  { label: 'Terminology', value: '∞%', accent: 'from-violet-600 to-fuchsia-500' },
+const registryLinks = [
+  { to: '/alphabet', label: 'Alphabet', detail: 'Canonical symbols', icon: RectangleGroupIcon },
+  { to: '/grammar', label: 'Grammar', detail: 'Composition rules', icon: CodeBracketIcon },
+  { to: '/dictionary', label: 'Dictionary', detail: 'Search the registry', icon: CircleStackIcon },
+  { to: '/semantic', label: 'Semantic', detail: 'Resolve concepts', icon: SparklesIcon },
 ]
 
-const certifications = ['Open Standard', 'RFC Compatible', 'ISO-ish', 'IEEE-ish', 'Peer Reviewed*']
+const reveal = {
+  initial: { opacity: 0, y: 18 },
+  animate: { opacity: 1, y: 0 },
+  transition: { duration: 0.45 },
+}
 
 export default function HomePage() {
+  const [sample, setSample] = useState('SIT')
+  const [copied, setCopied] = useState(false)
+  const encoded = useMemo(() => encodeTextToSit(sample || 'SIT'), [sample])
+
+  const copyEncoded = async () => {
+    try {
+      await navigator.clipboard.writeText(encoded)
+      setCopied(true)
+      window.setTimeout(() => setCopied(false), 1800)
+    } catch {
+      setCopied(false)
+    }
+  }
+
   return (
-    <div className="space-y-16">
-      <motion.section initial={{ opacity: 0, y: 24 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45 }} className="rounded-[2rem] border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900 md:p-12">
-        <div className="grid gap-10 lg:grid-cols-[1.2fr_0.8fr] lg:items-center">
-          <div className="max-w-2xl">
-            <div className="mb-4 inline-flex items-center rounded-full border border-blue-200 bg-blue-50 px-3 py-1 text-sm font-medium text-blue-700 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200">
-              <CheckCircleIcon className="mr-2 h-4 w-4" />
-              Draft Standard • Public Review
-            </div>
-            <h1 className="text-4xl font-semibold tracking-tight text-slate-900 sm:text-5xl dark:text-white">
-              SIT Encoding Standard
-            </h1>
-            <p className="mt-6 text-lg leading-8 text-slate-600 dark:text-slate-300">
-              A revolutionary symbolic encoding framework based exclusively on the {'{6,7}'} alphabet.
-            </p>
-            <div className="mt-8 flex flex-wrap gap-3">
-              <Link to="/docs" className="inline-flex items-center rounded-full bg-blue-600 px-5 py-3 font-semibold text-white transition hover:bg-blue-700">
-                Read Documentation
-                <ArrowRightIcon className="ml-2 h-4 w-4" />
-              </Link>
-              <Link to="/playground" className="inline-flex items-center rounded-full border border-slate-300 px-5 py-3 font-semibold text-slate-700 transition hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200">
-                Open Playground
-              </Link>
-            </div>
+    <div className="home-page">
+      <motion.section {...reveal} className="home-hero">
+        <div className="hero-orb hero-orb-one" aria-hidden="true" />
+        <div className="hero-orb hero-orb-two" aria-hidden="true" />
+
+        <div className="hero-copy">
+          <div className="eyebrow-badge">
+            <span className="eyebrow-signal" aria-hidden="true" />
+            Open standard · SIT 2.0 available
           </div>
-          <div className="rounded-[1.5rem] border border-slate-200 bg-slate-50 p-6 shadow-inner dark:border-slate-800 dark:bg-slate-950/60">
-            <div className="text-sm font-semibold uppercase tracking-[0.3em] text-slate-500">Reference Example</div>
-            <pre className="mt-4 overflow-x-auto rounded-2xl bg-slate-900 p-4 text-sm text-slate-100">
-{`CIAO
-↓
-67666677
-67667667
-67666667
-67667777`}
-            </pre>
-            <div className="mt-5 rounded-2xl border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-700 dark:border-emerald-900 dark:bg-emerald-950/40 dark:text-emerald-300">
-              Compliance: Approved for ceremonial deployment.
+          <h1>
+            Information,
+            <span> reimagined symbolically.</span>
+          </h1>
+          <p className="hero-lead">
+            A precise, open encoding standard built on the <code>{'{6,7}'}</code> alphabet—designed for humans,
+            machines and an internet ready for better symbols.
+          </p>
+          <div className="hero-actions">
+            <Link to="/playground" className="home-button home-button-primary">
+              <BeakerIcon aria-hidden="true" />
+              Open playground
+              <ArrowRightIcon aria-hidden="true" />
+            </Link>
+            <Link to="/docs" className="home-button home-button-secondary">
+              Read the standard
+            </Link>
+          </div>
+          <div className="hero-proof" aria-label="Platform benefits">
+            <span><CheckCircleIcon aria-hidden="true" /> Runs locally</span>
+            <span><CheckCircleIcon aria-hidden="true" /> Zero dependencies at runtime</span>
+            <span><CheckCircleIcon aria-hidden="true" /> Open source</span>
+          </div>
+        </div>
+
+        <div className="encoder-console">
+          <div className="console-chrome">
+            <span className="console-dots" aria-hidden="true"><i /><i /><i /></span>
+            <span><CommandLineIcon aria-hidden="true" /> live_encoder.sit</span>
+            <span className="console-live"><i aria-hidden="true" /> Live</span>
+          </div>
+          <div className="console-body">
+            <label htmlFor="hero-encoder">Type a message</label>
+            <div className="console-input-row">
+              <input
+                id="hero-encoder"
+                value={sample}
+                maxLength={28}
+                onChange={(event) => setSample(event.target.value)}
+                placeholder="Type something…"
+              />
+              <span>{sample.length}/28</span>
             </div>
+            <div className="console-flow">
+              <span>UTF-8</span><i aria-hidden="true" /><span>SYMBOLIC TOKEN</span><i aria-hidden="true" /><span>VALID</span>
+            </div>
+            <div className="console-output">
+              <div>
+                <span>Encoded output</span>
+                <strong>{Math.max(sample.length, 1)} SYTE</strong>
+              </div>
+              <code>{encoded}</code>
+            </div>
+            <button type="button" className="console-copy" onClick={copyEncoded}>
+              <ClipboardDocumentCheckIcon aria-hidden="true" />
+              {copied ? 'Copied to clipboard' : 'Copy symbolic payload'}
+            </button>
+          </div>
+          <div className="console-status">
+            <span><i aria-hidden="true" /> Compliance passed</span>
+            <span>Protocol 67</span>
           </div>
         </div>
       </motion.section>
 
-      <section className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
-        {featureCards.map((feature, index) => {
-          const Icon = feature.icon
-          return (
-            <motion.article key={feature.title} initial={{ opacity: 0, y: 18 }} animate={{ opacity: 1, y: 0 }} transition={{ delay: index * 0.06, duration: 0.35 }} className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-              <div className="mb-4 inline-flex rounded-2xl bg-blue-50 p-3 text-blue-600 dark:bg-blue-950/40 dark:text-blue-200">
-                <Icon className="h-6 w-6" />
-              </div>
-              <h2 className="text-xl font-semibold text-slate-900 dark:text-slate-100">{feature.title}</h2>
-              <p className="mt-2 text-sm leading-7 text-slate-600 dark:text-slate-400">{feature.description}</p>
+      <motion.section {...reveal} transition={{ delay: .06, duration: .45 }} className="registry-strip" aria-labelledby="registry-title">
+        <div className="registry-intro">
+          <p>Native SIT 2.0</p>
+          <h2 id="registry-title">Explore the registry</h2>
+        </div>
+        <div className="registry-links">
+          {registryLinks.map(({ to, label, detail, icon: Icon }) => (
+            <Link key={to} to={to}>
+              <span><Icon aria-hidden="true" /></span>
+              <span><strong>{label}</strong><small>{detail}</small></span>
+              <ArrowRightIcon aria-hidden="true" />
+            </Link>
+          ))}
+        </div>
+      </motion.section>
+
+      <section className="capabilities-section" aria-labelledby="capabilities-title">
+        <div className="section-heading">
+          <div>
+            <p className="section-kicker">One small alphabet. A complete system.</p>
+            <h2 id="capabilities-title">Serious tooling for symbolic information.</h2>
+          </div>
+          <p>SIT keeps the implementation understandable while covering the full path from byte-compatible encoding to native semantics.</p>
+        </div>
+
+        <div className="capability-grid">
+          {capabilities.map(({ title, description, icon: Icon, tone }, index) => (
+            <motion.article
+              key={title}
+              initial={{ opacity: 0, y: 16 }}
+              whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }}
+              transition={{ delay: index * .05, duration: .35 }}
+              className={`capability-card capability-${tone}`}
+            >
+              <span className="capability-icon"><Icon aria-hidden="true" /></span>
+              <span className="capability-number">0{index + 1}</span>
+              <h3>{title}</h3>
+              <p>{description}</p>
+              <div className="capability-line" aria-hidden="true" />
             </motion.article>
-          )
-        })}
+          ))}
+        </div>
       </section>
 
-      <section className="grid gap-8 lg:grid-cols-[0.9fr_1.1fr]">
-        <motion.div initial={{ opacity: 0, x: -16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }} className="rounded-[1.5rem] border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Fake certifications</h2>
-          <div className="mt-6 flex flex-wrap gap-3">
-            {certifications.map((item) => (
-              <span key={item} className="rounded-full border border-slate-300 px-4 py-2 text-sm font-medium text-slate-700 dark:border-slate-700 dark:text-slate-300">
-                {item}
-              </span>
-            ))}
-          </div>
-          <p className="mt-5 text-sm text-slate-500 dark:text-slate-400">*Terms and conditions may apply.</p>
-        </motion.div>
+      <section className="performance-panel" aria-labelledby="performance-title">
+        <div className="performance-copy">
+          <span className="performance-icon"><BoltIcon aria-hidden="true" /></span>
+          <p className="section-kicker">Engineered to stay lightweight</p>
+          <h2 id="performance-title">Fast enough to feel instant. Simple enough to trust.</h2>
+          <p>Core conversions are pure browser operations with route-level code splitting and no network dependency.</p>
+          <Link to="/docs">Review the specification <ArrowRightIcon aria-hidden="true" /></Link>
+        </div>
+        <div className="performance-metrics">
+          <div><strong>0</strong><span>server calls to encode</span></div>
+          <div><strong>2</strong><span>symbols in the base alphabet</span></div>
+          <div><strong>8</strong><span>symbols per legacy token</span></div>
+          <div><strong>100%</strong><span>open reference code</span></div>
+        </div>
+      </section>
 
-        <motion.div initial={{ opacity: 0, x: 16 }} animate={{ opacity: 1, x: 0 }} transition={{ duration: 0.4 }} className="rounded-[1.5rem] border border-slate-200 bg-white p-8 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">Humorous benchmarks</h2>
-          <div className="mt-6 space-y-4">
-            {benchmarks.map((item) => (
-              <div key={item.label}>
-                <div className="mb-2 flex items-center justify-between text-sm font-medium text-slate-700 dark:text-slate-300">
-                  <span>{item.label}</span>
-                  <span>{item.value}</span>
-                </div>
-                <div className="h-3 rounded-full bg-slate-100 dark:bg-slate-800">
-                  <div className={`h-3 rounded-full bg-gradient-to-r ${item.accent}`} style={{ width: '92%' }} />
-                </div>
-              </div>
-            ))}
+      <section className="home-cta">
+        <div>
+          <span className="cta-mark"><SparklesIcon aria-hidden="true" /></span>
+          <div>
+            <p>Ready to translate an idea?</p>
+            <h2>Start with the playground. No setup required.</h2>
           </div>
-        </motion.div>
+        </div>
+        <Link to="/playground" className="home-button home-button-light">
+          Launch encoder <ArrowRightIcon aria-hidden="true" />
+        </Link>
       </section>
     </div>
   )

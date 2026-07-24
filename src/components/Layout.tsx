@@ -1,17 +1,23 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { NavLink } from 'react-router-dom'
+import { Link, NavLink, useLocation } from 'react-router-dom'
 import {
-  HomeIcon,
-  DocumentTextIcon,
-  BeakerIcon,
-  MapIcon,
-  InformationCircleIcon,
   AcademicCapIcon,
+  ArrowRightIcon,
   ArrowTopRightOnSquareIcon,
-  SparklesIcon,
   Bars3Icon,
-  XMarkIcon,
+  BeakerIcon,
+  BoltIcon,
+  CommandLineIcon,
+  DocumentTextIcon,
+  HomeIcon,
+  InformationCircleIcon,
+  MapIcon,
+  MoonIcon,
+  RocketLaunchIcon,
+  SparklesIcon,
+  SunIcon,
   UserCircleIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 
 type LayoutProps = {
@@ -19,207 +25,257 @@ type LayoutProps = {
   title: string
 }
 
+type Theme = 'light' | 'dark'
+
 const navItems = [
-  { href: '/', label: 'Home', icon: HomeIcon },
-  { href: '/docs', label: 'Documentation', icon: DocumentTextIcon },
-  { href: '/playground', label: 'Playground', icon: BeakerIcon },
-  { href: '/roadmap', label: 'Roadmap', icon: MapIcon },
-  { href: '/about', label: 'About', icon: InformationCircleIcon },
-  { href: '/rfc', label: 'RFC', icon: AcademicCapIcon },
-  { href: '/profile', label: 'Profile', icon: UserCircleIcon },
+  { href: '/', label: 'Home', shortLabel: 'Home', icon: HomeIcon },
+  { href: '/docs', label: 'Documentation', shortLabel: 'Docs', icon: DocumentTextIcon },
+  { href: '/playground', label: 'Playground', shortLabel: 'Playground', icon: BeakerIcon },
+  { href: '/roadmap', label: 'Roadmap', shortLabel: 'Roadmap', icon: MapIcon },
+  { href: '/rfc', label: 'RFC Registry', shortLabel: 'RFC', icon: AcademicCapIcon },
+  { href: '/about', label: 'About SIT', shortLabel: 'About', icon: InformationCircleIcon },
 ]
 
+const routeNames: Record<string, string> = {
+  '/': 'Overview',
+  '/docs': 'Documentation',
+  '/playground': 'Encoding laboratory',
+  '/roadmap': 'Product roadmap',
+  '/about': 'About the standard',
+  '/rfc': 'RFC registry',
+  '/native': 'Native SIT',
+  '/alphabet': 'Native alphabet',
+  '/grammar': 'Native grammar',
+  '/punctuation': 'Punctuation',
+  '/dictionary': 'Dictionary',
+  '/semantic': 'Semantic layer',
+  '/explorer': 'Character explorer',
+  '/profile': 'Researcher profile',
+}
+
+function resolveInitialTheme(): Theme {
+  if (typeof window === 'undefined') return 'light'
+  const saved = window.localStorage.getItem('sit-theme')
+  if (saved === 'light' || saved === 'dark') return saved
+  return window.matchMedia?.('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+}
+
 export default function Layout({ children, title }: LayoutProps) {
+  const location = useLocation()
   const [showSecret, setShowSecret] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [logoClicks, setLogoClicks] = useState(0)
+  const [theme, setTheme] = useState<Theme>(resolveInitialTheme)
 
   const closeSecret = () => setShowSecret(false)
+  const routeName = routeNames[location.pathname] ?? 'SIT Standard'
 
   const footerLinks = useMemo(
     () => [
       { href: 'https://github.com/michelecoppi/sit', label: 'GitHub', external: true },
-      { href: '/rfc', label: 'RFC', external: false },
+      { href: '/rfc', label: 'RFC Registry', external: false },
       { href: '/docs', label: 'Documentation', external: false },
+      { href: '/roadmap', label: 'Roadmap', external: false },
     ],
     [],
   )
 
   useEffect(() => {
-    document.title = `${title} | SIT Standard`
+    document.title = `${routeName || title} | SIT Standard`
     const meta = document.querySelector('meta[name="description"]')
     if (meta) {
-      meta.setAttribute('content', 'The world\'s most advanced symbolic encoding standard based on the {6,7} alphabet.')
+      meta.setAttribute('content', 'The symbolic information standard built on the {6,7} alphabet.')
     }
-  }, [title])
+  }, [routeName, title])
 
   useEffect(() => {
-    if (!showSecret) {
-      return
-    }
+    document.documentElement.classList.toggle('dark', theme === 'dark')
+    document.documentElement.style.colorScheme = theme
+    window.localStorage.setItem('sit-theme', theme)
+  }, [theme])
+
+  useEffect(() => {
+    setMenuOpen(false)
+  }, [location.pathname])
+
+  useEffect(() => {
+    if (!showSecret && !menuOpen) return
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         closeSecret()
+        setMenuOpen(false)
       }
     }
 
     document.addEventListener('keydown', handleKeyDown)
     return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [showSecret])
+  }, [menuOpen, showSecret])
 
   return (
-    <div className="min-h-screen bg-[var(--bg)] text-[var(--foreground)] transition-colors duration-300">
-        <header className="sticky top-0 z-30 border-b border-slate-200/70 bg-white/80 backdrop-blur dark:border-slate-800 dark:bg-slate-950/80">
-          <div className="mx-auto flex max-w-7xl items-center justify-between gap-2 px-3 py-3 sm:gap-3 sm:px-6 sm:py-4 lg:px-8">
-          <button
-            type="button"
+    <div className="app-shell">
+      <a className="skip-link" href="#main-content">Skip to content</a>
+
+      <header className="site-header">
+        <div className="header-inner">
+          <Link
+            to="/"
+            aria-label="SIT home"
+            className="brand-lockup"
             onClick={() => {
               const clicks = logoClicks + 1
               setLogoClicks(clicks)
-              if (clicks >= 7) { setShowSecret(true); setLogoClicks(0) }
+              if (clicks >= 7) {
+                setShowSecret(true)
+                setLogoClicks(0)
+              }
             }}
-            aria-label="Open ceremonial hall"
-            className="flex shrink-0 items-center gap-3 rounded-full border border-slate-200 bg-white px-3 py-2 shadow-sm transition hover:shadow-md dark:border-slate-700 dark:bg-slate-900"
           >
-            <div className="flex h-10 w-10 items-center justify-center overflow-hidden rounded-2xl bg-blue-600 text-lg font-semibold text-white">
-              <img src={`${import.meta.env.BASE_URL}sit-icon.svg`} alt="SIT icon" className="h-full w-full object-cover" />
-            </div>
-            <div className="hidden text-left sm:block">
-              <div className="text-sm font-semibold tracking-[0.2em] text-slate-900 dark:text-slate-100">SIT</div>
-              <div className="text-xs text-slate-500 dark:text-slate-400">Symbolic Information Token</div>
-            </div>
-          </button>
-          <nav className="hidden min-w-0 items-center gap-1 xl:flex">
+            <span className="brand-mark" aria-hidden="true">
+              <img src={`${import.meta.env.BASE_URL}sit-icon.svg`} alt="" />
+            </span>
+            <span className="brand-copy">
+              <span className="brand-name">SIT</span>
+              <span className="brand-subtitle">Symbolic Information Token</span>
+            </span>
+          </Link>
+
+          <nav className="desktop-nav" aria-label="Primary navigation">
             {navItems.map((item) => {
               const Icon = item.icon
               return (
                 <NavLink
                   key={item.href}
                   to={item.href}
-                  className={({ isActive }) =>
-                    `flex items-center gap-1.5 whitespace-nowrap rounded-full px-2.5 py-2 text-xs font-medium transition ${
-                      isActive
-                        ? 'bg-blue-600 text-white shadow-sm'
-                        : 'text-slate-600 hover:bg-slate-100 hover:text-slate-900 dark:text-slate-300 dark:hover:bg-slate-800 dark:hover:text-white'
-                    }`
-                  }
+                  className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`}
                 >
-                  <Icon className="h-4 w-4" />
-                  {item.label}
+                  <Icon aria-hidden="true" />
+                  <span className="nav-label-full">{item.label}</span>
                 </NavLink>
               )
             })}
           </nav>
-          <div className="flex items-center gap-2">
-            <a
-              href="https://github.com/michelecoppi/sit"
-              target="_blank"
-              rel="noreferrer"
-              className="hidden shrink-0 2xl:inline-flex items-center gap-2 rounded-full border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 transition hover:bg-blue-100 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200"
+
+          <div className="header-actions">
+            <Link to="/native" className="native-cta">
+              <BoltIcon aria-hidden="true" />
+              <span>Native 2.0</span>
+            </Link>
+            <Link to="/profile" className="icon-button profile-button" aria-label="Open researcher profile">
+              <UserCircleIcon aria-hidden="true" />
+            </Link>
+            <button
+              type="button"
+              className="icon-button"
+              aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+              title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+              onClick={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')}
             >
-              <SparklesIcon className="h-4 w-4" />
-              GitHub
-              <ArrowTopRightOnSquareIcon className="h-4 w-4" />
-            </a>
+              {theme === 'dark' ? <SunIcon aria-hidden="true" /> : <MoonIcon aria-hidden="true" />}
+            </button>
             <button
               type="button"
               onClick={() => setMenuOpen((value) => !value)}
-              className="inline-flex shrink-0 items-center justify-center rounded-full border border-slate-300 p-2 text-slate-700 transition hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200 xl:hidden"
-              aria-label="Toggle menu"
+              className="icon-button menu-button"
+              aria-label={menuOpen ? 'Close navigation menu' : 'Open navigation menu'}
+              aria-expanded={menuOpen}
+              aria-controls="mobile-navigation"
             >
-              {menuOpen ? <XMarkIcon className="h-5 w-5" /> : <Bars3Icon className="h-5 w-5" />}
+              {menuOpen ? <XMarkIcon aria-hidden="true" /> : <Bars3Icon aria-hidden="true" />}
             </button>
           </div>
         </div>
 
-        {menuOpen ? (
-          <div className="border-t border-slate-200 bg-white px-4 py-4 dark:border-slate-800 dark:bg-slate-950 xl:hidden">
-            <div className="flex flex-col gap-2">
+        <div className="context-bar" aria-label="Current location">
+          <div className="context-bar-inner">
+            <span className="context-pulse" aria-hidden="true" />
+            <span>{routeName}</span>
+            <span className="context-divider" aria-hidden="true">/</span>
+            <span className="context-version">Standard v2.0 · Public registry</span>
+          </div>
+        </div>
+
+        {menuOpen ? <div id="mobile-navigation" className="mobile-menu mobile-menu-open">
+          <nav aria-label="Mobile navigation">
+            <div className="mobile-menu-grid">
               {navItems.map((item) => {
                 const Icon = item.icon
                 return (
                   <NavLink
                     key={item.href}
                     to={item.href}
-                    onClick={() => setMenuOpen(false)}
-                    className={({ isActive }) =>
-                      `flex items-center gap-2 rounded-2xl px-3 py-2 text-sm font-medium transition ${
-                        isActive
-                          ? 'bg-blue-600 text-white'
-                          : 'text-slate-700 hover:bg-slate-100 dark:text-slate-200 dark:hover:bg-slate-800'
-                      }`
-                    }
+                    className={({ isActive }) => `mobile-nav-link${isActive ? ' mobile-nav-link-active' : ''}`}
                   >
-                    <Icon className="h-4 w-4" />
-                    {item.label}
+                    <span className="mobile-nav-icon"><Icon aria-hidden="true" /></span>
+                    <span>
+                      <strong>{item.label}</strong>
+                      <small>{item.href === '/' ? 'Start here' : `Open ${item.shortLabel.toLowerCase()}`}</small>
+                    </span>
+                    <ArrowRightIcon aria-hidden="true" />
                   </NavLink>
                 )
               })}
-              <a
-                href="https://github.com/michelecoppi/sit"
-                target="_blank"
-                rel="noreferrer"
-                className="mt-2 inline-flex items-center gap-2 rounded-2xl border border-blue-200 bg-blue-50 px-3 py-2 text-sm font-semibold text-blue-700 dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-200"
-              >
-                <SparklesIcon className="h-4 w-4" />
-                GitHub
-              </a>
             </div>
-          </div>
-        ) : null}
+            <div className="mobile-menu-footer">
+              <Link to="/native" className="mobile-feature-link">
+                <SparklesIcon aria-hidden="true" />
+                <span><strong>Explore Native SIT 2.0</strong><small>Alphabet, grammar and semantic tools</small></span>
+                <ArrowRightIcon aria-hidden="true" />
+              </Link>
+            </div>
+          </nav>
+        </div> : null}
       </header>
 
-      <main className="mx-auto max-w-7xl px-4 py-6 sm:px-6 sm:py-10 lg:px-8">{children}</main>
+      <main id="main-content" className="site-main" tabIndex={-1}>{children}</main>
 
-      <footer className="border-t border-slate-200 bg-slate-50/80 py-10 dark:border-slate-800 dark:bg-slate-950/70">
-        <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 text-sm text-slate-600 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8 dark:text-slate-400">
-          <div>
-            <div className="font-semibold text-slate-900 dark:text-slate-100">International SIT Consortium</div>
-            <div>Established 2026</div>
+      <footer className="site-footer">
+        <div className="footer-inner">
+          <div className="footer-brand">
+            <span className="footer-mark"><CommandLineIcon aria-hidden="true" /></span>
+            <div>
+              <strong>International SIT Consortium</strong>
+              <p>Building a more symbolic internet since 2026.</p>
+            </div>
           </div>
-          <div className="flex flex-wrap gap-4">
+          <div className="footer-links">
             {footerLinks.map((link) => (
               link.external ? (
-                <a key={link.label} href={link.href} target="_blank" rel="noreferrer" className="transition hover:text-blue-600">
-                  {link.label}
+                <a key={link.label} href={link.href} target="_blank" rel="noreferrer">
+                  {link.label}<ArrowTopRightOnSquareIcon aria-hidden="true" />
                 </a>
               ) : (
-                <NavLink key={link.label} to={link.href} className="transition hover:text-blue-600">
-                  {link.label}
-                </NavLink>
+                <NavLink key={link.label} to={link.href}>{link.label}</NavLink>
               )
             ))}
+          </div>
+          <div className="footer-status">
+            <span className="status-dot" aria-hidden="true" />
+            All symbolic systems operational
           </div>
         </div>
       </footer>
 
+      {menuOpen ? <button type="button" className="menu-scrim" aria-label="Close navigation menu" onClick={() => setMenuOpen(false)} /> : null}
+
       {showSecret ? (
-        <div
-          className="fixed inset-0 z-50 flex items-center justify-center bg-slate-950/70 px-4"
-          onClick={() => setShowSecret(false)}
-        >
+        <div className="modal-backdrop" onMouseDown={closeSecret}>
           <div
             role="dialog"
             aria-modal="true"
-            aria-label="Ceremonial hall"
-            className="max-w-lg rounded-3xl border border-blue-200 bg-white p-5 text-center shadow-2xl sm:p-8 dark:border-blue-900 dark:bg-slate-900"
+            aria-labelledby="ceremonial-title"
+            className="ceremonial-modal"
+            onMouseDown={(event) => event.stopPropagation()}
           >
-              <div className="mx-auto mb-4 flex h-12 w-12 items-center justify-center overflow-hidden rounded-full bg-blue-600 text-xl font-semibold text-white">
-                <img src={`${import.meta.env.BASE_URL}sit-icon.svg`} alt="SIT icon" className="h-full w-full object-cover" />
-              </div>
-              <h2 className="text-2xl font-semibold text-slate-900 dark:text-slate-100">International SIT Consortium Terminal</h2>
-              <p className="mt-3 text-slate-600 dark:text-slate-400">Access unlocked. Try the native alphabet, grammar, dictionary, roadmap, or RFC registry.</p>
-              <button
-                type="button"
-                onClick={(event) => {
-                  event.stopPropagation()
-                  closeSecret()
-                }}
-                className="mt-6 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold text-slate-700 transition hover:border-blue-400 hover:text-blue-600 dark:border-slate-700 dark:text-slate-200"
-              >
-                Close
-              </button>
+            <div className="ceremonial-glow" aria-hidden="true" />
+            <span className="ceremonial-icon"><RocketLaunchIcon aria-hidden="true" /></span>
+            <p className="ceremonial-kicker">Protocol 67 unlocked</p>
+            <h2 id="ceremonial-title">International SIT Consortium Terminal</h2>
+            <p>Access granted. The ceremonial layer confirms that your dedication to symbolic systems is statistically significant.</p>
+            <div className="ceremonial-actions">
+              <Link to="/native" onClick={closeSecret} className="button-primary">Enter native registry <ArrowRightIcon aria-hidden="true" /></Link>
+              <button type="button" onClick={closeSecret} className="button-secondary">Close terminal</button>
+            </div>
           </div>
         </div>
       ) : null}
