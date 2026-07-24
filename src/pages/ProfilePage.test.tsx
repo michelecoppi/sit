@@ -2,10 +2,11 @@ import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
 import { describe, expect, it, vi } from 'vitest'
 import ProfilePage from './ProfilePage'
-import type { MeResponse } from '../types/profile'
+import type { MeResponse, ProfileStatistics } from '../types/profile'
 import type { StatisticsSnapshotResponse } from '../types/statistics'
 
-const { mockGetStatisticsSnapshot, mockAuth, mockAccount } = vi.hoisted(() => ({
+const { mockGetProfileStatistics, mockGetStatisticsSnapshot, mockAuth, mockAccount } = vi.hoisted(() => ({
+  mockGetProfileStatistics: vi.fn<() => Promise<ProfileStatistics>>(),
   mockGetStatisticsSnapshot: vi.fn<() => Promise<StatisticsSnapshotResponse>>(),
   mockAuth: {
     me: {
@@ -102,6 +103,7 @@ const { mockGetStatisticsSnapshot, mockAuth, mockAccount } = vi.hoisted(() => ({
 }))
 
 vi.mock('../services/profileService', () => ({
+  getProfileStatistics: mockGetProfileStatistics,
   getStatisticsSnapshot: mockGetStatisticsSnapshot,
 }))
 
@@ -116,6 +118,15 @@ vi.mock('../context/AccountContext', () => ({
 
 describe('ProfilePage', () => {
   it('uses statistics snapshot and switches between global and provider summaries', async () => {
+    mockGetProfileStatistics.mockResolvedValue({
+      researcherId: 'SIT-123456',
+      xp: 777,
+      level: 6,
+      messagesEncoded: 44,
+      messagesDecoded: 33,
+      syteProcessed: 2222,
+      updatedAt: '2026-07-24T10:11:12.000Z',
+    })
     mockGetStatisticsSnapshot.mockResolvedValue({
       users: { countUsers: 4 },
       providers: ['discord', 'telegram'],
@@ -161,11 +172,13 @@ describe('ProfilePage', () => {
     expect(screen.getAllByRole('button', { name: 'Discord' }).length).toBeGreaterThan(0)
     expect(screen.getAllByRole('button', { name: 'Telegram' }).length).toBeGreaterThan(0)
 
-    expect(screen.getByText('4')).toBeInTheDocument()
-    expect(screen.getByText('340')).toBeInTheDocument()
+    expect(screen.getByText('12')).toBeInTheDocument()
+    expect(screen.getAllByText('999').length).toBeGreaterThan(0)
+    expect(screen.getByText('777')).toBeInTheDocument()
+    expect(screen.getByText('2,222')).toBeInTheDocument()
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Discord' })[0])
-    expect(screen.getByText('4')).toBeInTheDocument()
+    expect(screen.getByText('8')).toBeInTheDocument()
     expect(screen.getByText('220')).toBeInTheDocument()
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Telegram' })[0])
@@ -174,6 +187,15 @@ describe('ProfilePage', () => {
   })
 
   it('filters recent translations by provider', async () => {
+    mockGetProfileStatistics.mockResolvedValue({
+      researcherId: 'SIT-123456',
+      xp: 777,
+      level: 6,
+      messagesEncoded: 44,
+      messagesDecoded: 33,
+      syteProcessed: 2222,
+      updatedAt: '2026-07-24T10:11:12.000Z',
+    })
     mockGetStatisticsSnapshot.mockResolvedValue({
       users: { countUsers: 4 },
       providers: ['discord', 'telegram'],
