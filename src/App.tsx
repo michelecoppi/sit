@@ -73,7 +73,12 @@ function App() {
       <OAuthCallbackHandler />
       <ScrollToTop />
       <Layout title="SIT Standard">
-        <Suspense fallback={<div className="native-card">Loading SIT registry...</div>}>
+        <Suspense fallback={
+          <div className="route-loader" role="status" aria-live="polite">
+            <span className="route-loader-mark" aria-hidden="true"><i>6</i><i>7</i></span>
+            <span><strong>Loading registry</strong><small>Preparing the symbolic workspace…</small></span>
+          </div>
+        }>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/docs" element={<DocumentationPage />} />
