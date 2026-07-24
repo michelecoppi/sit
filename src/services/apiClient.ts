@@ -1,4 +1,4 @@
-import { getSitToken, handleUnauthorizedSession } from '../utils/authToken'
+import { handleUnauthorizedSession } from '../utils/authSession'
 
 export class ApiClientError extends Error {
   status: number
@@ -63,17 +63,10 @@ export function getApiUrl() {
   return apiUrl.replace(/\/+$/, '')
 }
 
-export function getAuthHeaders(token?: string | null) {
-  const currentToken = token ?? getSitToken()
-  const headers: Record<string, string> = {
+export function getApiHeaders() {
+  return {
     'Content-Type': 'application/json',
   }
-
-  if (currentToken) {
-    headers.Authorization = `Bearer ${currentToken}`
-  }
-
-  return headers
 }
 
 export async function parseResponsePayload(response: Response): Promise<unknown> {

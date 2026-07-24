@@ -8,7 +8,6 @@ import type { StatisticsSnapshotResponse } from '../types/statistics'
 const { mockGetStatisticsSnapshot, mockAuth, mockAccount } = vi.hoisted(() => ({
   mockGetStatisticsSnapshot: vi.fn<() => Promise<StatisticsSnapshotResponse>>(),
   mockAuth: {
-    token: 'header.payload.signature',
     me: {
       profile: {
         researcherId: 'SIT-123456',

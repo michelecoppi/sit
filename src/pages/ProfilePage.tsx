@@ -28,21 +28,12 @@ import type { LinkCodeResponse } from '../types/account'
 import type { TelegramLoginTicketSnapshot } from '../types/auth'
 import type { RecentTranslation, ResearcherProfile } from '../types/profile'
 import type { StatisticsProvider, StatisticsSnapshotResponse, StatisticsSummary } from '../types/statistics'
-import { prepareOAuthBridgeToken } from '../utils/authToken'
 import { consumeOAuthCallbackError } from '../utils/oauthCallbackState'
-
-type JwtPayload = {
-  exp?: number
-  iat?: number
-  sub?: string
-  [key: string]: unknown
-}
 
 const DEFAULT_LINK_CODE_TTL_SECONDS = 10 * 60
 const DEFAULT_LOGIN_POLL_INTERVAL_MS = 2000
 const DEFAULT_LOGIN_POLL_TIMEOUT_MS = 180000
 const TELEGRAM_LOGIN_TICKET_STORAGE_KEY = 'sit_telegram_login_ticket'
-const OAUTH_DEBUG_STORAGE_KEY = 'sit_oauth_callback_debug'
 const SUPPORTED_PROVIDER_FILTERS = ['discord', 'telegram'] as const
 
 type StatisticsFilter = 'global' | StatisticsProvider
@@ -216,9 +207,7 @@ function LoginPrompt() {
   const recoverOauthError = () => {
     const code = consumeOAuthCallbackError()
     if (!code) return
-    const baseError = mapOAuthCallbackError(code)
-    const debugHint = consumeOAuthCallbackDebugHint()
-    setOauthError(debugHint ? `${baseError} ${debugHint}` : baseError)
+    setOauthError(mapOAuthCallbackError(code))
   }
 
   const startPolling = (snapshot: TelegramLoginTicketSnapshot) => {
@@ -259,7 +248,7 @@ function LoginPrompt() {
         if (statusResponse.status === 'COMPLETED') {
           stopPolling(true)
           setTelegramStatus('completed')
-          await completeLogin(statusResponse.token)
+          await completeLogin()
           return
         }
 
@@ -358,7 +347,6 @@ function LoginPrompt() {
 
     try {
       sessionStorage.removeItem(TELEGRAM_LOGIN_TICKET_STORAGE_KEY)
-      prepareOAuthBridgeToken()
       window.location.href = getDiscordLoginUrl()
     } catch (error) {
       setDiscordLoading(false)
@@ -479,56 +467,11 @@ function LoginPrompt() {
   )
 }
 
-function decodeJwtPayload(token: string | null): JwtPayload | null {
-  if (!token) return null
-
-  const [, payload] = token.split('.')
-  if (!payload) return null
-
-  try {
-    const normalized = payload.replace(/-/g, '+').replace(/_/g, '/')
-    const padded = normalized.padEnd(Math.ceil(normalized.length / 4) * 4, '=')
-    const decoded = atob(padded)
-    return JSON.parse(decoded) as JwtPayload
-  } catch {
-    return null
-  }
-}
-
-function getFirstStringClaim(payload: JwtPayload | null, keys: string[]) {
-  if (!payload) return null
-  for (const key of keys) {
-    const value = payload[key]
-    if (typeof value === 'string' && value.trim()) return value
-  }
-  return null
-}
-
-function formatUnixTimestamp(value: unknown) {
-  if (typeof value !== 'number' || Number.isNaN(value)) return 'Not provided'
-  return new Date(value * 1000).toLocaleString()
-}
-
 function formatIsoDate(value: string | null | undefined) {
   if (!value) return 'Not available'
   const date = new Date(value)
   if (Number.isNaN(date.getTime())) return 'Not available'
   return date.toLocaleString()
-}
-
-function createTokenBackedProfile(payload: JwtPayload | null): ResearcherProfile | null {
-  const researcherId = getFirstStringClaim(payload, ['researcherId', 'researcher_id', 'sub'])
-  const displayName = getFirstStringClaim(payload, ['displayName', 'name', 'preferred_username', 'username'])
-  const preferredVersion = getFirstStringClaim(payload, ['preferredVersion', 'preferred_version'])
-
-  if (!researcherId && !displayName) return null
-
-  return {
-    ...DEMO_PROFILE,
-    researcherId: researcherId ?? 'SIT-UNKNOWN',
-    displayName: displayName ?? 'Authenticated Researcher',
-    preferredVersion: preferredVersion ?? DEMO_PROFILE.preferredVersion,
-  }
 }
 
 function resolveLinkCodeTtl(response: LinkCodeResponse) {
@@ -617,42 +560,15 @@ function selectStatisticsSummary(
 }
 
 function mapOAuthCallbackError(code: string) {
-  if (code === 'missing_token') {
-    return 'Invalid Discord callback: missing token. Please try logging in again.'
-  }
-
-  if (code === 'invalid_token') {
-    return 'Discord callback completed but token is invalid. Please sign in again.'
+  if (code === 'invalid_session') {
+    return 'Discord login completed, but the session could not be restored. Please sign in again.'
   }
 
   return 'Discord login did not complete. Please retry from the sign-in button.'
 }
 
-function consumeOAuthCallbackDebugHint() {
-  const raw = sessionStorage.getItem(OAUTH_DEBUG_STORAGE_KEY)
-  if (!raw) return null
-
-  sessionStorage.removeItem(OAUTH_DEBUG_STORAGE_KEY)
-
-  try {
-    const data = JSON.parse(raw) as {
-      hasToken?: boolean
-      hasError?: boolean
-      hasSearchParams?: boolean
-      hasHashQuery?: boolean
-    }
-
-    return `Debug OAuth: token=${data.hasToken ? 'yes' : 'no'}, error=${data.hasError ? 'yes' : 'no'}, search=${data.hasSearchParams ? 'yes' : 'no'}, hashQuery=${data.hasHashQuery ? 'yes' : 'no'}.`
-  } catch {
-    return null
-  }
-}
-
 function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
-  const { token, me, authError, clearAuthError } = useAuth()
-  const payload = decodeJwtPayload(token)
-  const researcherId = getFirstStringClaim(payload, ['researcherId', 'researcher_id', 'sub'])
-  const displayName = getFirstStringClaim(payload, ['displayName', 'name', 'preferred_username', 'username'])
+  const { me, authError, clearAuthError } = useAuth()
   const { providers, isLoading, providersError, refreshProviders, refreshProvidersOnly, generateLinkCode } = useAccount()
   const [actionProvider, setActionProvider] = useState<string | null>(null)
   const [linkingProvider, setLinkingProvider] = useState<string | null>(null)
@@ -671,9 +587,7 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
   useEffect(() => {
     const oauthCode = consumeOAuthCallbackError()
     if (!oauthCode) return
-    const baseError = mapOAuthCallbackError(oauthCode)
-    const debugHint = consumeOAuthCallbackDebugHint()
-    setLinkError(debugHint ? `${baseError} ${debugHint}` : baseError)
+    setLinkError(mapOAuthCallbackError(oauthCode))
   }, [])
 
   useEffect(() => {
@@ -684,7 +598,7 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
       setStatisticsError(null)
 
       try {
-        const snapshot = await getStatisticsSnapshot(token)
+        const snapshot = await getStatisticsSnapshot()
         if (mounted) {
           setStatisticsSnapshot(snapshot)
         }
@@ -704,14 +618,13 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
     return () => {
       mounted = false
     }
-  }, [token])
+  }, [])
 
   const handleConnectProvider = async (providerName: string) => {
     if (providerName === 'discord') {
       clearAuthError()
       setLinkError(null)
       sessionStorage.removeItem(TELEGRAM_LOGIN_TICKET_STORAGE_KEY)
-      prepareOAuthBridgeToken()
       try {
         const result = await generateLinkCode('discord')
         window.location.href = result.loginUrl ?? getDiscordLoginUrl()
@@ -766,11 +679,9 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
     }
   }, [isLinkModalOpen, linkingProvider, refreshProvidersOnly])
 
-  const fallbackProfile = createTokenBackedProfile(payload)
-  const liveProfile: ResearcherProfile | null = me ? me.profile : null
-  const effectiveProfile = liveProfile ?? fallbackProfile
-  const effectiveDisplayName = me?.profile.displayName ?? displayName
-  const effectiveResearcherId = me?.profile.researcherId ?? researcherId
+  const effectiveProfile: ResearcherProfile | null = me?.profile ?? null
+  const effectiveDisplayName = me?.profile.displayName ?? null
+  const effectiveResearcherId = me?.profile.researcherId ?? null
 
   const statisticsFilters = useMemo(() => ['global', ...SUPPORTED_PROVIDER_FILTERS] as StatisticsFilter[], [])
 
@@ -977,7 +888,7 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
         <div className="mt-6 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
           <StatCard label="Display Name" value={effectiveDisplayName ?? 'Not available'} icon={UserCircleIcon} accent="blue" />
           <StatCard label="Researcher ID" value={effectiveResearcherId ?? 'Not available'} icon={CodeBracketIcon} accent="violet" />
-          <StatCard label="Token Expires" value={formatUnixTimestamp(payload?.exp)} icon={LockClosedIcon} accent="emerald" />
+          <StatCard label="Session" value="Protected by HttpOnly cookie" icon={LockClosedIcon} accent="emerald" />
         </div>
 
         <button
@@ -1204,7 +1115,7 @@ export default function ProfilePage() {
   const { status, logout } = useAuth()
 
   const handleLogout = () => {
-    logout()
+    void logout().catch(() => undefined)
   }
 
   return (

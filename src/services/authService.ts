@@ -1,6 +1,6 @@
 import {
+  getApiHeaders,
   getApiUrl,
-  getAuthHeaders,
   parseResponsePayload,
   throwApiError,
 } from './apiClient'
@@ -26,7 +26,7 @@ export async function createLoginTicket(provider: 'telegram'): Promise<CreateLog
   const apiUrl = getApiUrl()
   const response = await fetch(`${apiUrl}/api/auth/login-ticket`, {
     method: 'POST',
-    headers: getAuthHeaders(null),
+    headers: getApiHeaders(),
     body: JSON.stringify({ provider }),
     credentials: 'include',
   })
@@ -62,7 +62,7 @@ export async function getLoginStatus(ticket: string): Promise<LoginStatusRespons
   const apiUrl = getApiUrl()
   const response = await fetch(`${apiUrl}/api/auth/login-status?ticket=${encodeURIComponent(ticket)}`, {
     method: 'GET',
-    headers: getAuthHeaders(null),
+    headers: getApiHeaders(),
     credentials: 'include',
   })
 
@@ -77,23 +77,20 @@ export async function getLoginStatus(ticket: string): Promise<LoginStatusRespons
     throw new Error('SIT Core returned an invalid login status.')
   }
 
-  if (status === 'COMPLETED') {
-    const token = typeof (payload as { token?: unknown })?.token === 'string'
-      ? (payload as { token: string }).token.trim()
-      : ''
+  return { status }
+}
 
-    if (!token) {
-      throw new Error('SIT Core reported a completed login without token.')
-    }
+export async function logoutSession(): Promise<void> {
+  const apiUrl = getApiUrl()
+  const response = await fetch(`${apiUrl}/api/auth/logout`, {
+    method: 'POST',
+    headers: getApiHeaders(),
+    credentials: 'include',
+  })
 
-    return {
-      status,
-      token,
-    }
-  }
-
-  return {
-    status,
+  const payload = await parseResponsePayload(response)
+  if (!response.ok) {
+    throwApiError(response.status, payload, 'Unable to close the session right now.', false)
   }
 }
 
