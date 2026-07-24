@@ -35,33 +35,40 @@ export function parseProfileStatistics(payload: unknown): ProfileStatistics {
   }
 
   const data = payload as Record<string, unknown>
-  const updatedAtIsValid = typeof data.updatedAt === 'string'
-    && !Number.isNaN(new Date(data.updatedAt).getTime())
-  const levelIsValid = typeof data.level === 'number'
-    && Number.isSafeInteger(data.level)
-    && data.level >= 1
+  const {
+    researcherId,
+    xp,
+    level,
+    messagesEncoded,
+    messagesDecoded,
+    syteProcessed,
+    updatedAt,
+  } = data
 
   if (
-    typeof data.researcherId !== 'string'
-    || data.researcherId.trim().length === 0
-    || !isNonNegativeSafeInteger(data.xp)
-    || !levelIsValid
-    || !isNonNegativeSafeInteger(data.messagesEncoded)
-    || !isNonNegativeSafeInteger(data.messagesDecoded)
-    || !isNonNegativeSafeInteger(data.syteProcessed)
-    || !updatedAtIsValid
+    typeof researcherId !== 'string'
+    || researcherId.trim().length === 0
+    || !isNonNegativeSafeInteger(xp)
+    || typeof level !== 'number'
+    || !Number.isSafeInteger(level)
+    || level < 1
+    || !isNonNegativeSafeInteger(messagesEncoded)
+    || !isNonNegativeSafeInteger(messagesDecoded)
+    || !isNonNegativeSafeInteger(syteProcessed)
+    || typeof updatedAt !== 'string'
+    || Number.isNaN(new Date(updatedAt).getTime())
   ) {
     throw new Error('Invalid profile statistics payload.')
   }
 
   return {
-    researcherId: data.researcherId,
-    xp: data.xp,
-    level: data.level,
-    messagesEncoded: data.messagesEncoded,
-    messagesDecoded: data.messagesDecoded,
-    syteProcessed: data.syteProcessed,
-    updatedAt: data.updatedAt,
+    researcherId,
+    xp,
+    level,
+    messagesEncoded,
+    messagesDecoded,
+    syteProcessed,
+    updatedAt,
   }
 }
 
