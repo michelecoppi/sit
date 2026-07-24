@@ -15,7 +15,7 @@ interface AccountContextValue {
 const AccountContext = createContext<AccountContextValue | null>(null)
 
 export function AccountProvider({ children }: { children: React.ReactNode }) {
-  const { token, status } = useAuth()
+  const { status } = useAuth()
   const [providers, setProviders] = useState<ConnectedAccount[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [providersError, setProvidersError] = useState<string | null>(null)
@@ -23,11 +23,11 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   const refreshProvidersOnly = useCallback(async () => {
     if (status !== 'authenticated') return []
 
-    const nextProviders = await getProviders(token)
+    const nextProviders = await getProviders()
     setProviders(nextProviders)
     setProvidersError(null)
     return nextProviders
-  }, [status, token])
+  }, [status])
 
   const refreshProviders = useCallback(async () => {
     if (status !== 'authenticated') {
@@ -39,7 +39,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
 
     setIsLoading(true)
     try {
-      const nextProviders = await getProviders(token)
+      const nextProviders = await getProviders()
       setProviders(nextProviders)
       setProvidersError(null)
     } catch (error) {
@@ -47,14 +47,14 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     } finally {
       setIsLoading(false)
     }
-  }, [status, token])
+  }, [status])
 
   const generateLinkCode = useCallback(async (provider: ProviderType) => {
     if (status !== 'authenticated') {
       throw new Error('Please sign in to continue.')
     }
 
-    const result = await linkProvider(token, provider)
+    const result = await linkProvider(provider)
     setProviders((currentProviders) => currentProviders.map((current) => {
       if (current.provider !== result.provider) return current
       return {
@@ -64,7 +64,7 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
     }))
     setProvidersError(null)
     return result
-  }, [status, token])
+  }, [status])
 
   useEffect(() => {
     void refreshProviders()
