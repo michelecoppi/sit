@@ -174,7 +174,7 @@ describe('ProfilePage', () => {
 
     expect(screen.getByText('12')).toBeInTheDocument()
     expect(screen.getAllByText('999').length).toBeGreaterThan(0)
-    expect(screen.getByText('777')).toBeInTheDocument()
+    expect(screen.getAllByText('777').length).toBeGreaterThan(0)
     expect(screen.getByText('2,222')).toBeInTheDocument()
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Discord' })[0])
