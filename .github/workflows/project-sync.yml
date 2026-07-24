@@ -31,8 +31,10 @@ on:
 jobs:
   sync:
     if: ${{ github.event_name != 'issues' || github.event.issue.pull_request == null }}
-    uses: michelecoppi/sit_infrastructure/.github/workflows/reusable-project-sync.yml@main
+    # Pinned to sit_infrastructure commit d3514e0. See SECURITY.md for updates.
+    uses: michelecoppi/sit_infrastructure/.github/workflows/reusable-project-sync.yml@d3514e09ca08dbeca1283eead1a48cb3d79576b7
     with:
       project-url: ${{ vars.PROJECT_URL }}
     secrets:
       PROJECT_TOKEN: ${{ secrets.PROJECT_TOKEN }}
+
