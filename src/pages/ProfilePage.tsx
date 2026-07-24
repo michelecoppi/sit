@@ -22,11 +22,11 @@ import LinkProviderModal from '../components/account/LinkProviderModal'
 import { AccountProvider, useAccount } from '../context/AccountContext'
 import { useAuth } from '../context/AuthContext'
 import { createLoginTicket, getDiscordLoginUrl, getLoginStatus } from '../services/authService'
-import { getStatisticsSnapshot } from '../services/profileService'
+import { getProfileStatistics, getStatisticsSnapshot } from '../services/profileService'
 import { ApiClientError } from '../services/apiClient'
 import type { LinkCodeResponse } from '../types/account'
 import type { TelegramLoginTicketSnapshot } from '../types/auth'
-import type { RecentTranslation, ResearcherProfile } from '../types/profile'
+import type { ProfileStatistics, RecentTranslation, ResearcherProfile } from '../types/profile'
 import type { StatisticsProvider, StatisticsSnapshotResponse, StatisticsSummary } from '../types/statistics'
 import { consumeOAuthCallbackError } from '../utils/oauthCallbackState'
 
@@ -109,21 +109,11 @@ function StatCard({ label, value, icon: Icon, accent = 'blue' }: { label: string
   )
 }
 
-function XpBar({ xp, level }: { xp: number; level: number }) {
-  const xpPerLevel = 1000
-  const progress = Math.min((xp % xpPerLevel) / xpPerLevel, 1)
+function XpSummary({ xp, level }: { xp: number; level: number }) {
   return (
-    <div>
-      <div className="flex justify-between text-xs text-slate-500 dark:text-slate-400">
-        <span>Level {level}</span>
-        <span>{xp % xpPerLevel} / {xpPerLevel} XP</span>
-      </div>
-      <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700">
-        <div
-          className="h-full rounded-full bg-gradient-to-r from-blue-500 to-violet-500 transition-all duration-700"
-          style={{ width: `${progress * 100}%` }}
-        />
-      </div>
+    <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
+      <span>Level <strong className="font-semibold text-slate-700 dark:text-slate-200">{level.toLocaleString()}</strong></span>
+      <span>XP <strong className="font-semibold text-slate-700 dark:text-slate-200">{xp.toLocaleString()}</strong></span>
     </div>
   )
 }
@@ -157,7 +147,7 @@ function ProfileCard({ profile, isDemo = false }: { profile: ResearcherProfile; 
             <p className="mt-1 font-mono text-sm text-slate-500 dark:text-slate-400">{profile.researcherId}</p>
             <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{profile.preferredVersion}</p>
             <div className="mt-4 max-w-xs">
-              <XpBar xp={profile.xp} level={profile.level} />
+              <XpSummary xp={profile.xp} level={profile.level} />
             </div>
           </div>
         </div>
@@ -509,16 +499,6 @@ function statisticsFilterLabel(filter: StatisticsFilter) {
   return filter
 }
 
-function resolveRegisteredUsersCount(data: StatisticsSnapshotResponse) {
-  if (typeof data.registeredUsers === 'number') return data.registeredUsers
-  if (typeof data.users === 'number') return data.users
-  if (data.users && typeof data.users === 'object' && typeof data.users.countUsers === 'number') {
-    return data.users.countUsers
-  }
-
-  return data.snapshot.global.registeredUsers
-}
-
 function translationFilterLabel(filter: TranslationFilter) {
   if (filter === 'all') return 'All'
   if (filter === 'discord') return 'Discord'
@@ -530,32 +510,7 @@ function selectStatisticsSummary(
   data: StatisticsSnapshotResponse,
   selected: StatisticsFilter,
 ): StatisticsSummary | null {
-  if (selected === 'global') {
-    const providerSummaries = data.providers
-      .map((provider) => data.snapshot.byProvider[provider])
-      .filter((summary): summary is StatisticsSummary => Boolean(summary))
-
-    if (!providerSummaries.length) {
-      return data.snapshot.global
-    }
-
-    return providerSummaries.reduce<StatisticsSummary>((accumulator, summary) => ({
-      registeredUsers: resolveRegisteredUsersCount(data),
-      totalMessages: accumulator.totalMessages + summary.totalMessages,
-      totalEncodings: accumulator.totalEncodings + summary.totalEncodings,
-      totalDecodings: accumulator.totalDecodings + summary.totalDecodings,
-      totalSyte: accumulator.totalSyte + summary.totalSyte,
-      mostActiveUser: data.snapshot.global.mostActiveUser,
-    }), {
-      registeredUsers: resolveRegisteredUsersCount(data),
-      totalMessages: 0,
-      totalEncodings: 0,
-      totalDecodings: 0,
-      totalSyte: 0,
-      mostActiveUser: data.snapshot.global.mostActiveUser,
-    })
-  }
-
+  if (selected === 'global') return data.snapshot.global
   return data.snapshot.byProvider[selected] ?? null
 }
 
@@ -583,6 +538,10 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
   const [statisticsSnapshot, setStatisticsSnapshot] = useState<StatisticsSnapshotResponse | null>(null)
   const [statisticsLoading, setStatisticsLoading] = useState(false)
   const [statisticsError, setStatisticsError] = useState<string | null>(null)
+  const [profileStatistics, setProfileStatistics] = useState<ProfileStatistics | null>(null)
+  const [profileStatisticsLoading, setProfileStatisticsLoading] = useState(false)
+  const [profileStatisticsError, setProfileStatisticsError] = useState<string | null>(null)
+  const [profileStatisticsRefreshKey, setProfileStatisticsRefreshKey] = useState(0)
 
   useEffect(() => {
     const oauthCode = consumeOAuthCallbackError()
@@ -619,6 +578,36 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
       mounted = false
     }
   }, [])
+
+  useEffect(() => {
+    let mounted = true
+
+    const loadProfileStatistics = async () => {
+      setProfileStatisticsLoading(true)
+      setProfileStatisticsError(null)
+
+      try {
+        const statistics = await getProfileStatistics()
+        if (me && statistics.researcherId !== me.profile.researcherId) {
+          throw new Error('Profile statistics do not match the authenticated researcher.')
+        }
+        if (mounted) setProfileStatistics(statistics)
+      } catch (error) {
+        if (mounted) {
+          setProfileStatistics(null)
+          setProfileStatisticsError(error instanceof Error ? error.message : 'Profile statistics are currently unavailable.')
+        }
+      } finally {
+        if (mounted) setProfileStatisticsLoading(false)
+      }
+    }
+
+    void loadProfileStatistics()
+
+    return () => {
+      mounted = false
+    }
+  }, [me, profileStatisticsRefreshKey])
 
   const handleConnectProvider = async (providerName: string) => {
     if (providerName === 'discord') {
@@ -679,9 +668,11 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
     }
   }, [isLinkModalOpen, linkingProvider, refreshProvidersOnly])
 
-  const effectiveProfile: ResearcherProfile | null = me?.profile ?? null
+  const effectiveProfile: ResearcherProfile | null = me && profileStatistics
+    ? { ...me.profile, ...profileStatistics }
+    : null
   const effectiveDisplayName = me?.profile.displayName ?? null
-  const effectiveResearcherId = me?.profile.researcherId ?? null
+  const effectiveResearcherId = profileStatistics?.researcherId ?? me?.profile.researcherId ?? null
 
   const statisticsFilters = useMemo(() => ['global', ...SUPPORTED_PROVIDER_FILTERS] as StatisticsFilter[], [])
 
@@ -704,11 +695,6 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
     return selectStatisticsSummary(statisticsSnapshot, activeStatisticsFilter)
   }, [activeStatisticsFilter, statisticsSnapshot])
 
-  const totalUsers = useMemo(() => {
-    if (!statisticsSnapshot) return null
-    return resolveRegisteredUsersCount(statisticsSnapshot)
-  }, [statisticsSnapshot])
-
   const filteredRecentTranslations = useMemo(() => {
     if (!me) return []
     if (activeTranslationFilter === 'all') return me.recentTranslations
@@ -718,7 +704,28 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
 
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-5">
-      {effectiveProfile && <ProfileCard profile={effectiveProfile} isDemo={!me && !import.meta.env.VITE_API_URL} />}
+      {effectiveProfile && <ProfileCard profile={effectiveProfile} />}
+
+      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
+        <div>
+          {profileStatisticsLoading && <span className="text-slate-600 dark:text-slate-300">Loading database-backed profile statistics...</span>}
+          {!profileStatisticsLoading && profileStatistics && (
+            <span className="text-slate-500 dark:text-slate-400">Statistics updated {formatIsoDate(profileStatistics.updatedAt)}</span>
+          )}
+          {!profileStatisticsLoading && profileStatisticsError && (
+            <span className="text-amber-700 dark:text-amber-300">{profileStatisticsError} No fallback values are being shown.</span>
+          )}
+        </div>
+        <button
+          type="button"
+          onClick={() => setProfileStatisticsRefreshKey((value) => value + 1)}
+          disabled={profileStatisticsLoading}
+          className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
+        >
+          <ArrowPathIcon className={`h-4 w-4 ${profileStatisticsLoading ? 'animate-spin' : ''}`} />
+          Refresh statistics
+        </button>
+      </div>
 
       {me && (
         <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
@@ -800,7 +807,7 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
 
       {selectedStatsSummary && (
         <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatCard label="Total Users" value={totalUsers ?? selectedStatsSummary.registeredUsers} icon={UserCircleIcon} accent="blue" />
+          <StatCard label="Total Users" value={selectedStatsSummary.registeredUsers} icon={UserCircleIcon} accent="blue" />
           <StatCard label="Total Messages" value={selectedStatsSummary.totalMessages} icon={ChatBubbleLeftRightIcon} accent="violet" />
           <StatCard label="Total Encodings" value={selectedStatsSummary.totalEncodings} icon={CodeBracketIcon} accent="emerald" />
           <StatCard label="Total Decodings" value={selectedStatsSummary.totalDecodings} icon={ArrowsRightLeftIcon} accent="amber" />
