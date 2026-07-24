@@ -19,8 +19,7 @@ export async function getMe(): Promise<MeResponse> {
   const payload = await parseResponsePayload(response)
 
   if (!response.ok) {
-    const { message } = resolveApiErrorMessage(response.status, payload, 'Live profile data is currently unavailable.')
-    throw new Error(message)
+    throwApiError(response.status, payload, 'Live profile data is currently unavailable.', false)
   }
 
   return payload as MeResponse
