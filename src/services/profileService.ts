@@ -2,17 +2,17 @@ import type { MeResponse } from '../types/profile'
 import type { StatisticsProvider, StatisticsSnapshotResponse, StatisticsSummary } from '../types/statistics'
 import {
   getApiUrl,
-  getAuthHeaders,
+  getApiHeaders,
   parseResponsePayload,
   resolveApiErrorMessage,
   throwApiError,
 } from './apiClient'
 
-export async function getMe(token?: string | null): Promise<MeResponse> {
+export async function getMe(): Promise<MeResponse> {
   const apiUrl = getApiUrl()
   const response = await fetch(`${apiUrl}/api/me`, {
     method: 'GET',
-    headers: getAuthHeaders(token),
+    headers: getApiHeaders(),
     credentials: 'include',
   })
 
@@ -59,11 +59,11 @@ function toStatisticsSummary(payload: unknown): StatisticsSummary | null {
   }
 }
 
-async function getLegacyStatistics(apiUrl: string, token?: string | null, provider?: string): Promise<StatisticsSummary> {
+async function getLegacyStatistics(apiUrl: string, provider?: string): Promise<StatisticsSummary> {
   const query = provider ? `?provider=${encodeURIComponent(provider)}` : ''
   const response = await fetch(`${apiUrl}/api/statistics${query}`, {
     method: 'GET',
-    headers: getAuthHeaders(token),
+    headers: getApiHeaders(),
     credentials: 'include',
   })
 
@@ -81,11 +81,11 @@ async function getLegacyStatistics(apiUrl: string, token?: string | null, provid
   throw new Error('Invalid statistics payload.')
 }
 
-export async function getStatisticsSnapshot(token?: string | null): Promise<StatisticsSnapshotResponse> {
+export async function getStatisticsSnapshot(): Promise<StatisticsSnapshotResponse> {
   const apiUrl = getApiUrl()
   const response = await fetch(`${apiUrl}/api/statistics/snapshot`, {
     method: 'GET',
-    headers: getAuthHeaders(token),
+    headers: getApiHeaders(),
     credentials: 'include',
   })
 
@@ -95,13 +95,13 @@ export async function getStatisticsSnapshot(token?: string | null): Promise<Stat
   }
 
   try {
-    const global = await getLegacyStatistics(apiUrl, token)
+    const global = await getLegacyStatistics(apiUrl)
     const providers: StatisticsProvider[] = ['discord', 'telegram']
     const byProvider: Partial<Record<StatisticsProvider, StatisticsSummary>> = {}
 
     await Promise.all(providers.map(async (provider) => {
       try {
-        byProvider[provider] = await getLegacyStatistics(apiUrl, token, provider)
+        byProvider[provider] = await getLegacyStatistics(apiUrl, provider)
       } catch {
         // Keep partial fallback if one provider endpoint is unavailable.
       }
