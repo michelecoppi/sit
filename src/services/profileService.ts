@@ -1,4 +1,4 @@
-import type { MeResponse } from '../types/profile'
+import type { MeResponse, ProfileStatistics } from '../types/profile'
 import type { StatisticsProvider, StatisticsSnapshotResponse, StatisticsSummary } from '../types/statistics'
 import {
   getApiUrl,
@@ -23,6 +23,69 @@ export async function getMe(): Promise<MeResponse> {
   }
 
   return payload as MeResponse
+}
+
+function isNonNegativeSafeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+}
+
+export function parseProfileStatistics(payload: unknown): ProfileStatistics {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Invalid profile statistics payload.')
+  }
+
+  const data = payload as Record<string, unknown>
+  const {
+    researcherId,
+    xp,
+    level,
+    messagesEncoded,
+    messagesDecoded,
+    syteProcessed,
+    updatedAt,
+  } = data
+
+  if (
+    typeof researcherId !== 'string'
+    || researcherId.trim().length === 0
+    || !isNonNegativeSafeInteger(xp)
+    || typeof level !== 'number'
+    || !Number.isSafeInteger(level)
+    || level < 1
+    || !isNonNegativeSafeInteger(messagesEncoded)
+    || !isNonNegativeSafeInteger(messagesDecoded)
+    || !isNonNegativeSafeInteger(syteProcessed)
+    || typeof updatedAt !== 'string'
+    || Number.isNaN(new Date(updatedAt).getTime())
+  ) {
+    throw new Error('Invalid profile statistics payload.')
+  }
+
+  return {
+    researcherId,
+    xp,
+    level,
+    messagesEncoded,
+    messagesDecoded,
+    syteProcessed,
+    updatedAt,
+  }
+}
+
+export async function getProfileStatistics(): Promise<ProfileStatistics> {
+  const apiUrl = getApiUrl()
+  const response = await fetch(`${apiUrl}/api/profile/statistics`, {
+    method: 'GET',
+    headers: getApiHeaders(),
+    credentials: 'include',
+  })
+
+  const payload = await parseResponsePayload(response)
+  if (!response.ok) {
+    throwApiError(response.status, payload, 'Profile statistics are currently unavailable.', false)
+  }
+
+  return parseProfileStatistics(payload)
 }
 
 function toStatisticsSummary(payload: unknown): StatisticsSummary | null {

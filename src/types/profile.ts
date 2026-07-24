@@ -62,3 +62,13 @@ export interface MeResponse {
   achievements: AchievementAward[]
   linkedAccounts: LinkedAccountLegacy[]
 }
+
+export interface ProfileStatistics {
+  researcherId: string
+  xp: number
+  level: number
+  messagesEncoded: number
+  messagesDecoded: number
+  syteProcessed: number
+  updatedAt: string
+}
