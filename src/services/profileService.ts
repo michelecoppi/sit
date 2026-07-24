@@ -1,4 +1,4 @@
-import type { MeResponse } from '../types/profile'
+import type { MeResponse, ProfileStatistics } from '../types/profile'
 import type { StatisticsProvider, StatisticsSnapshotResponse, StatisticsSummary } from '../types/statistics'
 import {
   getApiUrl,
@@ -23,6 +23,62 @@ export async function getMe(): Promise<MeResponse> {
   }
 
   return payload as MeResponse
+}
+
+function isNonNegativeSafeInteger(value: unknown): value is number {
+  return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
+}
+
+export function parseProfileStatistics(payload: unknown): ProfileStatistics {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Invalid profile statistics payload.')
+  }
+
+  const data = payload as Record<string, unknown>
+  const updatedAtIsValid = typeof data.updatedAt === 'string'
+    && !Number.isNaN(new Date(data.updatedAt).getTime())
+  const levelIsValid = typeof data.level === 'number'
+    && Number.isSafeInteger(data.level)
+    && data.level >= 1
+
+  if (
+    typeof data.researcherId !== 'string'
+    || data.researcherId.trim().length === 0
+    || !isNonNegativeSafeInteger(data.xp)
+    || !levelIsValid
+    || !isNonNegativeSafeInteger(data.messagesEncoded)
+    || !isNonNegativeSafeInteger(data.messagesDecoded)
+    || !isNonNegativeSafeInteger(data.syteProcessed)
+    || !updatedAtIsValid
+  ) {
+    throw new Error('Invalid profile statistics payload.')
+  }
+
+  return {
+    researcherId: data.researcherId,
+    xp: data.xp,
+    level: data.level,
+    messagesEncoded: data.messagesEncoded,
+    messagesDecoded: data.messagesDecoded,
+    syteProcessed: data.syteProcessed,
+    updatedAt: data.updatedAt,
+  }
+}
+
+export async function getProfileStatistics(): Promise<ProfileStatistics> {
+  const apiUrl = getApiUrl()
+  const response = await fetch(`${apiUrl}/api/profile/statistics`, {
+    method: 'GET',
+    headers: getApiHeaders(),
+    credentials: 'include',
+  })
+
+  const payload = await parseResponsePayload(response)
+  if (!response.ok) {
+    throwApiError(response.status, payload, 'Profile statistics are currently unavailable.', false)
+  }
+
+  return parseProfileStatistics(payload)
 }
 
 function toStatisticsSummary(payload: unknown): StatisticsSummary | null {
