@@ -207,9 +207,7 @@ function LoginPrompt() {
   const recoverOauthError = () => {
     const code = consumeOAuthCallbackError()
     if (!code) return
-    const baseError = mapOAuthCallbackError(code)
-    const debugHint = consumeOAuthCallbackDebugHint()
-    setOauthError(debugHint ? `${baseError} ${debugHint}` : baseError)
+    setOauthError(mapOAuthCallbackError(code))
   }
 
   const startPolling = (snapshot: TelegramLoginTicketSnapshot) => {
@@ -469,6 +467,13 @@ function LoginPrompt() {
   )
 }
 
+function formatIsoDate(value: string | null | undefined) {
+  if (!value) return 'Not available'
+  const date = new Date(value)
+  if (Number.isNaN(date.getTime())) return 'Not available'
+  return date.toLocaleString()
+}
+
 function resolveLinkCodeTtl(response: LinkCodeResponse) {
   if (typeof response.expiresInSeconds === 'number' && response.expiresInSeconds > 0) {
     return Math.max(1, Math.floor(response.expiresInSeconds))
@@ -582,9 +587,7 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
   useEffect(() => {
     const oauthCode = consumeOAuthCallbackError()
     if (!oauthCode) return
-    const baseError = mapOAuthCallbackError(oauthCode)
-    const debugHint = consumeOAuthCallbackDebugHint()
-    setLinkError(debugHint ? `${baseError} ${debugHint}` : baseError)
+    setLinkError(mapOAuthCallbackError(oauthCode))
   }, [])
 
   useEffect(() => {
