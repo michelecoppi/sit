@@ -9,7 +9,7 @@ import {
 } from '../types/account'
 import {
   getApiUrl,
-  getAuthHeaders,
+  getApiHeaders,
   parseResponsePayload,
   throwApiError,
 } from './apiClient'
@@ -48,11 +48,11 @@ function getLinkCodeExpiry(payload: Record<string, unknown>) {
   return { expiresAt, expiresInSeconds: null }
 }
 
-export async function getProviders(token?: string | null): Promise<ConnectedAccount[]> {
+export async function getProviders(): Promise<ConnectedAccount[]> {
   const apiUrl = getApiUrl()
   const response = await fetch(`${apiUrl}/api/account/providers`, {
     method: 'GET',
-    headers: getAuthHeaders(token),
+    headers: getApiHeaders(),
     credentials: 'include',
   })
 
@@ -93,16 +93,16 @@ export async function getProviders(token?: string | null): Promise<ConnectedAcco
   return keepSupportedProviders(mappedProviders)
 }
 
-export async function refreshProviders(token?: string | null): Promise<ConnectedAccount[]> {
-  return getProviders(token)
+export async function refreshProviders(): Promise<ConnectedAccount[]> {
+  return getProviders()
 }
 
-export async function linkProvider(token: string | null | undefined, provider: ProviderType): Promise<LinkCodeResponse> {
+export async function linkProvider(provider: ProviderType): Promise<LinkCodeResponse> {
   const apiUrl = getApiUrl()
   const normalizedProvider = normalizeProviderName(provider)
   const response = await fetch(`${apiUrl}/api/account/link`, {
     method: 'POST',
-    headers: getAuthHeaders(token),
+    headers: getApiHeaders(),
     body: JSON.stringify({ provider: normalizedProvider }),
     credentials: 'include',
   })
@@ -130,12 +130,12 @@ export async function linkProvider(token: string | null | undefined, provider: P
   }
 }
 
-export async function disconnectProvider(token: string | null | undefined, provider: ProviderType): Promise<void> {
+export async function disconnectProvider(provider: ProviderType): Promise<void> {
   const apiUrl = getApiUrl()
   const normalizedProvider = normalizeProviderName(provider)
   const response = await fetch(`${apiUrl}/api/account/provider/${encodeURIComponent(normalizedProvider)}`, {
     method: 'DELETE',
-    headers: getAuthHeaders(token),
+    headers: getApiHeaders(),
     credentials: 'include',
   })
 
