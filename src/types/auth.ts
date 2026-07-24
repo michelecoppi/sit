@@ -6,16 +6,9 @@ export interface CreateLoginTicketResponse {
   expiresAt: string
 }
 
-export interface LoginStatusPendingResponse {
-  status: 'PENDING' | 'EXPIRED' | 'USED'
+export interface LoginStatusResponse {
+  status: LoginTicketStatus
 }
-
-export interface LoginStatusCompletedResponse {
-  status: 'COMPLETED'
-  token: string
-}
-
-export type LoginStatusResponse = LoginStatusPendingResponse | LoginStatusCompletedResponse
 
 export interface TelegramLoginTicketSnapshot {
   ticket: string
