@@ -175,7 +175,7 @@ export default function MissionsPage() {
 
   return (
     <div className="space-y-7">
-      <section className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br from-slate-950 via-blue-950 to-violet-950 p-6 text-white shadow-xl sm:p-9 dark:border-slate-700">
+      <section className="relative overflow-hidden rounded-[2rem] border border-blue-200 bg-gradient-to-br from-white via-blue-50 to-violet-100 p-6 text-slate-900 shadow-xl sm:p-9 dark:border-slate-700 dark:from-slate-950 dark:via-blue-950 dark:to-violet-950 dark:text-white">
         <div className="absolute -right-16 -top-20 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl" aria-hidden="true" />
         <div className="relative flex flex-wrap items-start justify-between gap-6">
           <div>

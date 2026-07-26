@@ -1,5 +1,10 @@
 @import 'tailwindcss';
 
+/* Keep Tailwind's dark utilities aligned with the app-controlled theme.
+   Without this override Tailwind v4 follows the operating-system preference,
+   producing mixed light/dark pages when the in-app choice differs. */
+@custom-variant dark (&:where(.dark, .dark *));
+
 :root {
   font-family: Inter, 'Segoe UI Variable Text', 'Segoe UI', system-ui, sans-serif;
   line-height: 1.5;
@@ -1651,13 +1656,13 @@ th, td { padding: 1rem; vertical-align: top; }
   display: grid;
   gap: 2rem;
   padding: clamp(1.35rem, 4vw, 3.5rem);
-  border: 1px solid #202a42;
+  border: 1px solid color-mix(in srgb, var(--brand) 18%, var(--border));
   border-radius: clamp(1.4rem, 3vw, 2.2rem);
   background:
-    radial-gradient(circle at 90% 10%, rgb(73 99 228 / .2), transparent 35%),
-    linear-gradient(145deg, #0d1322, #12182a);
-  color: white;
-  box-shadow: var(--shadow-lg);
+    radial-gradient(circle at 90% 10%, rgb(73 99 228 / .12), transparent 35%),
+    linear-gradient(145deg, var(--bg-elevated), color-mix(in srgb, var(--brand-soft) 46%, var(--bg-elevated)));
+  color: var(--foreground);
+  box-shadow: var(--shadow-md);
 }
 
 .performance-icon {
@@ -1666,10 +1671,10 @@ th, td { padding: 1rem; vertical-align: top; }
   display: grid;
   place-items: center;
   margin-bottom: 1.4rem;
-  border: 1px solid rgb(120 144 255 / .25);
+  border: 1px solid color-mix(in srgb, var(--brand) 24%, var(--border));
   border-radius: .9rem;
-  background: rgb(80 106 233 / .13);
-  color: #a6b5ff;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
 }
 
 .performance-icon svg {
@@ -1677,7 +1682,7 @@ th, td { padding: 1rem; vertical-align: top; }
 }
 
 .performance-copy .section-kicker {
-  color: #70ddd5;
+  color: var(--accent);
 }
 
 .performance-copy h2 {
@@ -1691,7 +1696,7 @@ th, td { padding: 1rem; vertical-align: top; }
 .performance-copy > p:not(.section-kicker) {
   max-width: 37rem;
   margin: 1rem 0 0;
-  color: #a7b2ca;
+  color: var(--muted);
   font-size: .88rem;
   line-height: 1.75;
 }
@@ -1702,14 +1707,14 @@ th, td { padding: 1rem; vertical-align: top; }
   align-items: center;
   gap: .4rem;
   margin-top: 1.4rem;
-  color: #c6d0ff;
+  color: var(--brand-strong);
   font-size: .78rem;
   font-weight: 750;
   text-decoration: none;
 }
 
 .performance-copy a:hover {
-  color: white;
+  color: var(--brand);
 }
 
 .performance-copy a svg {
@@ -1719,9 +1724,9 @@ th, td { padding: 1rem; vertical-align: top; }
 .performance-metrics {
   display: grid;
   grid-template-columns: repeat(2, 1fr);
-  border: 1px solid rgb(120 140 184 / .18);
+  border: 1px solid var(--border);
   border-radius: 1.15rem;
-  background: rgb(255 255 255 / .035);
+  background: color-mix(in srgb, var(--bg-elevated) 82%, transparent);
 }
 
 .performance-metrics div {
@@ -1730,25 +1735,44 @@ th, td { padding: 1rem; vertical-align: top; }
   flex-direction: column;
   justify-content: center;
   padding: 1rem;
-  border-right: 1px solid rgb(120 140 184 / .15);
-  border-bottom: 1px solid rgb(120 140 184 / .15);
+  border-right: 1px solid var(--border);
+  border-bottom: 1px solid var(--border);
 }
 
 .performance-metrics div:nth-child(2n) { border-right: 0; }
 .performance-metrics div:nth-last-child(-n+2) { border-bottom: 0; }
 
 .performance-metrics strong {
-  color: #eef1ff;
+  color: var(--foreground);
   font-size: clamp(1.75rem, 4vw, 2.6rem);
   letter-spacing: -.05em;
 }
 
 .performance-metrics span {
   margin-top: .25rem;
-  color: #8996b1;
+  color: var(--muted);
   font-size: .64rem;
   line-height: 1.45;
 }
+
+.dark .performance-panel {
+  border-color: #202a42;
+  background:
+    radial-gradient(circle at 90% 10%, rgb(73 99 228 / .2), transparent 35%),
+    linear-gradient(145deg, #0d1322, #12182a);
+  color: white;
+  box-shadow: var(--shadow-lg);
+}
+
+.dark .performance-icon { border-color: rgb(120 144 255 / .25); background: rgb(80 106 233 / .13); color: #a6b5ff; }
+.dark .performance-copy .section-kicker { color: #70ddd5; }
+.dark .performance-copy > p:not(.section-kicker) { color: #a7b2ca; }
+.dark .performance-copy a { color: #c6d0ff; }
+.dark .performance-copy a:hover { color: white; }
+.dark .performance-metrics { border-color: rgb(120 140 184 / .18); background: rgb(255 255 255 / .035); }
+.dark .performance-metrics div { border-color: rgb(120 140 184 / .15); }
+.dark .performance-metrics strong { color: #eef1ff; }
+.dark .performance-metrics span { color: #8996b1; }
 
 .home-cta {
   display: grid;
@@ -2263,9 +2287,10 @@ table tbody tr:hover {
 
 .reference-card {
   overflow: hidden;
-  background: #0d1220;
-  color: #e8edff;
-  box-shadow: 0 18px 45px rgb(8 13 28 / .22);
+  border: 1px solid var(--border);
+  background: var(--bg-elevated);
+  color: var(--foreground);
+  box-shadow: var(--shadow-sm);
 }
 
 .reference-card-heading {
@@ -2274,8 +2299,8 @@ table tbody tr:hover {
   justify-content: space-between;
   gap: .5rem;
   padding: .8rem;
-  border-bottom: 1px solid #28334b;
-  color: #a7b2ca;
+  border-bottom: 1px solid var(--border);
+  color: var(--muted);
   font-size: .62rem;
   font-weight: 720;
 }
@@ -2291,7 +2316,7 @@ table tbody tr:hover {
 }
 
 .reference-ready {
-  color: #6eddb0;
+  color: var(--success);
 }
 
 .reference-ready i {
@@ -2309,7 +2334,7 @@ table tbody tr:hover {
 
 .reference-code span {
   margin-top: .45rem;
-  color: #64718e;
+  color: var(--muted);
   font-size: .5rem;
   font-weight: 800;
   letter-spacing: .12em;
@@ -2320,13 +2345,13 @@ table tbody tr:hover {
 }
 
 .reference-code code {
-  color: #c6d0ff;
+  color: var(--brand-strong);
   font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
   font-size: .78rem;
 }
 
 .reference-code .reference-token {
-  color: #70ddd5;
+  color: var(--accent);
   font-size: 1rem;
   font-weight: 800;
   letter-spacing: .05em;
@@ -2340,22 +2365,31 @@ table tbody tr:hover {
   justify-content: center;
   gap: .4rem;
   margin: 0 1rem 1rem;
-  border: 1px solid #354669;
+  border: 1px solid color-mix(in srgb, var(--brand) 26%, var(--border));
   border-radius: .75rem;
-  background: #161f34;
-  color: #c6d0ff;
+  background: var(--brand-soft);
+  color: var(--brand-strong);
   font-size: .65rem;
   font-weight: 720;
 }
 
 .reference-card > button:hover {
-  border-color: #667eea;
-  background: #1b2845;
+  border-color: var(--brand);
+  background: color-mix(in srgb, var(--brand-soft) 72%, var(--bg-elevated));
 }
 
 .reference-card > button svg {
   width: .85rem;
 }
+
+.dark .reference-card { border-color: #28334b; background: #0d1220; color: #e8edff; box-shadow: 0 18px 45px rgb(8 13 28 / .22); }
+.dark .reference-card-heading { border-color: #28334b; color: #a7b2ca; }
+.dark .reference-ready { color: #6eddb0; }
+.dark .reference-code span { color: #64718e; }
+.dark .reference-code code { color: #c6d0ff; }
+.dark .reference-code .reference-token { color: #70ddd5; }
+.dark .reference-card > button { border-color: #354669; background: #161f34; color: #c6d0ff; }
+.dark .reference-card > button:hover { border-color: #667eea; background: #1b2845; }
 
 .docs-note {
   padding: 1rem;
