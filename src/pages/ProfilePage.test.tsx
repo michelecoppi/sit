@@ -120,8 +120,8 @@ describe('ProfilePage', () => {
   it('uses statistics snapshot and switches between global and provider summaries', async () => {
     mockGetProfileStatistics.mockResolvedValue({
       researcherId: 'SIT-123456',
-      xp: 777,
-      level: 6,
+      xp: 625,
+      level: 4,
       messagesEncoded: 44,
       messagesDecoded: 33,
       syteProcessed: 2222,
@@ -174,11 +174,11 @@ describe('ProfilePage', () => {
 
     expect(screen.getByText('12')).toBeInTheDocument()
     expect(screen.getByText('340')).toBeInTheDocument()
-    expect(screen.getAllByText('777').length).toBeGreaterThan(0)
+    expect(screen.getAllByText('625').length).toBeGreaterThan(0)
     expect(screen.getByText('2,222')).toBeInTheDocument()
-    expect(screen.getByRole('progressbar', { name: 'Experience progress toward level 7' })).toHaveAttribute('aria-valuenow', '27')
-    expect(screen.getByText('27')).toBeInTheDocument()
-    expect(screen.getByText(/150 XP in this level/)).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: 'Experience progress toward level 5' })).toHaveAttribute('aria-valuenow', '175')
+    expect(screen.getByText('175')).toBeInTheDocument()
+    expect(screen.getByText(/350 XP in this level/)).toBeInTheDocument()
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Discord' })[0])
     expect(screen.getByText('8')).toBeInTheDocument()
@@ -192,8 +192,8 @@ describe('ProfilePage', () => {
   it('filters recent translations by provider', async () => {
     mockGetProfileStatistics.mockResolvedValue({
       researcherId: 'SIT-123456',
-      xp: 777,
-      level: 6,
+      xp: 625,
+      level: 4,
       messagesEncoded: 44,
       messagesDecoded: 33,
       syteProcessed: 2222,

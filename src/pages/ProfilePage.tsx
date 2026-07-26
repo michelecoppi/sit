@@ -110,12 +110,23 @@ function StatCard({ label, value, icon: Icon, accent = 'blue' }: { label: string
   )
 }
 
-const XP_PER_LEVEL = 150
+const XP_PER_LEVEL_BASE = 50
+
+function getXpBoundsForLevel(level: number) {
+  const safeLevel = Math.max(1, Math.floor(level))
+  const levelStartXp = (safeLevel - 1) ** 2 * XP_PER_LEVEL_BASE
+  const nextLevelXp = safeLevel ** 2 * XP_PER_LEVEL_BASE
+
+  return {
+    levelStartXp,
+    levelXpRequired: nextLevelXp - levelStartXp,
+  }
+}
 
 function XpProgress({ xp, level }: { xp: number; level: number }) {
-  const levelStartXp = Math.max(0, (level - 1) * XP_PER_LEVEL)
-  const levelXp = Math.min(Math.max(xp - levelStartXp, 0), XP_PER_LEVEL)
-  const progress = (levelXp / XP_PER_LEVEL) * 100
+  const { levelStartXp, levelXpRequired } = getXpBoundsForLevel(level)
+  const levelXp = Math.min(Math.max(xp - levelStartXp, 0), levelXpRequired)
+  const progress = (levelXp / levelXpRequired) * 100
   const nextLevel = level + 1
 
   return (
@@ -129,7 +140,7 @@ function XpProgress({ xp, level }: { xp: number; level: number }) {
         role="progressbar"
         aria-label={`Experience progress toward level ${nextLevel}`}
         aria-valuemin={0}
-        aria-valuemax={XP_PER_LEVEL}
+        aria-valuemax={levelXpRequired}
         aria-valuenow={levelXp}
       >
         <motion.div
@@ -140,7 +151,7 @@ function XpProgress({ xp, level }: { xp: number; level: number }) {
         />
       </div>
       <div className="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400">
-        <span><strong className="font-semibold text-slate-700 dark:text-slate-200">{levelXp.toLocaleString()}</strong> / {XP_PER_LEVEL} XP in this level</span>
+        <span><strong className="font-semibold text-slate-700 dark:text-slate-200">{levelXp.toLocaleString()}</strong> / {levelXpRequired} XP in this level</span>
         <span>{xp.toLocaleString()} total XP</span>
       </div>
     </div>
