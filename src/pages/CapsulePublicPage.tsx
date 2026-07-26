@@ -112,16 +112,16 @@ export default function CapsulePublicPage() {
   return (
     <article className="mx-auto max-w-5xl space-y-6">
       {offline ? <p role="status" className="rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">You are offline. This already-resolved view remains visible, but visibility changes cannot be revalidated.</p> : null}
-      <header className="relative overflow-hidden rounded-[2rem] border border-slate-200 bg-gradient-to-br from-slate-950 via-violet-950 to-indigo-950 p-7 text-white shadow-xl sm:p-10">
-        <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-violet-500/20 blur-3xl" aria-hidden="true" />
+      <header className="relative overflow-hidden rounded-[2rem] border border-violet-200 bg-gradient-to-br from-white via-violet-50 to-indigo-100 p-7 text-slate-900 shadow-xl sm:p-10 dark:border-slate-700 dark:from-slate-950 dark:via-violet-950 dark:to-indigo-950 dark:text-white">
+        <div className="absolute right-0 top-0 h-64 w-64 rounded-full bg-violet-400/20 blur-3xl dark:bg-violet-500/20" aria-hidden="true" />
         <div className="relative">
           <div className="flex flex-wrap items-center gap-2">
             <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold">SIT {capsule.edition}</span>
             <span className="rounded-full border border-white/20 bg-white/10 px-3 py-1 text-xs font-semibold capitalize">{capsule.visibility}</span>
           </div>
           <h1 className="mt-5 max-w-3xl text-3xl font-semibold sm:text-5xl">{capsule.title}</h1>
-          {capsule.description ? <p className="mt-4 max-w-2xl text-violet-100/80">{capsule.description}</p> : null}
-          <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-violet-200">
+          {capsule.description ? <p className="mt-4 max-w-2xl text-slate-600 dark:text-violet-100/80">{capsule.description}</p> : null}
+          <div className="mt-6 flex flex-wrap gap-x-5 gap-y-2 text-xs text-slate-600 dark:text-violet-200">
             {capsule.owner ? <span>Issued by {capsule.owner.displayName} · {capsule.owner.researcherId}</span> : null}
             <span>Created {new Intl.DateTimeFormat(undefined, { dateStyle: 'medium' }).format(new Date(capsule.createdAt))}</span>
             <span>{capsule.expiresAt ? `Expires ${new Intl.DateTimeFormat(undefined, { dateStyle: 'medium', timeStyle: 'short' }).format(new Date(capsule.expiresAt))}` : 'No automatic expiry'}</span>
