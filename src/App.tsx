@@ -34,6 +34,9 @@ const DictionaryPage = lazy(() => import('./pages/NativePages').then((module) =>
 const SemanticPage = lazy(() => import('./pages/NativePages').then((module) => ({ default: module.SemanticPage })))
 const CharacterExplorerPage = lazy(() => import('./pages/NativePages').then((module) => ({ default: module.CharacterExplorerPage })))
 const ProfilePage = lazy(() => import('./pages/ProfilePage'))
+const MissionsPage = lazy(() => import('./pages/MissionsPage'))
+const CapsuleLibraryPage = lazy(() => import('./pages/CapsuleLibraryPage'))
+const CapsulePublicPage = lazy(() => import('./pages/CapsulePublicPage'))
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -94,6 +97,9 @@ function App() {
             <Route path="/semantic" element={<SemanticPage />} />
             <Route path="/explorer" element={<CharacterExplorerPage />} />
             <Route path="/profile" element={<ProfilePage />} />
+            <Route path="/missions" element={<MissionsPage />} />
+            <Route path="/capsules" element={<CapsuleLibraryPage />} />
+            <Route path="/capsule/:publicId" element={<CapsulePublicPage />} />
           </Routes>
         </Suspense>
       </Layout>
