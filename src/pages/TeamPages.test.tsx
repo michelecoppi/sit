@@ -1,4 +1,4 @@
-import { render, screen } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { MemoryRouter } from 'react-router-dom'
 import { describe, expect, it, vi } from 'vitest'
 import type { TeamDetail, TeamMember } from '../types/teams'
@@ -64,7 +64,28 @@ vi.mock('../services/teamService', () => ({
   respondToTeamInvite: vi.fn(),
 }))
 
-import { TeamWorkspacePage } from './TeamPages'
+import { discoverTeams, getTeamLeaderboard } from '../services/teamService'
+import { TeamsPage, TeamWorkspacePage } from './TeamPages'
+
+describe('team directory layout controls', () => {
+  it('opens registration in an accessible dialog and closes it with Escape', async () => {
+    vi.mocked(discoverTeams).mockResolvedValue({ items: [], nextCursor: null })
+    vi.mocked(getTeamLeaderboard).mockResolvedValue({ items: [], nextCursor: null })
+
+    render(<MemoryRouter initialEntries={['/teams']}><TeamsPage /></MemoryRouter>)
+
+    fireEvent.click(await screen.findByRole('button', { name: 'Register a team' }))
+
+    expect(screen.getByRole('dialog', { name: 'Register a research team' })).toBeInTheDocument()
+    expect(screen.getByRole('textbox', { name: 'Team name' })).toHaveFocus()
+    expect(document.body.style.overflow).toBe('hidden')
+
+    fireEvent.keyDown(document, { key: 'Escape' })
+
+    expect(screen.queryByRole('dialog', { name: 'Register a research team' })).not.toBeInTheDocument()
+    expect(document.body.style.overflow).toBe('')
+  })
+})
 
 describe('team permission controls', () => {
   it('does not infer privileged controls from membership or role labels', async () => {
