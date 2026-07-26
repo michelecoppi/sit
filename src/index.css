@@ -3471,10 +3471,125 @@ table tbody tr:hover {
   justify-self: center;
 }
 
+.team-page.team-directory-page {
+  width: min(var(--content), calc(100% - 2rem));
+}
+
+.team-page.team-directory-page > .team-directory-hero {
+  width: 100%;
+  max-width: none;
+  justify-self: stretch;
+  justify-items: stretch;
+}
+
+.team-page.team-directory-page .team-directory-hero h1 {
+  max-width: none;
+  font-size: clamp(3.2rem, 8vw, 6.5rem);
+}
+
+.team-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 90;
+  display: grid;
+  place-items: center;
+  padding: 1.25rem;
+  background: rgb(5 9 20 / .72);
+  backdrop-filter: blur(10px);
+  animation: fade-in .2s ease both;
+}
+
+.team-dialog {
+  width: min(100%, 42rem);
+  max-height: calc(100dvh - 2.5rem);
+  overflow: auto;
+  padding: clamp(1.2rem, 3vw, 2rem);
+  border: 1px solid color-mix(in srgb, var(--brand) 30%, var(--border));
+  border-radius: 1.6rem;
+  background:
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--brand) 12%, transparent), transparent 18rem),
+    var(--bg-elevated);
+  box-shadow: var(--shadow-lg);
+  animation: modal-enter .3s var(--ease) both;
+}
+
+.team-dialog-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.team-dialog-header > div {
+  display: grid;
+  gap: .45rem;
+}
+
+.team-dialog-header h2 {
+  font-size: clamp(1.55rem, 4vw, 2.15rem);
+}
+
+.team-dialog-close {
+  width: 2.65rem;
+  height: 2.65rem;
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  padding: 0;
+  border: 1px solid var(--border);
+  border-radius: .85rem;
+  background: var(--bg-subtle);
+  color: var(--muted);
+  cursor: pointer;
+}
+
+.team-dialog-close:hover {
+  border-color: color-mix(in srgb, var(--brand) 42%, var(--border));
+  color: var(--brand-strong);
+}
+
+.team-dialog-close svg {
+  width: 1.15rem;
+}
+
+.team-dialog .team-create-form {
+  max-width: none;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+}
+
 @media (min-width: 760px) {
   .team-card {
     grid-template-columns: auto minmax(0, 1.3fr) minmax(18rem, .7fr);
     align-items: center;
+  }
+}
+
+@media (max-width: 679px) {
+  .team-page.team-directory-page {
+    width: calc(100% - 1rem);
+  }
+
+  .team-page.team-directory-page .team-directory-hero h1 {
+    font-size: clamp(3rem, 17vw, 4.4rem);
+  }
+
+  .team-dialog-backdrop {
+    place-items: end center;
+    padding: 0;
+  }
+
+  .team-dialog {
+    width: 100%;
+    max-height: 92dvh;
+    padding: 1.25rem;
+    border-right: 0;
+    border-bottom: 0;
+    border-left: 0;
+    border-radius: 1.5rem 1.5rem 0 0;
   }
 }
 

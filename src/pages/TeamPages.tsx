@@ -9,6 +9,7 @@ import {
   SparklesIcon,
   TrophyIcon,
   UserGroupIcon,
+  XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext'
 import {
@@ -76,6 +77,22 @@ function CreateTeamForm({ onCreated }: { onCreated: (team: TeamDetail) => void }
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<string | null>(null)
 
+  useEffect(() => {
+    if (!open) return
+
+    const previousOverflow = document.body.style.overflow
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !busy) setOpen(false)
+    }
+
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [busy, open])
+
   async function submit(event: FormEvent<HTMLFormElement>) {
     event.preventDefault()
     setBusy(true)
@@ -95,20 +112,48 @@ function CreateTeamForm({ onCreated }: { onCreated: (team: TeamDetail) => void }
     }
   }
 
-  if (!open) return <button className="button-primary" type="button" onClick={() => setOpen(true)}>Register a team</button>
   return (
-    <form className="team-form" onSubmit={submit}>
-      <h2>Register a research team</h2>
-      {error ? <ErrorNotice message={error} /> : null}
-      <label>Team name<input required minLength={2} maxLength={80} name="name" autoComplete="organization" /></label>
-      <label>Registry slug<input required pattern="[a-z0-9-]+" maxLength={64} name="slug" placeholder="symbolic-systems-lab" /></label>
-      <label>Public abstract<textarea maxLength={500} name="description" rows={3} /></label>
-      <label>Visibility<select name="visibility" defaultValue="public"><option value="public">Public</option><option value="private">Private</option></select></label>
-      <div className="team-actions">
-        <button className="button-primary" disabled={busy}>{busy ? 'Registering…' : 'Create team'}</button>
-        <button className="button-secondary" type="button" onClick={() => setOpen(false)}>Cancel</button>
-      </div>
-    </form>
+    <>
+      <button className="button-primary" type="button" onClick={() => setOpen(true)}>Register a team</button>
+      {open ? (
+        <div className="team-dialog-backdrop" onMouseDown={() => { if (!busy) setOpen(false) }}>
+          <div
+            className="team-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-team-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="team-dialog-header">
+              <div>
+                <p className="team-eyebrow">Research team registry</p>
+                <h2 id="create-team-title">Register a research team</h2>
+              </div>
+              <button
+                className="team-dialog-close"
+                type="button"
+                aria-label="Close team registration"
+                disabled={busy}
+                onClick={() => setOpen(false)}
+              >
+                <XMarkIcon aria-hidden="true" />
+              </button>
+            </div>
+            <form className="team-form team-create-form" onSubmit={submit}>
+              {error ? <ErrorNotice message={error} /> : null}
+              <label>Team name<input autoFocus required minLength={2} maxLength={80} name="name" autoComplete="organization" /></label>
+              <label>Registry slug<input required pattern="[a-z0-9-]+" maxLength={64} name="slug" placeholder="symbolic-systems-lab" /></label>
+              <label>Public abstract<textarea maxLength={500} name="description" rows={3} /></label>
+              <label>Visibility<select name="visibility" defaultValue="public"><option value="public">Public</option><option value="private">Private</option></select></label>
+              <div className="team-actions">
+                <button className="button-primary" disabled={busy}>{busy ? 'Registering…' : 'Create team'}</button>
+                <button className="button-secondary" type="button" disabled={busy} onClick={() => setOpen(false)}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+    </>
   )
 }
 
