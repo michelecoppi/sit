@@ -90,7 +90,9 @@ describe('team directory layout controls', () => {
 describe('team permission controls', () => {
   it('does not infer privileged controls from membership or role labels', async () => {
     render(<MemoryRouter initialEntries={['/teams/symbolic-systems/workspace']}><TeamWorkspacePage /></MemoryRouter>)
-    expect(await screen.findByRole('heading', { name: team.name })).toBeInTheDocument()
+    const heading = await screen.findByRole('heading', { name: team.name })
+    expect(heading.closest('.team-workspace-hero')).toBeInTheDocument()
+    expect(heading.closest('.team-workspace-page')?.querySelector('.team-workspace-grid-single')).toBeInTheDocument()
     expect(screen.queryByText('Registry settings')).not.toBeInTheDocument()
     expect(screen.queryByText('Invite researchers')).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: /remove/i })).not.toBeInTheDocument()
