@@ -109,11 +109,39 @@ function StatCard({ label, value, icon: Icon, accent = 'blue' }: { label: string
   )
 }
 
-function XpSummary({ xp, level }: { xp: number; level: number }) {
+const XP_PER_LEVEL = 150
+
+function XpProgress({ xp, level }: { xp: number; level: number }) {
+  const levelStartXp = Math.max(0, (level - 1) * XP_PER_LEVEL)
+  const levelXp = Math.min(Math.max(xp - levelStartXp, 0), XP_PER_LEVEL)
+  const progress = (levelXp / XP_PER_LEVEL) * 100
+  const nextLevel = level + 1
+
   return (
-    <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
-      <span>Level <strong className="font-semibold text-slate-700 dark:text-slate-200">{level.toLocaleString()}</strong></span>
-      <span>XP <strong className="font-semibold text-slate-700 dark:text-slate-200">{xp.toLocaleString()}</strong></span>
+    <div>
+      <div className="flex items-end justify-between gap-4 text-xs">
+        <span className="font-semibold text-slate-700 dark:text-slate-200">Level {level.toLocaleString()}</span>
+        <span className="text-slate-400 dark:text-slate-500">Level {nextLevel.toLocaleString()}</span>
+      </div>
+      <div
+        className="mt-2 h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
+        role="progressbar"
+        aria-label={`Experience progress toward level ${nextLevel}`}
+        aria-valuemin={0}
+        aria-valuemax={XP_PER_LEVEL}
+        aria-valuenow={levelXp}
+      >
+        <motion.div
+          className="h-full rounded-full bg-gradient-to-r from-blue-500 via-violet-500 to-amber-400"
+          initial={{ width: 0 }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.7, ease: 'easeOut' }}
+        />
+      </div>
+      <div className="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400">
+        <span><strong className="font-semibold text-slate-700 dark:text-slate-200">{levelXp.toLocaleString()}</strong> / {XP_PER_LEVEL} XP in this level</span>
+        <span>{xp.toLocaleString()} total XP</span>
+      </div>
     </div>
   )
 }
@@ -146,8 +174,8 @@ function ProfileCard({ profile, isDemo = false }: { profile: ResearcherProfile; 
             </div>
             <p className="mt-1 font-mono text-sm text-slate-500 dark:text-slate-400">{profile.researcherId}</p>
             <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{profile.preferredVersion}</p>
-            <div className="mt-4 max-w-xs">
-              <XpSummary xp={profile.xp} level={profile.level} />
+            <div className="mt-5 max-w-md">
+              <XpProgress xp={profile.xp} level={profile.level} />
             </div>
           </div>
         </div>

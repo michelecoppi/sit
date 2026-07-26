@@ -176,6 +176,9 @@ describe('ProfilePage', () => {
     expect(screen.getByText('340')).toBeInTheDocument()
     expect(screen.getAllByText('777').length).toBeGreaterThan(0)
     expect(screen.getByText('2,222')).toBeInTheDocument()
+    expect(screen.getByRole('progressbar', { name: 'Experience progress toward level 7' })).toHaveAttribute('aria-valuenow', '27')
+    expect(screen.getByText('27')).toBeInTheDocument()
+    expect(screen.getByText(/150 XP in this level/)).toBeInTheDocument()
 
     fireEvent.click(screen.getAllByRole('button', { name: 'Discord' })[0])
     expect(screen.getByText('8')).toBeInTheDocument()
