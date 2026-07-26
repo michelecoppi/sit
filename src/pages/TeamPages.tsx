@@ -326,16 +326,20 @@ export function TeamWorkspacePage() {
   if (error && !team) return <section className="team-page"><ErrorNotice message={error} /></section>
   if (!team) return <div className="route-loader" role="status">Opening team workspace…</div>
   return (
-    <section className="team-page">
-      <header className="team-hero"><p className="team-eyebrow">Authenticated team workspace</p><h1>{team.name}</h1><p>Permissions below are supplied by SIT Core for your canonical researcher identity.</p></header>
+    <section className="team-page team-workspace-page">
+      <header className="team-hero team-workspace-hero"><p className="team-eyebrow">Authenticated team workspace</p><h1>{team.name}</h1><p>Permissions below are supplied by SIT Core for your canonical researcher identity.</p></header>
       {error ? <ErrorNotice message={error} /> : null}
       {message ? <div className="team-notice" role="status">{message}</div> : null}
-      {team.permissions.editTeam ? <form className="team-form" onSubmit={saveSettings}><h2>Registry settings</h2><label>Name<input name="name" defaultValue={team.name} required /></label><label>Slug<input name="slug" defaultValue={team.slug} required /></label><label>Description<textarea name="description" defaultValue={team.description} /></label><label>Visibility<select name="visibility" defaultValue={team.visibility}><option value="public">Public</option><option value="private">Private</option></select></label><button className="button-primary">Save settings</button></form> : null}
-      {team.permissions.inviteMembers ? <section><h2>Invite researchers</h2><p>Invitations expire automatically and inherit only the selected backend role.</p><button className="button-secondary" onClick={() => void createTeamInvite(team.id, 'member', 72).then(setInvite).catch((caught) => setError(caught.message))}>Create 72-hour invite</button>{invite ? <div className="invite-box"><code>{invite.inviteUrl ?? `${window.location.origin}${window.location.pathname}#/team-invites/${invite.token}`}</code><button onClick={() => void navigator.clipboard.writeText(invite.inviteUrl ?? `${window.location.origin}${window.location.pathname}#/team-invites/${invite.token}`)}>Copy</button></div> : null}</section> : null}
-      <section><h2>Members</h2><div className="member-list">{members.map((member) => <div className="member-row" key={member.researcherId}><div><strong>{member.displayName}</strong><small>{member.role} · {member.contributions.toLocaleString()} contributions</small></div><MemberControls team={team} member={member} onChanged={load} /></div>)}</div></section>
-      <div className="team-danger-zone">
-        {team.permissions.leaveTeam ? <button className="danger-button" onClick={() => { if (window.confirm(`Leave ${team.name}?`)) void leaveTeam(team.id).then(() => navigate('/teams')) }}>Leave team</button> : null}
-        {team.permissions.archiveTeam ? <button className="danger-button" onClick={() => { if (window.confirm(`Archive ${team.name}? This removes it from active discovery.`)) void archiveTeam(team.id).then(() => navigate(`/teams/${team.slug}`)) }}>Archive team</button> : null}
+      <div className={`team-workspace-grid${team.permissions.editTeam ? '' : ' team-workspace-grid-single'}`}>
+        {team.permissions.editTeam ? <form className="team-form team-workspace-settings" onSubmit={saveSettings}><h2>Registry settings</h2><label>Name<input name="name" defaultValue={team.name} required /></label><label>Slug<input name="slug" defaultValue={team.slug} required /></label><label>Description<textarea name="description" defaultValue={team.description} /></label><label>Visibility<select name="visibility" defaultValue={team.visibility}><option value="public">Public</option><option value="private">Private</option></select></label><button className="button-primary">Save settings</button></form> : null}
+        <div className="team-workspace-rail">
+          {team.permissions.inviteMembers ? <section className="team-workspace-panel"><h2>Invite researchers</h2><p>Invitations expire automatically and inherit only the selected backend role.</p><button className="button-secondary" onClick={() => void createTeamInvite(team.id, 'member', 72).then(setInvite).catch((caught) => setError(caught.message))}>Create 72-hour invite</button>{invite ? <div className="invite-box"><code>{invite.inviteUrl ?? `${window.location.origin}${window.location.pathname}#/team-invites/${invite.token}`}</code><button onClick={() => void navigator.clipboard.writeText(invite.inviteUrl ?? `${window.location.origin}${window.location.pathname}#/team-invites/${invite.token}`)}>Copy</button></div> : null}</section> : null}
+          <section className="team-workspace-panel"><h2>Members</h2><div className="member-list">{members.map((member) => <div className="member-row" key={member.researcherId}><div><strong>{member.displayName}</strong><small>{member.role} · {member.contributions.toLocaleString()} contributions</small></div><MemberControls team={team} member={member} onChanged={load} /></div>)}</div></section>
+          <div className="team-danger-zone">
+            {team.permissions.leaveTeam ? <button className="danger-button" onClick={() => { if (window.confirm(`Leave ${team.name}?`)) void leaveTeam(team.id).then(() => navigate('/teams')) }}>Leave team</button> : null}
+            {team.permissions.archiveTeam ? <button className="danger-button" onClick={() => { if (window.confirm(`Archive ${team.name}? This removes it from active discovery.`)) void archiveTeam(team.id).then(() => navigate(`/teams/${team.slug}`)) }}>Archive team</button> : null}
+          </div>
+        </div>
       </div>
     </section>
   )
