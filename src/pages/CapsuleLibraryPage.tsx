@@ -164,7 +164,7 @@ export default function CapsuleLibraryPage() {
                 </div>
                 <ArchiveBoxIcon className="h-7 w-7 shrink-0 text-violet-500" />
               </div>
-              <pre className="mt-4 max-h-24 overflow-auto rounded-xl bg-slate-950 p-3 text-xs text-slate-200">{capsule.payload}</pre>
+              <pre className="mt-4 max-h-24 overflow-auto whitespace-pre-wrap break-words rounded-xl border border-slate-200 bg-slate-50 p-3 text-xs text-slate-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200">{capsule.payload}</pre>
               <p className="mt-3 text-xs text-slate-500">Expires: {formatDate(capsule.expiresAt)}</p>
               <div className="mt-5 flex flex-wrap gap-2">
                 {capsule.publicId && capsule.visibility !== 'private' ? (
