@@ -5,6 +5,20 @@
     <link rel="icon" type="image/svg+xml" href="%BASE_URL%sit-icon.svg" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>sit</title>
+    <script>
+      try {
+        const savedTheme = window.localStorage.getItem('sit-theme')
+        const theme = savedTheme === 'light' || savedTheme === 'dark'
+          ? savedTheme
+          : window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light'
+        document.documentElement.classList.toggle('dark', theme === 'dark')
+        document.documentElement.dataset.theme = theme
+        document.documentElement.style.colorScheme = theme
+      } catch {
+        document.documentElement.dataset.theme = 'light'
+        document.documentElement.style.colorScheme = 'light'
+      }
+    </script>
   </head>
   <body>
     <div id="root"></div>

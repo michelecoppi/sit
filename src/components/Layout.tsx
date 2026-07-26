@@ -102,6 +102,7 @@ export default function Layout({ children, title }: LayoutProps) {
 
   useEffect(() => {
     document.documentElement.classList.toggle('dark', theme === 'dark')
+    document.documentElement.dataset.theme = theme
     document.documentElement.style.colorScheme = theme
     window.localStorage.setItem('sit-theme', theme)
   }, [theme])
@@ -181,8 +182,10 @@ export default function Layout({ children, title }: LayoutProps) {
             </Link>
             <button
               type="button"
-              className="icon-button"
+              className="icon-button theme-toggle"
               aria-label={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
+              aria-pressed={theme === 'dark'}
+              data-active-theme={theme}
               title={`Switch to ${theme === 'dark' ? 'light' : 'dark'} theme`}
               onClick={() => setTheme((current) => current === 'dark' ? 'light' : 'dark')}
             >
