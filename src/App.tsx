@@ -37,6 +37,10 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const MissionsPage = lazy(() => import('./pages/MissionsPage'))
 const CapsuleLibraryPage = lazy(() => import('./pages/CapsuleLibraryPage'))
 const CapsulePublicPage = lazy(() => import('./pages/CapsulePublicPage'))
+const TeamsPage = lazy(() => import('./pages/TeamPages').then((module) => ({ default: module.TeamsPage })))
+const TeamProfilePage = lazy(() => import('./pages/TeamPages').then((module) => ({ default: module.TeamProfilePage })))
+const TeamWorkspacePage = lazy(() => import('./pages/TeamPages').then((module) => ({ default: module.TeamWorkspacePage })))
+const TeamInvitePage = lazy(() => import('./pages/TeamPages').then((module) => ({ default: module.TeamInvitePage })))
 
 function ScrollToTop() {
   const { pathname } = useLocation()
@@ -100,6 +104,10 @@ function App() {
             <Route path="/missions" element={<MissionsPage />} />
             <Route path="/capsules" element={<CapsuleLibraryPage />} />
             <Route path="/capsule/:publicId" element={<CapsulePublicPage />} />
+            <Route path="/teams" element={<TeamsPage />} />
+            <Route path="/teams/:slug" element={<TeamProfilePage />} />
+            <Route path="/teams/:slug/workspace" element={<TeamWorkspacePage />} />
+            <Route path="/team-invites/:token" element={<TeamInvitePage />} />
           </Routes>
         </Suspense>
       </Layout>

@@ -23,6 +23,11 @@ const ERROR_MESSAGES: Record<string, string> = {
   expired_login_ticket: 'Ticket expired.',
   used_login_ticket: 'Ticket already used.',
   too_many_requests: 'Too many requests, please try again shortly.',
+  team_private: 'This research team is private.',
+  team_archived: 'This research team has been archived.',
+  invite_expired: 'This team invitation has expired.',
+  already_team_member: 'You are already a member of this research team.',
+  permission_denied: 'You do not have permission to perform this team action.',
 }
 
 function parseErrorCode(payload: unknown): string | null {
@@ -31,7 +36,10 @@ function parseErrorCode(payload: unknown): string | null {
   const directCode = (payload as { code?: unknown }).code
   if (typeof directCode === 'string' && directCode.trim()) return directCode.trim()
 
-  const nestedCode = (payload as { error?: { code?: unknown } }).error?.code
+  const errorValue = (payload as { error?: unknown }).error
+  if (typeof errorValue === 'string' && errorValue.trim()) return errorValue.trim()
+
+  const nestedCode = isErrorObject(errorValue) ? errorValue.code : undefined
   if (typeof nestedCode === 'string' && nestedCode.trim()) return nestedCode.trim()
 
   const snakeCaseCode = (payload as { error_code?: unknown }).error_code
@@ -43,13 +51,18 @@ function parseErrorCode(payload: unknown): string | null {
   return null
 }
 
+function isErrorObject(value: unknown): value is { code?: unknown, message?: unknown } {
+  return Boolean(value) && typeof value === 'object'
+}
+
 function parseErrorMessage(payload: unknown): string | null {
   if (!payload || typeof payload !== 'object') return null
 
   const directMessage = (payload as { message?: unknown }).message
   if (typeof directMessage === 'string' && directMessage.trim()) return directMessage.trim()
 
-  const nestedMessage = (payload as { error?: { message?: unknown } }).error?.message
+  const errorValue = (payload as { error?: unknown }).error
+  const nestedMessage = isErrorObject(errorValue) ? errorValue.message : undefined
   if (typeof nestedMessage === 'string' && nestedMessage.trim()) return nestedMessage.trim()
 
   return null

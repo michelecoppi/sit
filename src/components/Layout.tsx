@@ -19,6 +19,7 @@ import {
   SunIcon,
   TrophyIcon,
   UserCircleIcon,
+  UserGroupIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
 
@@ -34,6 +35,7 @@ const navItems = [
   { href: '/docs', label: 'Documentation', shortLabel: 'Docs', icon: DocumentTextIcon },
   { href: '/playground', label: 'Playground', shortLabel: 'Playground', icon: BeakerIcon },
   { href: '/missions', label: 'Missions', shortLabel: 'Missions', icon: TrophyIcon },
+  { href: '/teams', label: 'Research Teams', shortLabel: 'Teams', icon: UserGroupIcon },
   { href: '/roadmap', label: 'Roadmap', shortLabel: 'Roadmap', icon: MapIcon },
   { href: '/rfc', label: 'RFC Registry', shortLabel: 'RFC', icon: AcademicCapIcon },
   { href: '/about', label: 'About SIT', shortLabel: 'About', icon: InformationCircleIcon },
@@ -56,6 +58,7 @@ const routeNames: Record<string, string> = {
   '/profile': 'Researcher profile',
   '/missions': 'Research missions',
   '/capsules': 'Capsule library',
+  '/teams': 'Research teams',
 }
 
 function resolveInitialTheme(): Theme {
@@ -73,7 +76,11 @@ export default function Layout({ children, title }: LayoutProps) {
   const [theme, setTheme] = useState<Theme>(resolveInitialTheme)
 
   const closeSecret = () => setShowSecret(false)
-  const routeName = routeNames[location.pathname] ?? (location.pathname.startsWith('/capsule/') ? 'Shared SIT capsule' : 'SIT Standard')
+  const routeName = routeNames[location.pathname]
+    ?? (location.pathname.startsWith('/capsule/') ? 'Shared SIT capsule'
+      : location.pathname.startsWith('/team-invites/') ? 'Team invitation'
+        : location.pathname.startsWith('/teams/') ? 'Research team'
+          : 'SIT Standard')
 
   const footerLinks = useMemo(
     () => [
