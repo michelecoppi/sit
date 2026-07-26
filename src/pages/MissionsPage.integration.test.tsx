@@ -50,6 +50,18 @@ describe('authenticated mission flow', () => {
       }
       return Promise.resolve(new Response(JSON.stringify({
         missions: [mission],
+        rotation: {
+          daily: {
+            startsAt: '2026-07-26T00:00:00.000Z',
+            resetsAt: '2026-07-27T00:00:00.000Z',
+            missionCount: 3,
+          },
+          weekly: {
+            startsAt: '2026-07-20T00:00:00.000Z',
+            resetsAt: '2026-07-27T00:00:00.000Z',
+            missionCount: 3,
+          },
+        },
         serverTime: '2026-07-26T12:00:00.000Z',
       })))
     })
@@ -60,6 +72,8 @@ describe('authenticated mission flow', () => {
     expect(await screen.findByText('Three clean transmissions')).toBeInTheDocument()
     expect(screen.getByText('1 remaining')).toBeInTheDocument()
     expect(screen.getByText('4 days')).toBeInTheDocument()
+    expect(screen.getByText('Daily field brief')).toBeInTheDocument()
+    expect(screen.getAllByText('3 rotating directives')).toHaveLength(2)
     expect(screen.getByRole('progressbar', { name: 'Three clean transmissions progress' })).toHaveAttribute('aria-valuenow', '2')
 
     await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
