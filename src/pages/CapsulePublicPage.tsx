@@ -134,7 +134,7 @@ export default function CapsulePublicPage() {
       <section className="grid gap-5 lg:grid-cols-[1.1fr_.9fr]">
         <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <div className="flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-semibold uppercase tracking-[.2em] text-violet-600">Authoritative payload</p><h2 className="mt-1 text-xl font-semibold">Symbolic content</h2></div><button type="button" onClick={() => void copy(capsule.payload, 'Payload copied.')} className="inline-flex min-h-10 items-center gap-2 rounded-full border border-slate-300 px-3 text-xs font-semibold dark:border-slate-700"><ClipboardDocumentIcon className="h-4 w-4" /> Copy</button></div>
-          <pre className="mt-4 max-h-[28rem] overflow-auto rounded-2xl bg-slate-950 p-5 font-mono text-sm leading-6 text-slate-100">{capsule.payload}</pre>
+          <pre className="mt-4 max-h-[28rem] overflow-auto whitespace-pre-wrap break-words rounded-2xl border border-slate-200 bg-slate-50 p-5 font-mono text-sm leading-6 text-slate-800 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100">{capsule.payload}</pre>
         </div>
         <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 dark:border-slate-800 dark:bg-slate-900">
           <p className="text-xs font-semibold uppercase tracking-[.2em] text-emerald-600">Local semantic preview</p>
