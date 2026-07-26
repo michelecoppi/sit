@@ -19,6 +19,7 @@ import {
 import AccountLinkSuccessModal from '../components/account/AccountLinkSuccessModal'
 import ConnectedAccountsCard from '../components/account/ConnectedAccountsCard'
 import LinkProviderModal from '../components/account/LinkProviderModal'
+import ProfileMissionSummary from '../components/missions/ProfileMissionSummary'
 import { AccountProvider, useAccount } from '../context/AccountContext'
 import { useAuth } from '../context/AuthContext'
 import { createLoginTicket, getDiscordLoginUrl, getLoginStatus } from '../services/authService'
@@ -733,6 +734,7 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
   return (
     <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-5">
       {effectiveProfile && <ProfileCard profile={effectiveProfile} />}
+      {me && <ProfileMissionSummary />}
 
       <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
         <div>

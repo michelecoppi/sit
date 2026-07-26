@@ -1,11 +1,33 @@
 import { Suspense, lazy, useState } from 'react'
+import { useSearchParams } from 'react-router-dom'
 import { BeakerIcon, BoltIcon, CommandLineIcon } from '@heroicons/react/24/outline'
+import type { CapsuleEdition } from '../types/capsules'
+import { useAuth } from '../context/AuthContext'
 
 const LegacyPlayground = lazy(() => import('./PlaygroundPage'))
 const NativePlayground = lazy(() => import('./NativePages').then((module) => ({ default: module.NativePlayground })))
 
 export default function PlaygroundHub() {
-  const [edition, setEdition] = useState<'1.0' | '2.0'>('1.0')
+  const { status } = useAuth()
+  const [searchParams] = useSearchParams()
+  const requestedEdition = searchParams.get('edition')
+  const [draft] = useState<{ edition: CapsuleEdition; payload: string } | null>(() => {
+    const stored = sessionStorage.getItem('sit-capsule-playground-draft')
+    if (!stored) return null
+    sessionStorage.removeItem('sit-capsule-playground-draft')
+    try {
+      const parsed = JSON.parse(stored) as Record<string, unknown>
+      if ((parsed.edition === '1.0' || parsed.edition === '2.0') && typeof parsed.payload === 'string') {
+        return { edition: parsed.edition, payload: parsed.payload }
+      }
+    } catch {
+      // Ignore malformed transient state.
+    }
+    return null
+  })
+  const [edition, setEdition] = useState<'1.0' | '2.0'>(
+    draft?.edition ?? (requestedEdition === '2.0' ? '2.0' : '1.0'),
+  )
 
   return <div className="space-y-6">
     <section className="playground-header">
@@ -32,7 +54,9 @@ export default function PlaygroundHub() {
         <span>{edition === '1.0' ? 'LEGACY ENGINE' : 'NATIVE ENGINE'}</span>
       </div>
       <Suspense fallback={<div className="route-loader"><span className="route-loader-mark" aria-hidden="true"><i>6</i><i>7</i></span><span><strong>Loading playground</strong><small>Preparing conversion tools…</small></span></div>}>
-        {edition === '1.0' ? <LegacyPlayground /> : <div className="native-v2"><NativePlayground /></div>}
+        {edition === '1.0'
+          ? <LegacyPlayground initialPayload={draft?.edition === '1.0' ? draft.payload : undefined} authenticated={status === 'authenticated'} />
+          : <div className="native-v2"><NativePlayground initialPayload={draft?.edition === '2.0' ? draft.payload : undefined} authenticated={status === 'authenticated'} /></div>}
       </Suspense>
     </div>
   </div>

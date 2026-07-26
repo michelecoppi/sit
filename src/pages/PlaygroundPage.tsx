@@ -5,6 +5,7 @@ import { decodeSitToText } from '../utils/decoder'
 import { encodeBinaryToSit, decodeSitToBinary } from '../utils/binary'
 import { encodeBatchToSit, decodeBatchToText } from '../utils/batch'
 import { validateSit } from '../utils/validator'
+import CapsuleSaveButton from '../components/capsules/CapsuleSaveButton'
 
 const tabs = ['Encoder', 'Decoder', 'Binary Converter', 'KiloSYTE', 'Compliance Checker'] as const
 
@@ -32,10 +33,10 @@ type CopyFeedback = {
   tone: CopyFeedbackTone
 }
 
-export default function PlaygroundPage() {
-  const [activeTab, setActiveTab] = useState<Tab>('Encoder')
+export default function PlaygroundPage({ initialPayload, authenticated = false }: { initialPayload?: string; authenticated?: boolean }) {
+  const [activeTab, setActiveTab] = useState<Tab>(initialPayload ? 'Decoder' : 'Encoder')
   const [encoderInput, setEncoderInput] = useState('CIAO')
-  const [decoderInput, setDecoderInput] = useState('67666677')
+  const [decoderInput, setDecoderInput] = useState(initialPayload ?? '67666677')
   const [binaryInput, setBinaryInput] = useState('01001111')
   const [sitInput, setSitInput] = useState('67667777')
   const [batchInput, setBatchInput] = useState('HI\nBY')
@@ -52,6 +53,13 @@ export default function PlaygroundPage() {
   const batchToSit = useMemo(() => encodeBatchToSit(batchInput), [batchInput])
   const sitToBatch = useMemo(() => decodeBatchToText(batchPayload), [batchPayload])
   const validation = useMemo(() => validateSit(validatorInput), [validatorInput])
+  const capsuleDraft = useMemo(() => {
+    if (activeTab === 'Encoder') return { payload: encodedOutput, preview: encoderInput, title: 'Encoded SIT 1.0 message' }
+    if (activeTab === 'Decoder') return { payload: decoderInput, preview: decodedOutput, title: 'Decoded SIT 1.0 artifact' }
+    if (activeTab === 'Binary Converter') return { payload: binaryToSit, preview: binaryInput, title: 'SIT 1.0 binary conversion' }
+    if (activeTab === 'KiloSYTE') return { payload: batchToSit, preview: batchInput, title: 'KiloSYTE batch' }
+    return { payload: validatorInput, preview: validation.message, title: 'SIT 1.0 compliance sample' }
+  }, [activeTab, batchInput, batchToSit, binaryInput, binaryToSit, decodedOutput, decoderInput, encodedOutput, encoderInput, validation.message, validatorInput])
 
   useEffect(() => {
     if (!copyFeedback) {
@@ -140,6 +148,7 @@ export default function PlaygroundPage() {
           <div className="flex flex-wrap gap-2">
             <div className="rounded-full border border-slate-200/80 bg-white/75 px-4 py-2 text-sm font-medium text-slate-700 shadow-sm dark:border-slate-700 dark:bg-slate-800/70 dark:text-slate-200">Professional workflow • multi-step</div>
             <div className="rounded-full border border-blue-200/80 bg-blue-50/90 px-4 py-2 text-sm font-medium text-blue-700 shadow-sm dark:border-blue-900 dark:bg-blue-950/40 dark:text-blue-300">Premium workspace</div>
+            <CapsuleSaveButton edition="1.0" payload={capsuleDraft.payload} decodedPreview={capsuleDraft.preview} suggestedTitle={capsuleDraft.title} authenticated={authenticated} />
           </div>
         </div>
         <div className="relative mt-6 flex flex-wrap gap-3">

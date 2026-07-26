@@ -2,6 +2,7 @@ import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import {
   AcademicCapIcon,
+  ArchiveBoxIcon,
   ArrowRightIcon,
   ArrowTopRightOnSquareIcon,
   Bars3Icon,
@@ -16,6 +17,7 @@ import {
   RocketLaunchIcon,
   SparklesIcon,
   SunIcon,
+  TrophyIcon,
   UserCircleIcon,
   XMarkIcon,
 } from '@heroicons/react/24/outline'
@@ -31,6 +33,7 @@ const navItems = [
   { href: '/', label: 'Home', shortLabel: 'Home', icon: HomeIcon },
   { href: '/docs', label: 'Documentation', shortLabel: 'Docs', icon: DocumentTextIcon },
   { href: '/playground', label: 'Playground', shortLabel: 'Playground', icon: BeakerIcon },
+  { href: '/missions', label: 'Missions', shortLabel: 'Missions', icon: TrophyIcon },
   { href: '/roadmap', label: 'Roadmap', shortLabel: 'Roadmap', icon: MapIcon },
   { href: '/rfc', label: 'RFC Registry', shortLabel: 'RFC', icon: AcademicCapIcon },
   { href: '/about', label: 'About SIT', shortLabel: 'About', icon: InformationCircleIcon },
@@ -51,6 +54,8 @@ const routeNames: Record<string, string> = {
   '/semantic': 'Semantic layer',
   '/explorer': 'Character explorer',
   '/profile': 'Researcher profile',
+  '/missions': 'Research missions',
+  '/capsules': 'Capsule library',
 }
 
 function resolveInitialTheme(): Theme {
@@ -68,7 +73,7 @@ export default function Layout({ children, title }: LayoutProps) {
   const [theme, setTheme] = useState<Theme>(resolveInitialTheme)
 
   const closeSecret = () => setShowSecret(false)
-  const routeName = routeNames[location.pathname] ?? 'SIT Standard'
+  const routeName = routeNames[location.pathname] ?? (location.pathname.startsWith('/capsule/') ? 'Shared SIT capsule' : 'SIT Standard')
 
   const footerLinks = useMemo(
     () => [
@@ -163,6 +168,9 @@ export default function Layout({ children, title }: LayoutProps) {
             </Link>
             <Link to="/profile" className="icon-button profile-button" aria-label="Open researcher profile">
               <UserCircleIcon aria-hidden="true" />
+            </Link>
+            <Link to="/capsules" className="icon-button profile-button" aria-label="Open capsule library">
+              <ArchiveBoxIcon aria-hidden="true" />
             </Link>
             <button
               type="button"

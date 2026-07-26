@@ -4,6 +4,7 @@ import AlphabetTable from '../components/AlphabetTable'
 import DictionarySearch from '../components/DictionarySearch'
 import GrammarCard from '../components/GrammarCard'
 import { nativeDecode, nativeDictionary, nativeEncode } from '../data/native'
+import CapsuleSaveButton from '../components/capsules/CapsuleSaveButton'
 
 const punctuationSectionNames = ['COMMA', 'PERIOD', 'COLON', 'SEMICOLON', 'QUESTIONMARK', 'EXCLAMATIONMARK', 'APOSTROPHE', 'QUOTATIONMARK', 'HYPHEN', 'DASH', 'SLASH', 'ELLIPSIS'] as const
 const groupingSectionNames = ['LEFTPAREN', 'RIGHTPAREN', 'LEFTBRACKET', 'RIGHTBRACKET', 'LEFTBRACE', 'RIGHTBRACE', 'LEFTANGLE', 'RIGHTANGLE'] as const
@@ -312,9 +313,9 @@ type NativeCopyFeedback = {
   tone: CopyFeedbackTone
 }
 
-export function NativePlayground() {
-  const [mode, setMode] = useState<Mode>('Native Encoder')
-  const [value, setValue] = useState('HELLO')
+export function NativePlayground({ initialPayload, authenticated = false }: { initialPayload?: string; authenticated?: boolean }) {
+  const [mode, setMode] = useState<Mode>(initialPayload ? 'Native Decoder' : 'Native Encoder')
+  const [value, setValue] = useState(initialPayload ?? 'HELLO')
   const [showCanonicalDecode, setShowCanonicalDecode] = useState(false)
   const [copyFeedback, setCopyFeedback] = useState<NativeCopyFeedback | null>(null)
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
@@ -488,13 +489,22 @@ export function NativePlayground() {
               <p className="text-sm font-semibold">Native result</p>
               <div className="flex flex-wrap items-center gap-2">
                 {(mode === 'Native Encoder' || mode === 'Native Decoder') ? (
-                  <button
-                    type="button"
-                    className="native-copy-btn"
-                    onClick={() => handleCopy(output, mode === 'Native Encoder' ? 'Encoded output' : 'Decoded output', 'result')}
-                  >
-                    Copy result
-                  </button>
+                  <>
+                    <CapsuleSaveButton
+                      edition="2.0"
+                      payload={mode === 'Native Encoder' ? output : deferredValue}
+                      decodedPreview={mode === 'Native Encoder' ? deferredValue : output}
+                      suggestedTitle={mode === 'Native Encoder' ? 'Native SIT 2.0 concept' : 'Decoded native SIT artifact'}
+                      authenticated={authenticated}
+                    />
+                    <button
+                      type="button"
+                      className="native-copy-btn"
+                      onClick={() => handleCopy(output, mode === 'Native Encoder' ? 'Encoded output' : 'Decoded output', 'result')}
+                    >
+                      Copy result
+                    </button>
+                  </>
                 ) : null}
                 {renderCopyFeedback('result')}
                 <span className="text-xs opacity-70">Instant semantic resolution</span>
