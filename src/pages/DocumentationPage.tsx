@@ -1,5 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
+import { Link, useLocation } from 'react-router-dom'
 import {
   CheckCircleIcon,
   ClipboardDocumentIcon,
@@ -25,6 +26,7 @@ const sections = [
 const slugify = (value: string) => value.toLowerCase().replace(/\s+/g, '-')
 
 export default function DocumentationPage() {
+  const location = useLocation()
   const [query, setQuery] = useState('')
   const [copied, setCopied] = useState(false)
   const filteredSections = useMemo(() => {
@@ -38,6 +40,20 @@ export default function DocumentationPage() {
     setCopied(true)
     window.setTimeout(() => setCopied(false), 1600)
   }
+
+  const selectedSection = new URLSearchParams(location.search).get('section')
+
+  useEffect(() => {
+    if (!selectedSection) return
+
+    const frame = window.requestAnimationFrame(() => {
+      document.getElementById(selectedSection)?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+
+    return () => window.cancelAnimationFrame(frame)
+  }, [selectedSection])
+
+  const sectionLink = (section: string) => `/docs?section=${encodeURIComponent(section)}`
 
   return (
     <div className="docs-page">
@@ -66,7 +82,7 @@ export default function DocumentationPage() {
           />
           <span>{filteredSections.length} sections</span>
         </label>
-        <a href="#reference-example"><CommandLineIcon aria-hidden="true" /> View quick example</a>
+        <Link to={sectionLink('reference-example')}><CommandLineIcon aria-hidden="true" /> View quick example</Link>
       </div>
 
       <div className="docs-layout">
@@ -75,9 +91,14 @@ export default function DocumentationPage() {
             <p><QueueListIcon aria-hidden="true" /> On this page</p>
             <nav aria-label="Documentation chapters">
               {sections.map((section, index) => (
-                <a key={section.title} href={`#${slugify(section.title)}`}>
+                <Link
+                  key={section.title}
+                  to={sectionLink(slugify(section.title))}
+                  onClick={() => setQuery('')}
+                  aria-current={selectedSection === slugify(section.title) ? 'location' : undefined}
+                >
                   <span>{String(index + 1).padStart(2, '0')}</span>{section.title}
-                </a>
+                </Link>
               ))}
             </nav>
           </div>
