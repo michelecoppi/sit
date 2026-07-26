@@ -13,7 +13,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext'
 import { getMissionDashboard, getMissionHistory } from '../services/missionService'
-import type { Mission, MissionDashboard } from '../types/missions'
+import type { Mission, MissionDashboard, MissionRotationWindow } from '../types/missions'
 
 function formatReset(iso: string) {
   return new Intl.DateTimeFormat(undefined, {
@@ -25,6 +25,52 @@ function formatReset(iso: string) {
   }).format(new Date(iso))
 }
 
+const metricLabels: Record<string, string> = {
+  messages_encoded: 'Encoding',
+  messages_decoded: 'Recovery',
+  syte_processed: 'Throughput',
+}
+
+function formatTimeRemaining(resetsAt: string, serverTime: string) {
+  const remaining = Math.max(0, Date.parse(resetsAt) - Date.parse(serverTime))
+  const totalMinutes = Math.ceil(remaining / 60_000)
+  const days = Math.floor(totalMinutes / 1_440)
+  const hours = Math.floor((totalMinutes % 1_440) / 60)
+  const minutes = totalMinutes % 60
+  return [
+    days ? `${days}d` : '',
+    hours ? `${hours}h` : '',
+    !days && minutes ? `${minutes}m` : '',
+  ].filter(Boolean).join(' ') || 'now'
+}
+
+function RotationCard({ cadence, rotation, serverTime }: {
+  cadence: 'daily' | 'weekly'
+  rotation: MissionRotationWindow
+  serverTime: string
+}) {
+  const daily = cadence === 'daily'
+  return (
+    <article className={`rounded-[1.5rem] border p-5 ${daily ? 'border-blue-200 bg-blue-50/70 dark:border-blue-900 dark:bg-blue-950/20' : 'border-violet-200 bg-violet-50/70 dark:border-violet-900 dark:bg-violet-950/20'}`}>
+      <div className="flex items-start justify-between gap-4">
+        <div>
+          <p className={`text-xs font-bold uppercase tracking-[.22em] ${daily ? 'text-blue-700 dark:text-blue-300' : 'text-violet-700 dark:text-violet-300'}`}>{daily ? 'Daily field brief' : 'Weekly programme'}</p>
+          <p className="mt-2 text-2xl font-semibold text-slate-950 dark:text-white">{rotation.missionCount} rotating directives</p>
+        </div>
+        <span className={`flex h-11 w-11 items-center justify-center rounded-2xl ${daily ? 'bg-blue-600 text-white' : 'bg-violet-600 text-white'}`}>
+          {daily ? <BoltIcon className="h-6 w-6" /> : <CalendarDaysIcon className="h-6 w-6" />}
+        </span>
+      </div>
+      <p className="mt-4 flex items-center gap-2 text-sm text-slate-600 dark:text-slate-300">
+        <ArrowPathIcon className="h-4 w-4" />
+        New selection in {formatTimeRemaining(rotation.resetsAt, serverTime)}
+        <span className="text-slate-400">·</span>
+        {formatReset(rotation.resetsAt)}
+      </p>
+    </article>
+  )
+}
+
 function MissionCard({ mission }: { mission: Mission }) {
   const percentage = Math.min(100, Math.round((mission.progress / mission.target) * 100))
   const complete = mission.state === 'completed'
@@ -34,7 +80,7 @@ function MissionCard({ mission }: { mission: Mission }) {
       <div className="flex items-start justify-between gap-4">
         <div>
           <div className="flex flex-wrap items-center gap-2">
-            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.2em] text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">{mission.cadence}</span>
+            <span className="rounded-full border border-slate-200 bg-slate-50 px-2.5 py-1 text-[10px] font-bold uppercase tracking-[.2em] text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-400">{metricLabels[mission.metric] ?? mission.metric} · {mission.cadence}</span>
             <span className="inline-flex items-center gap-1 rounded-full bg-amber-100 px-2.5 py-1 text-xs font-semibold text-amber-700 dark:bg-amber-950/50 dark:text-amber-300">
               <SparklesIcon className="h-3.5 w-3.5" /> +{mission.xpReward} XP
             </span>
@@ -159,6 +205,13 @@ export default function MissionsPage() {
           </div>
         ) : null}
       </section>
+
+      {dashboard?.rotation ? (
+        <section className="grid gap-4 lg:grid-cols-2" aria-label="Mission rotation schedule">
+          <RotationCard cadence="daily" rotation={dashboard.rotation.daily} serverTime={dashboard.serverTime} />
+          <RotationCard cadence="weekly" rotation={dashboard.rotation.weekly} serverTime={dashboard.serverTime} />
+        </section>
+      ) : null}
 
       {error ? (
         <div role="alert" className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-800 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">

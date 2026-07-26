@@ -1,4 +1,11 @@
-import type { Mission, MissionDashboard, MissionHistoryPage, MissionStreak } from '../types/missions'
+import type {
+  Mission,
+  MissionDashboard,
+  MissionHistoryPage,
+  MissionRotationSchedule,
+  MissionRotationWindow,
+  MissionStreak,
+} from '../types/missions'
 import { getApiHeaders, getApiUrl, parseResponsePayload, throwApiError } from './apiClient'
 
 const CADENCES = new Set(['daily', 'weekly'])
@@ -97,6 +104,28 @@ export function parseMissionStreak(payload: unknown): MissionStreak {
   return { current, best, lastQualifiedDate, timezone, rules }
 }
 
+function parseRotationWindow(payload: unknown): MissionRotationWindow {
+  if (!isObject(payload)) throw new Error('Invalid mission rotation payload.')
+  const { startsAt, resetsAt, missionCount } = payload
+  if (
+    !isIsoDate(startsAt)
+    || !isIsoDate(resetsAt)
+    || Date.parse(resetsAt) <= Date.parse(startsAt)
+    || !isNonNegativeInteger(missionCount)
+  ) {
+    throw new Error('Invalid mission rotation payload.')
+  }
+  return { startsAt, resetsAt, missionCount }
+}
+
+function parseRotationSchedule(payload: unknown): MissionRotationSchedule {
+  if (!isObject(payload)) throw new Error('Invalid mission rotation payload.')
+  return {
+    daily: parseRotationWindow(payload.daily),
+    weekly: parseRotationWindow(payload.weekly),
+  }
+}
+
 export function parseMissionDashboard(activePayload: unknown, streakPayload: unknown): MissionDashboard {
   if (!isObject(activePayload) || !Array.isArray(activePayload.missions) || !isIsoDate(activePayload.serverTime)) {
     throw new Error('Invalid mission dashboard payload.')
@@ -105,6 +134,7 @@ export function parseMissionDashboard(activePayload: unknown, streakPayload: unk
   return {
     missions: activePayload.missions.map(parseMission),
     streak: parseMissionStreak(isObject(streakPayload) && 'streak' in streakPayload ? streakPayload.streak : streakPayload),
+    rotation: activePayload.rotation === undefined ? undefined : parseRotationSchedule(activePayload.rotation),
     serverTime: activePayload.serverTime,
   }
 }

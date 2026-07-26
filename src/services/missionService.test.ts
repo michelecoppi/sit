@@ -21,6 +21,18 @@ describe('mission payload parsing', () => {
   it('preserves backend-authored progress, remaining target and UTC streak rules', () => {
     const result = parseMissionDashboard({
       missions: [mission],
+      rotation: {
+        daily: {
+          startsAt: '2026-07-26T00:00:00.000Z',
+          resetsAt: '2026-07-27T00:00:00.000Z',
+          missionCount: 3,
+        },
+        weekly: {
+          startsAt: '2026-07-20T00:00:00.000Z',
+          resetsAt: '2026-07-27T00:00:00.000Z',
+          missionCount: 3,
+        },
+      },
       serverTime: '2026-07-26T12:00:00.000Z',
     }, {
       streak: {
@@ -35,6 +47,7 @@ describe('mission payload parsing', () => {
     expect(result.missions[0]).toEqual(mission)
     expect(result.streak.current).toBe(4)
     expect(result.streak.timezone).toBe('UTC')
+    expect(result.rotation?.daily.missionCount).toBe(3)
   })
 
   it.each([
@@ -68,5 +81,30 @@ describe('mission payload parsing', () => {
       items: [completed],
       nextCursor: null,
     })
+  })
+
+  it('rejects a rotation that ends before it starts', () => {
+    expect(() => parseMissionDashboard({
+      missions: [mission],
+      rotation: {
+        daily: {
+          startsAt: '2026-07-27T00:00:00.000Z',
+          resetsAt: '2026-07-26T00:00:00.000Z',
+          missionCount: 3,
+        },
+        weekly: {
+          startsAt: '2026-07-20T00:00:00.000Z',
+          resetsAt: '2026-07-27T00:00:00.000Z',
+          missionCount: 3,
+        },
+      },
+      serverTime: '2026-07-26T12:00:00.000Z',
+    }, {
+      current: 0,
+      best: 0,
+      lastQualifiedDate: null,
+      timezone: 'UTC',
+      rules: 'Complete one mission.',
+    })).toThrow('Invalid mission rotation payload.')
   })
 })

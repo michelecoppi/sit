@@ -25,9 +25,21 @@ export interface MissionStreak {
   rules: string
 }
 
+export interface MissionRotationWindow {
+  startsAt: string
+  resetsAt: string
+  missionCount: number
+}
+
+export interface MissionRotationSchedule {
+  daily: MissionRotationWindow
+  weekly: MissionRotationWindow
+}
+
 export interface MissionDashboard {
   missions: Mission[]
   streak: MissionStreak
+  rotation?: MissionRotationSchedule
   serverTime: string
 }
 
