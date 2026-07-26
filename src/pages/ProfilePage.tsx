@@ -109,11 +109,39 @@ function StatCard({ label, value, icon: Icon, accent = 'blue' }: { label: string
   )
 }
 
-function XpSummary({ xp, level }: { xp: number; level: number }) {
+const XP_PER_LEVEL = 150
+
+function XpProgress({ xp, level }: { xp: number; level: number }) {
+  const levelStartXp = Math.max(0, (level - 1) * XP_PER_LEVEL)
+  const levelXp = Math.min(Math.max(xp - levelStartXp, 0), XP_PER_LEVEL)
+  const progress = (levelXp / XP_PER_LEVEL) * 100
+  const nextLevel = level + 1
+
   return (
-    <div className="flex flex-wrap gap-x-5 gap-y-1 text-xs text-slate-500 dark:text-slate-400">
-      <span>Level <strong className="font-semibold text-slate-700 dark:text-slate-200">{level.toLocaleString()}</strong></span>
-      <span>XP <strong className="font-semibold text-slate-700 dark:text-slate-200">{xp.toLocaleString()}</strong></span>
+    <div>
+      <div className="flex items-end justify-between gap-4 text-xs">
+        <span className="font-semibold text-slate-700 dark:text-slate-200">Level {level.toLocaleString()}</span>
+        <span className="text-slate-400 dark:text-slate-500">Level {nextLevel.toLocaleString()}</span>
+      </div>
+      <div
+        className="mt-2 h-2.5 overflow-hidden rounded-full bg-slate-200 dark:bg-slate-700"
+        role="progressbar"
+        aria-label={`Experience progress toward level ${nextLevel}`}
+        aria-valuemin={0}
+        aria-valuemax={XP_PER_LEVEL}
+        aria-valuenow={levelXp}
+      >
+        <motion.div
+          className="h-full rounded-full bg-gradient-to-r from-blue-500 via-violet-500 to-amber-400"
+          initial={{ width: 0 }}
+          animate={{ width: `${progress}%` }}
+          transition={{ duration: 0.7, ease: 'easeOut' }}
+        />
+      </div>
+      <div className="mt-2 flex flex-wrap justify-between gap-x-4 gap-y-1 text-[11px] text-slate-500 dark:text-slate-400">
+        <span><strong className="font-semibold text-slate-700 dark:text-slate-200">{levelXp.toLocaleString()}</strong> / {XP_PER_LEVEL} XP in this level</span>
+        <span>{xp.toLocaleString()} total XP</span>
+      </div>
     </div>
   )
 }
@@ -146,8 +174,8 @@ function ProfileCard({ profile, isDemo = false }: { profile: ResearcherProfile; 
             </div>
             <p className="mt-1 font-mono text-sm text-slate-500 dark:text-slate-400">{profile.researcherId}</p>
             <p className="mt-1 text-xs text-slate-400 dark:text-slate-500">{profile.preferredVersion}</p>
-            <div className="mt-4 max-w-xs">
-              <XpSummary xp={profile.xp} level={profile.level} />
+            <div className="mt-5 max-w-md">
+              <XpProgress xp={profile.xp} level={profile.level} />
             </div>
           </div>
         </div>
@@ -376,454 +404,7 @@ function LoginPrompt() {
             void createTelegramTicket()
           }}
           disabled={telegramLoading || discordLoading || !import.meta.env.VITE_API_URL}
-          className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-300 bg-sky-50 px-5 py-3 text-sm font-semibold text-sky-700 shadow-sm transition hover:bg-sky-100 disabled:cursor-not-allowed disabled:opacity-40 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-300 dark:hover:bg-sky-900/40"
-        >
-          {telegramLoading ? <ArrowPathIcon className="h-4 w-4 animate-spin" /> : <ChatBubbleLeftRightIcon className="h-4 w-4" />}
-          Continue with Telegram
-        </button>
-      </div>
-
-      {telegramStatus === 'pending' && ticketSnapshot && (
-        <div className="mt-5 rounded-2xl border border-sky-200 bg-sky-50 p-4 text-sm text-sky-800 dark:border-sky-900 dark:bg-sky-950/30 dark:text-sky-300">
-          <p className="font-semibold">Waiting for Telegram confirmation</p>
-          <p className="mt-1 break-all font-mono text-xs">Ticket: {ticketSnapshot.ticket}</p>
-          <p className="mt-2">Expires in <span className="font-mono font-semibold">{formattedRemaining}</span></p>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <a
-              href={ticketSnapshot.loginUrl}
-              target="_blank"
-              rel="noreferrer"
-              className="inline-flex items-center rounded-full bg-sky-600 px-3 py-1.5 text-xs font-semibold text-white transition hover:bg-sky-700"
-            >
-              Open Telegram Bot
-            </a>
-            <button
-              type="button"
-              onClick={() => {
-                stopPolling(true)
-                setTicketSnapshot(null)
-                setTelegramStatus('cancelled')
-              }}
-              className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-            >
-              Cancel polling
-            </button>
-          </div>
-        </div>
-      )}
-
-      {telegramStatus === 'expired' && (
-        <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
-          Telegram ticket expired. Generate a new ticket to continue.
-        </div>
-      )}
-
-      {telegramStatus === 'used' && (
-        <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
-          Ticket already used. Generate a new ticket and try again.
-        </div>
-      )}
-
-      {telegramStatus !== 'pending' && telegramStatus !== 'completed' && (
-        <div className="mt-4 flex justify-center">
-          <button
-            type="button"
-            onClick={() => {
-              void createTelegramTicket()
-            }}
-            disabled={telegramLoading || !import.meta.env.VITE_API_URL}
-            className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            Generate new ticket
-          </button>
-        </div>
-      )}
-
-      {(telegramError || oauthError || authError) && (
-        <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
-          <div className="flex items-start gap-2">
-            <XCircleIcon className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>{telegramError ?? oauthError ?? authError}</p>
-          </div>
-        </div>
-      )}
-
-      {!import.meta.env.VITE_API_URL && (
-        <p className="mt-3 text-center text-xs text-slate-400 dark:text-slate-500">
-          VITE_API_URL is not configured. Authentication requires SIT Core.
-        </p>
-      )}
-    </motion.div>
-  )
-}
-
-function formatIsoDate(value: string | null | undefined) {
-  if (!value) return 'Not available'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Not available'
-  return date.toLocaleString()
-}
-
-function resolveLinkCodeTtl(response: LinkCodeResponse) {
-  if (typeof response.expiresInSeconds === 'number' && response.expiresInSeconds > 0) {
-    return Math.max(1, Math.floor(response.expiresInSeconds))
-  }
-
-  if (response.expiresAt) {
-    const expiryTime = new Date(response.expiresAt).getTime()
-    if (!Number.isNaN(expiryTime)) {
-      const remainingSeconds = Math.floor((expiryTime - Date.now()) / 1000)
-      return Math.max(1, remainingSeconds)
-    }
-  }
-
-  return DEFAULT_LINK_CODE_TTL_SECONDS
-}
-
-function normalizeService(value: unknown): StatisticsProvider | null {
-  if (typeof value !== 'string') return null
-  const normalized = value.trim().toLowerCase()
-  if (normalized === 'discord') return 'discord'
-  if (normalized === 'telegram') return 'telegram'
-  return null
-}
-
-function getTranslationProvider(entry: RecentTranslation): StatisticsProvider | null {
-  return normalizeService(entry.provider)
-}
-
-function statisticsFilterLabel(filter: StatisticsFilter) {
-  if (filter === 'global') return 'Global'
-  if (filter === 'discord') return 'Discord'
-  if (filter === 'telegram') return 'Telegram'
-  return filter
-}
-
-function translationFilterLabel(filter: TranslationFilter) {
-  if (filter === 'all') return 'All'
-  if (filter === 'discord') return 'Discord'
-  if (filter === 'telegram') return 'Telegram'
-  return filter
-}
-
-function selectStatisticsSummary(
-  data: StatisticsSnapshotResponse,
-  selected: StatisticsFilter,
-): StatisticsSummary | null {
-  if (selected === 'global') return data.snapshot.global
-  return data.snapshot.byProvider[selected] ?? null
-}
-
-function mapOAuthCallbackError(code: string) {
-  if (code === 'invalid_session') {
-    return 'Discord login completed, but the session could not be restored. Please sign in again.'
-  }
-
-  return 'Discord login did not complete. Please retry from the sign-in button.'
-}
-
-function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
-  const { me, authError, clearAuthError } = useAuth()
-  const { providers, isLoading, providersError, refreshProviders, refreshProvidersOnly, generateLinkCode } = useAccount()
-  const [actionProvider, setActionProvider] = useState<string | null>(null)
-  const [linkingProvider, setLinkingProvider] = useState<string | null>(null)
-  const [linkCode, setLinkCode] = useState<string | null>(null)
-  const [linkCodeTtlSeconds, setLinkCodeTtlSeconds] = useState(DEFAULT_LINK_CODE_TTL_SECONDS)
-  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
-  const [isLinkExpired, setIsLinkExpired] = useState(false)
-  const [successProvider, setSuccessProvider] = useState<string | null>(null)
-  const [linkError, setLinkError] = useState<string | null>(null)
-  const [activeStatisticsFilter, setActiveStatisticsFilter] = useState<StatisticsFilter>('global')
-  const [activeTranslationFilter, setActiveTranslationFilter] = useState<TranslationFilter>('all')
-  const [statisticsSnapshot, setStatisticsSnapshot] = useState<StatisticsSnapshotResponse | null>(null)
-  const [statisticsLoading, setStatisticsLoading] = useState(false)
-  const [statisticsError, setStatisticsError] = useState<string | null>(null)
-  const [profileStatistics, setProfileStatistics] = useState<ProfileStatistics | null>(null)
-  const [profileStatisticsLoading, setProfileStatisticsLoading] = useState(false)
-  const [profileStatisticsError, setProfileStatisticsError] = useState<string | null>(null)
-  const [profileStatisticsRefreshKey, setProfileStatisticsRefreshKey] = useState(0)
-
-  useEffect(() => {
-    const oauthCode = consumeOAuthCallbackError()
-    if (!oauthCode) return
-    setLinkError(mapOAuthCallbackError(oauthCode))
-  }, [])
-
-  useEffect(() => {
-    let mounted = true
-
-    const loadStatistics = async () => {
-      setStatisticsLoading(true)
-      setStatisticsError(null)
-
-      try {
-        const snapshot = await getStatisticsSnapshot()
-        if (mounted) {
-          setStatisticsSnapshot(snapshot)
-        }
-      } catch (error) {
-        if (mounted) {
-          setStatisticsError(error instanceof Error ? error.message : 'Unable to load statistics snapshot.')
-        }
-      } finally {
-        if (mounted) {
-          setStatisticsLoading(false)
-        }
-      }
-    }
-
-    void loadStatistics()
-
-    return () => {
-      mounted = false
-    }
-  }, [])
-
-  useEffect(() => {
-    let mounted = true
-
-    const loadProfileStatistics = async () => {
-      setProfileStatisticsLoading(true)
-      setProfileStatisticsError(null)
-
-      try {
-        const statistics = await getProfileStatistics()
-        if (me && statistics.researcherId !== me.profile.researcherId) {
-          throw new Error('Profile statistics do not match the authenticated researcher.')
-        }
-        if (mounted) setProfileStatistics(statistics)
-      } catch (error) {
-        if (mounted) {
-          setProfileStatistics(null)
-          setProfileStatisticsError(error instanceof Error ? error.message : 'Profile statistics are currently unavailable.')
-        }
-      } finally {
-        if (mounted) setProfileStatisticsLoading(false)
-      }
-    }
-
-    void loadProfileStatistics()
-
-    return () => {
-      mounted = false
-    }
-  }, [me, profileStatisticsRefreshKey])
-
-  const handleConnectProvider = async (providerName: string) => {
-    if (providerName === 'discord') {
-      clearAuthError()
-      setLinkError(null)
-      sessionStorage.removeItem(TELEGRAM_LOGIN_TICKET_STORAGE_KEY)
-      try {
-        const result = await generateLinkCode('discord')
-        window.location.href = result.loginUrl ?? getDiscordLoginUrl()
-      } catch {
-        window.location.href = getDiscordLoginUrl()
-      }
-      return
-    }
-
-    setActionProvider(providerName)
-    clearAuthError()
-    setLinkError(null)
-
-    try {
-      const result = await generateLinkCode(providerName)
-      setLinkingProvider(result.provider)
-      setLinkCode(result.code ?? null)
-      setLinkCodeTtlSeconds(resolveLinkCodeTtl(result))
-      setIsLinkExpired(false)
-      setIsLinkModalOpen(true)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to start provider linking right now.'
-      setLinkError(message)
-    } finally {
-      setActionProvider(null)
-    }
-  }
-
-  useEffect(() => {
-    if (!isLinkModalOpen || !linkingProvider) return
-
-    let active = true
-    const intervalId = window.setInterval(async () => {
-      try {
-        const latestProviders = await refreshProvidersOnly()
-        const linkedProvider = latestProviders.find((provider) => provider.provider === linkingProvider)
-
-        if (active && linkedProvider?.connected) {
-          setIsLinkModalOpen(false)
-          setSuccessProvider(linkingProvider)
-          setIsLinkExpired(false)
-          setLinkCode(null)
-        }
-      } catch {
-        // Keep polling; refresh button and next poll can recover transient API issues.
-      }
-    }, 3000)
-
-    return () => {
-      active = false
-      window.clearInterval(intervalId)
-    }
-  }, [isLinkModalOpen, linkingProvider, refreshProvidersOnly])
-
-  const effectiveProfile: ResearcherProfile | null = me && profileStatistics
-    ? { ...me.profile, ...profileStatistics }
-    : null
-  const effectiveDisplayName = me?.profile.displayName ?? null
-  const effectiveResearcherId = profileStatistics?.researcherId ?? me?.profile.researcherId ?? null
-
-  const statisticsFilters = useMemo(() => ['global', ...SUPPORTED_PROVIDER_FILTERS] as StatisticsFilter[], [])
-
-  const translationFilters = useMemo(() => ['all', ...SUPPORTED_PROVIDER_FILTERS] as TranslationFilter[], [])
-
-  useEffect(() => {
-    if (!statisticsFilters.includes(activeStatisticsFilter)) {
-      setActiveStatisticsFilter('global')
-    }
-  }, [activeStatisticsFilter, statisticsFilters])
-
-  useEffect(() => {
-    if (!translationFilters.includes(activeTranslationFilter)) {
-      setActiveTranslationFilter('all')
-    }
-  }, [activeTranslationFilter, translationFilters])
-
-  const selectedStatsSummary = useMemo(() => {
-    if (!statisticsSnapshot) return null
-    return selectStatisticsSummary(statisticsSnapshot, activeStatisticsFilter)
-  }, [activeStatisticsFilter, statisticsSnapshot])
-
-  const filteredRecentTranslations = useMemo(() => {
-    if (!me) return []
-    if (activeTranslationFilter === 'all') return me.recentTranslations
-
-    return me.recentTranslations.filter((entry) => getTranslationProvider(entry) === activeTranslationFilter)
-  }, [activeTranslationFilter, me])
-
-  return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-5">
-      {effectiveProfile && <ProfileCard profile={effectiveProfile} />}
-
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
-        <div>
-          {profileStatisticsLoading && <span className="text-slate-600 dark:text-slate-300">Loading database-backed profile statistics...</span>}
-          {!profileStatisticsLoading && profileStatistics && (
-            <span className="text-slate-500 dark:text-slate-400">Statistics updated {formatIsoDate(profileStatistics.updatedAt)}</span>
-          )}
-          {!profileStatisticsLoading && profileStatisticsError && (
-            <span className="text-amber-700 dark:text-amber-300">{profileStatisticsError} No fallback values are being shown.</span>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={() => setProfileStatisticsRefreshKey((value) => value + 1)}
-          disabled={profileStatisticsLoading}
-          className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-        >
-          <ArrowPathIcon className={`h-4 w-4 ${profileStatisticsLoading ? 'animate-spin' : ''}`} />
-          Refresh statistics
-        </button>
-      </div>
-
-      {me && (
-        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100">Platform statistics</h4>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                These totals cover the whole SIT platform. Global activity is Discord plus Telegram.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {statisticsFilters.map((filterValue) => (
-                <button
-                  key={filterValue}
-                  type="button"
-                  onClick={() => setActiveStatisticsFilter(filterValue)}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                    activeStatisticsFilter === filterValue
-                      ? 'border-blue-600 bg-blue-600 text-white'
-                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  {statisticsFilterLabel(filterValue)}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {me && (
-        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100">Translation filter</h4>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Filter recent translations by provider or show all records.</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {translationFilters.map((filterValue) => (
-                <button
-                  key={filterValue}
-                  type="button"
-                  onClick={() => setActiveTranslationFilter(filterValue)}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                    activeTranslationFilter === filterValue
-                      ? 'border-blue-600 bg-blue-600 text-white'
-                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  {translationFilterLabel(filterValue)}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {statisticsLoading && (
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
-          Loading statistics snapshot...
-        </div>
-      )}
-
-      {statisticsError && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
-          {statisticsError}
-        </div>
-      )}
-
-      {isLoading && (
-        <div className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm text-slate-600 dark:border-slate-800 dark:bg-slate-900 dark:text-slate-300">
-          Loading live profile data...
-        </div>
-      )}
-
-      {authError && (
-        <div className="rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
-          {authError}
-        </div>
-      )}
-
-      {selectedStatsSummary && (
-        <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-          <StatCard label="Total Users" value={selectedStatsSummary.registeredUsers} icon={UserCircleIcon} accent="blue" />
-          <StatCard label="Total Messages" value={selectedStatsSummary.totalMessages} icon={ChatBubbleLeftRightIcon} accent="violet" />
-          <StatCard label="Total Encodings" value={selectedStatsSummary.totalEncodings} icon={CodeBracketIcon} accent="emerald" />
-          <StatCard label="Total Decodings" value={selectedStatsSummary.totalDecodings} icon={ArrowsRightLeftIcon} accent="amber" />
-          <StatCard label="Total SYTE" value={selectedStatsSummary.totalSyte} icon={ChartBarIcon} accent="blue" />
-          <StatCard label="Most Active User" value={selectedStatsSummary.mostActiveUser || 'N/A'} icon={StarIcon} accent="violet" />
-        </div>
-      )}
-
-      {me?.profile && (
-        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Preferences</h4>
-          <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
-            <StatCard label="Version" value={me.profile.preferredVersion} icon={CodeBracketIcon} accent="blue" />
-            <StatCard label="Language" value={me.profile.preferredLanguage.toUpperCase()} icon={BoltIcon} accent="violet" />
+          className="inline-flex items-center justify-center gap-2 rounded-xl border border-sky-300 bg-sky-50 px-5 py-3 text-sm font-s…5736 tokens truncated…n={BoltIcon} accent="violet" />
             <StatCard label="Auto Translation" value={me.profile.autoTranslation ? 'Enabled' : 'Disabled'} icon={CheckCircleIcon} accent="emerald" />
             <StatCard label="Profile Updated" value={formatIsoDate(me.profile.updatedAt)} icon={ArrowPathIcon} accent="amber" />
           </div>
