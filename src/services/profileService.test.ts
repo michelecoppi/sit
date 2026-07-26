@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest'
-import { parseProfileStatistics } from './profileService'
+import { parseProfileStatistics, parseStatisticsSnapshot } from './profileService'
 
 const exactPayload = {
   researcherId: 'SIT-0027',
@@ -24,5 +24,59 @@ describe('parseProfileStatistics', () => {
     ['invalid timestamp', { ...exactPayload, updatedAt: 'not-a-date' }],
   ])('rejects %s instead of substituting a display value', (_label, payload) => {
     expect(() => parseProfileStatistics(payload)).toThrow('Invalid profile statistics payload.')
+  })
+})
+
+describe('parseStatisticsSnapshot', () => {
+  it('derives global activity from provider totals when the backend reports stale data', () => {
+    const result = parseStatisticsSnapshot({
+      providers: ['discord', 'telegram'],
+      snapshot: {
+        global: {
+          registeredUsers: 2,
+          totalMessages: 26,
+          totalEncodings: 14,
+          totalDecodings: 20,
+          totalSyte: 9904,
+          mostActiveUser: 'Gabbiano',
+        },
+        byProvider: {
+          discord: {
+            registeredUsers: 2,
+            totalMessages: 48,
+            totalEncodings: 18,
+            totalDecodings: 32,
+            totalSyte: 12560,
+            mostActiveUser: 'Gabbiano',
+          },
+          telegram: {
+            registeredUsers: 1,
+            totalMessages: 6,
+            totalEncodings: 0,
+            totalDecodings: 2,
+            totalSyte: 16,
+            mostActiveUser: 'Gabbiano',
+          },
+        },
+      },
+    })
+
+    expect(result.snapshot.global).toEqual({
+      registeredUsers: 2,
+      totalMessages: 54,
+      totalEncodings: 18,
+      totalDecodings: 34,
+      totalSyte: 12576,
+      mostActiveUser: 'Gabbiano',
+    })
+  })
+
+  it('rejects unsafe or incomplete provider counters', () => {
+    expect(() => parseStatisticsSnapshot({
+      snapshot: {
+        global: {},
+        byProvider: {},
+      },
+    })).toThrow('Invalid statistics snapshot payload.')
   })
 })

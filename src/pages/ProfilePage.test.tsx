@@ -133,10 +133,10 @@ describe('ProfilePage', () => {
       snapshot: {
         global: {
           registeredUsers: 12,
-          totalMessages: 999,
-          totalEncodings: 999,
-          totalDecodings: 999,
-          totalSyte: 999,
+          totalMessages: 340,
+          totalEncodings: 120,
+          totalDecodings: 210,
+          totalSyte: 5820,
           mostActiveUser: 'Alice',
         },
         byProvider: {
@@ -173,7 +173,7 @@ describe('ProfilePage', () => {
     expect(screen.getAllByRole('button', { name: 'Telegram' }).length).toBeGreaterThan(0)
 
     expect(screen.getByText('12')).toBeInTheDocument()
-    expect(screen.getAllByText('999').length).toBeGreaterThan(0)
+    expect(screen.getByText('340')).toBeInTheDocument()
     expect(screen.getAllByText('777').length).toBeGreaterThan(0)
     expect(screen.getByText('2,222')).toBeInTheDocument()
 
@@ -202,10 +202,10 @@ describe('ProfilePage', () => {
       snapshot: {
         global: {
           registeredUsers: 12,
-          totalMessages: 999,
-          totalEncodings: 999,
-          totalDecodings: 999,
-          totalSyte: 999,
+          totalMessages: 340,
+          totalEncodings: 120,
+          totalDecodings: 210,
+          totalSyte: 5820,
           mostActiveUser: 'Alice',
         },
         byProvider: {
