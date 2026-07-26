@@ -93,11 +93,11 @@ function toStatisticsSummary(payload: unknown): StatisticsSummary | null {
 
   const data = payload as Record<string, unknown>
 
-  const registeredUsers = typeof data.registeredUsers === 'number' ? data.registeredUsers : null
-  const totalMessages = typeof data.totalMessages === 'number' ? data.totalMessages : null
-  const totalEncodings = typeof data.totalEncodings === 'number' ? data.totalEncodings : null
-  const totalDecodings = typeof data.totalDecodings === 'number' ? data.totalDecodings : null
-  const totalSyte = typeof data.totalSyte === 'number' ? data.totalSyte : null
+  const registeredUsers = isNonNegativeSafeInteger(data.registeredUsers) ? data.registeredUsers : null
+  const totalMessages = isNonNegativeSafeInteger(data.totalMessages) ? data.totalMessages : null
+  const totalEncodings = isNonNegativeSafeInteger(data.totalEncodings) ? data.totalEncodings : null
+  const totalDecodings = isNonNegativeSafeInteger(data.totalDecodings) ? data.totalDecodings : null
+  const totalSyte = isNonNegativeSafeInteger(data.totalSyte) ? data.totalSyte : null
   const mostActiveUser = typeof data.mostActiveUser === 'string' ? data.mostActiveUser : null
 
   if (
@@ -118,6 +118,70 @@ function toStatisticsSummary(payload: unknown): StatisticsSummary | null {
     totalDecodings,
     totalSyte,
     mostActiveUser,
+  }
+}
+
+function deriveGlobalStatistics(
+  reportedGlobal: StatisticsSummary,
+  byProvider: Partial<Record<StatisticsProvider, StatisticsSummary>>,
+): StatisticsSummary {
+  const discord = byProvider.discord
+  const telegram = byProvider.telegram
+  if (!discord || !telegram) return reportedGlobal
+
+  const sum = (discordValue: number, telegramValue: number) => {
+    const total = discordValue + telegramValue
+    if (!Number.isSafeInteger(total)) {
+      throw new Error('Invalid statistics snapshot payload.')
+    }
+    return total
+  }
+
+  return {
+    ...reportedGlobal,
+    totalMessages: sum(discord.totalMessages, telegram.totalMessages),
+    totalEncodings: sum(discord.totalEncodings, telegram.totalEncodings),
+    totalDecodings: sum(discord.totalDecodings, telegram.totalDecodings),
+    totalSyte: sum(discord.totalSyte, telegram.totalSyte),
+  }
+}
+
+export function parseStatisticsSnapshot(payload: unknown): StatisticsSnapshotResponse {
+  if (!payload || typeof payload !== 'object') {
+    throw new Error('Invalid statistics snapshot payload.')
+  }
+
+  const data = payload as Record<string, unknown>
+  const snapshot = data.snapshot
+  if (!snapshot || typeof snapshot !== 'object') {
+    throw new Error('Invalid statistics snapshot payload.')
+  }
+
+  const snapshotData = snapshot as Record<string, unknown>
+  const reportedGlobal = toStatisticsSummary(snapshotData.global)
+  const rawByProvider = snapshotData.byProvider
+  if (!reportedGlobal || !rawByProvider || typeof rawByProvider !== 'object') {
+    throw new Error('Invalid statistics snapshot payload.')
+  }
+
+  const byProviderData = rawByProvider as Record<string, unknown>
+  const discord = toStatisticsSummary(byProviderData.discord)
+  const telegram = toStatisticsSummary(byProviderData.telegram)
+  if (!discord || !telegram) {
+    throw new Error('Invalid statistics snapshot payload.')
+  }
+
+  const byProvider: Record<StatisticsProvider, StatisticsSummary> = {
+    discord,
+    telegram,
+  }
+
+  return {
+    providers: ['discord', 'telegram'],
+    snapshot: {
+      global: deriveGlobalStatistics(reportedGlobal, byProvider),
+      byProvider,
+    },
   }
 }
 
@@ -153,7 +217,7 @@ export async function getStatisticsSnapshot(): Promise<StatisticsSnapshotRespons
 
   const payload = await parseResponsePayload(response)
   if (response.ok) {
-    return payload as StatisticsSnapshotResponse
+    return parseStatisticsSnapshot(payload)
   }
 
   try {
@@ -172,8 +236,8 @@ export async function getStatisticsSnapshot(): Promise<StatisticsSnapshotRespons
     return {
       providers,
       snapshot: {
-        global,
-        byProvider: byProvider as Record<StatisticsProvider, StatisticsSummary>,
+        global: deriveGlobalStatistics(global, byProvider),
+        byProvider,
       },
     }
   } catch {

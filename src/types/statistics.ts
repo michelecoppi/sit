@@ -17,6 +17,6 @@ export interface StatisticsSnapshotResponse {
   providers: StatisticsProvider[]
   snapshot: {
     global: StatisticsSummary
-    byProvider: Record<StatisticsProvider, StatisticsSummary>
+    byProvider: Partial<Record<StatisticsProvider, StatisticsSummary>>
   }
 }
