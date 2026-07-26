@@ -32,12 +32,12 @@ type Theme = 'light' | 'dark'
 
 const navItems = [
   { href: '/', label: 'Home', shortLabel: 'Home', icon: HomeIcon },
-  { href: '/docs', label: 'Documentation', shortLabel: 'Docs', icon: DocumentTextIcon },
+  { href: '/docs', label: 'Documentation', desktopLabel: 'Docs', shortLabel: 'Docs', icon: DocumentTextIcon },
   { href: '/playground', label: 'Playground', shortLabel: 'Playground', icon: BeakerIcon },
   { href: '/missions', label: 'Missions', shortLabel: 'Missions', icon: TrophyIcon },
-  { href: '/teams', label: 'Research Teams', shortLabel: 'Teams', icon: UserGroupIcon },
+  { href: '/teams', label: 'Research Teams', desktopLabel: 'Teams', shortLabel: 'Teams', icon: UserGroupIcon },
   { href: '/roadmap', label: 'Roadmap', shortLabel: 'Roadmap', icon: MapIcon },
-  { href: '/rfc', label: 'RFC Registry', shortLabel: 'RFC', icon: AcademicCapIcon },
+  { href: '/rfc', label: 'RFC Registry', desktopLabel: 'RFCs', shortLabel: 'RFC', icon: AcademicCapIcon },
   { href: '/about', label: 'About SIT', shortLabel: 'About', icon: InformationCircleIcon },
 ]
 
@@ -162,7 +162,7 @@ export default function Layout({ children, title }: LayoutProps) {
                   className={({ isActive }) => `nav-link${isActive ? ' nav-link-active' : ''}`}
                 >
                   <Icon aria-hidden="true" />
-                  <span className="nav-label-full">{item.label}</span>
+                  <span className="nav-label-full">{item.desktopLabel ?? item.label}</span>
                 </NavLink>
               )
             })}

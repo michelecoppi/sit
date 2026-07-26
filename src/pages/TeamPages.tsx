@@ -1,5 +1,15 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
+import {
+  ArrowRightIcon,
+  BoltIcon,
+  GlobeAltIcon,
+  LockClosedIcon,
+  ShieldCheckIcon,
+  SparklesIcon,
+  TrophyIcon,
+  UserGroupIcon,
+} from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext'
 import {
   archiveTeam,
@@ -24,12 +34,19 @@ function ErrorNotice({ message }: { message: string }) {
 }
 
 function TeamCard({ team, rank }: { team: TeamSummary, rank?: number }) {
+  const initials = team.name.split(/\s+/).slice(0, 2).map((word) => word[0]).join('').toUpperCase()
   return (
-    <article className="team-card">
-      {rank ? <span className="team-rank" aria-label={`Rank ${rank}`}>{rank}</span> : null}
-      <div>
-        <p className="team-eyebrow">{team.visibility} research team</p>
-        <h2><Link to={`/teams/${team.slug}`}>{team.name}</Link></h2>
+    <article className={`team-card${rank ? ' team-card-ranked' : ''}`}>
+      <div className="team-card-topline">
+        <span className="team-avatar" aria-hidden="true">{initials}</span>
+        {rank ? <span className="team-rank" aria-label={`Rank ${rank}`}><TrophyIcon aria-hidden="true" /> #{rank}</span> : null}
+        <span className={`team-visibility team-visibility-${team.visibility}`}>
+          {team.visibility === 'public' ? <GlobeAltIcon aria-hidden="true" /> : <LockClosedIcon aria-hidden="true" />}
+          {team.visibility}
+        </span>
+      </div>
+      <div className="team-card-copy">
+        <h3><Link to={`/teams/${team.slug}`}>{team.name}</Link></h3>
         <p>{team.description || 'No public research abstract has been filed.'}</p>
       </div>
       <dl className="team-metrics">
@@ -37,8 +54,20 @@ function TeamCard({ team, rank }: { team: TeamSummary, rank?: number }) {
         <div><dt>XP</dt><dd>{team.totalXp.toLocaleString()}</dd></div>
         <div><dt>Contributions</dt><dd>{team.totalContributions.toLocaleString()}</dd></div>
       </dl>
+      <Link className="team-card-link" to={`/teams/${team.slug}`}>
+        View team <ArrowRightIcon aria-hidden="true" />
+      </Link>
       {team.archivedAt ? <span className="team-state">Archived</span> : null}
     </article>
+  )
+}
+
+function SectionHeading({ eyebrow, title, copy }: { eyebrow: string, title: string, copy: string }) {
+  return (
+    <div className="team-section-heading">
+      <div><p className="team-eyebrow">{eyebrow}</p><h2>{title}</h2></div>
+      <p>{copy}</p>
+    </div>
   )
 }
 
@@ -109,18 +138,43 @@ export function TeamsPage() {
 
   if (loading) return <div className="route-loader" role="status">Loading research team registry…</div>
   return (
-    <section className="team-page">
-      <header className="team-hero">
-        <p className="team-eyebrow">Collaborative research registry</p>
-        <h1>Research teams</h1>
-        <p>Coordinate canonical SIT identities, shared progress and public rankings through SIT Core.</p>
-        {status === 'authenticated'
-          ? <CreateTeamForm onCreated={(team) => navigate(`/teams/${team.slug}/workspace`)} />
-          : <Link className="button-primary" to="/profile">Sign in to create a team</Link>}
+    <section className="team-page team-directory-page">
+      <header className="team-hero team-directory-hero">
+        <div className="team-hero-copy">
+          <div className="team-hero-badge"><SparklesIcon aria-hidden="true" /> Collaborative research registry</div>
+          <h1>Research,<br /><span>together.</span></h1>
+          <p>Build a shared SIT identity, combine verified contributions and move up the global research rankings.</p>
+          <div className="team-hero-actions">
+            {status === 'authenticated'
+              ? <CreateTeamForm onCreated={(team) => navigate(`/teams/${team.slug}/workspace`)} />
+              : <Link className="button-primary" to="/profile">Create your team <ArrowRightIcon aria-hidden="true" /></Link>}
+            <a className="team-text-link" href="#team-directory">Explore teams <ArrowRightIcon aria-hidden="true" /></a>
+          </div>
+          <div className="team-hero-proof" aria-label="Team platform benefits">
+            <span><ShieldCheckIcon aria-hidden="true" /> Core-authorized</span>
+            <span><BoltIcon aria-hidden="true" /> Live totals</span>
+            <span><GlobeAltIcon aria-hidden="true" /> Public rankings</span>
+          </div>
+        </div>
+        <div className="team-protocol-card" aria-label="Research team protocol summary">
+          <div className="team-protocol-chrome"><span><i aria-hidden="true" /> TEAM PROTOCOL</span><small>CORE: ONLINE</small></div>
+          <div className="team-protocol-mark"><UserGroupIcon aria-hidden="true" /><span>67</span></div>
+          <div className="team-protocol-copy"><p>Shared workspace</p><strong>One identity.<br />Every contribution.</strong></div>
+          <div className="team-protocol-grid">
+            <span><small>IDENTITY</small><strong>Canonical</strong></span>
+            <span><small>PROGRESS</small><strong>Verified</strong></span>
+            <span><small>RANKING</small><strong>Global</strong></span>
+          </div>
+        </div>
       </header>
       {error ? <ErrorNotice message={error} /> : null}
-      {leaders.length ? <section aria-labelledby="leaderboard-title"><h2 id="leaderboard-title">Team leaderboard</h2><div className="team-grid">{leaders.map((team, index) => <TeamCard key={team.id} team={team} rank={index + 1} />)}</div></section> : null}
-      <section aria-labelledby="directory-title"><h2 id="directory-title">Public directory</h2><div className="team-grid">{teams.map((team) => <TeamCard key={team.id} team={team} />)}</div></section>
+      {leaders.length ? <section className="team-section team-leaderboard-section" aria-labelledby="leaderboard-title"><SectionHeading eyebrow="Global standings" title="Leading research teams" copy="Ranked by verified XP and contributions recorded by SIT Core." /><div className="team-grid team-leader-grid">{leaders.map((team, index) => <TeamCard key={team.id} team={team} rank={index + 1} />)}</div></section> : null}
+      <section id="team-directory" className="team-section" aria-labelledby="directory-title">
+        <SectionHeading eyebrow="Open registry" title="Find your collaborators" copy="Explore public teams, their focus and the researchers moving the standard forward." />
+        {teams.length
+          ? <div className="team-grid team-directory-grid">{teams.map((team) => <TeamCard key={team.id} team={team} />)}</div>
+          : <div className="team-empty-state"><span><UserGroupIcon aria-hidden="true" /></span><div><h3>The registry is ready</h3><p>Public teams will appear here as soon as SIT Core publishes them.</p></div></div>}
+      </section>
       {nextCursor ? <button className="button-secondary team-load-more" onClick={() => void load(nextCursor)}>Load more teams</button> : null}
     </section>
   )
