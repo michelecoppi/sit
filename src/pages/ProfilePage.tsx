@@ -696,6 +696,8 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
           setSuccessProvider(linkingProvider)
           setIsLinkExpired(false)
           setLinkCode(null)
+        } else if (active && linkedProvider?.status === 'EXPIRED_LINK_CODE') {
+          setIsLinkExpired(true)
         }
       } catch {
         // Keep polling; refresh button and next poll can recover transient API issues.
