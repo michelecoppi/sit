@@ -219,6 +219,7 @@ function LoginPrompt() {
   const [remainingSeconds, setRemainingSeconds] = useState(0)
   const pollTimerRef = useRef<number | null>(null)
   const countdownTimerRef = useRef<number | null>(null)
+  const pollInFlightRef = useRef(false)
 
   const stopPolling = (clearStoredTicket = false) => {
     if (pollTimerRef.current) {
@@ -265,11 +266,14 @@ function LoginPrompt() {
     }
 
     const pollOnce = async () => {
+      if (pollInFlightRef.current) return
+      pollInFlightRef.current = true
       const elapsed = Date.now() - startedAt
       if (elapsed > timeoutMs) {
         stopPolling(true)
         setTelegramError('Verification timeout reached. Generate a new Telegram ticket.')
         setTelegramStatus('cancelled')
+        pollInFlightRef.current = false
         return
       }
 
@@ -306,6 +310,8 @@ function LoginPrompt() {
           return
         }
         setTelegramError('Temporary error while checking the ticket. Retrying...')
+      } finally {
+        pollInFlightRef.current = false
       }
     }
 
@@ -352,7 +358,12 @@ function LoginPrompt() {
       const snapshot = JSON.parse(rawTicket) as TelegramLoginTicketSnapshot
       const expiresAt = new Date(snapshot.expiresAt).getTime()
 
-      if (Number.isNaN(expiresAt) || expiresAt <= Date.now()) {
+      if (
+        typeof snapshot.ticket !== 'string' || !snapshot.ticket.trim()
+        || typeof snapshot.loginUrl !== 'string' || !snapshot.loginUrl.trim()
+        || typeof snapshot.startedAt !== 'number'
+        || Number.isNaN(expiresAt) || expiresAt <= Date.now()
+      ) {
         sessionStorage.removeItem(TELEGRAM_LOGIN_TICKET_STORAGE_KEY)
         return
       }
