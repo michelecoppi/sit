@@ -1,7 +1,7 @@
 # Contributing to the SIT Standard
 
 The International SIT Consortium accepts external contributions. Read
-[LORE.md](LORE.md) before writing any copy â€” new material must fit the
+[LORE.md](LORE.md) before writing any copy — new material must fit the
 existing canon, not contradict it.
 
 ## Setup
@@ -14,7 +14,7 @@ npm run dev      # vite dev server
 ## Before opening a PR
 
 ```bash
-npm run build    # tsc -b && vite build â€” must pass
+npm run build    # tsc -b && vite build — must pass
 npm test         # vitest run
 npm run lint     # oxlint
 ```
@@ -35,13 +35,13 @@ implementation, documentation updates and verification performed.
 
 ## Conventions
 
-- Single quotes and 2-space indent â€” match existing files.
+- Single quotes and 2-space indent — match existing files.
 - Avoid statement-ending semicolons in app code; keep surrounding file style
   when editing TypeScript types/interfaces.
 - Encoding logic (the `6`/`7` mapping, grouping, validation) lives in
   `src/utils/`, framework-free, and needs a test. Don't put standard logic in
   components.
-- New route â†’ lazy import in `src/App.tsx`.
+- New route → lazy import in `src/App.tsx`.
 - Don't add a dependency for what a few lines of code can do.
 
 ## API Integration Notes
@@ -63,7 +63,7 @@ implementation, documentation updates and verification performed.
 
 This is a parody of a real standards body. Copy should read as a legitimate
 spec first and reveal the joke only on closer reading. Keep RFCs, lore and
-UI copy deadpan â€” no winking at the reader, no "lol" energy. When in doubt,
+UI copy deadpan — no winking at the reader, no "lol" energy. When in doubt,
 prefer the driest version of the joke.
 
 The word "byte" should almost never appear. Use "SYTE" instead.
@@ -71,12 +71,12 @@ The word "byte" should almost never appear. Use "SYTE" instead.
 ## Reporting bugs / proposing features
 
 Use the issue templates. Bug reports and Standard proposals (new RFCs,
-alphabet changes, grammar changes) are triaged differently â€” say which one
+alphabet changes, grammar changes) are triaged differently — say which one
 you're filing.
 
 ## Branching
 
 Fork the repo, branch off `master`, open a PR against `master`. Never push
-directly to `master` â€” `deploy.yml` ships to GitHub Pages on every push to
+directly to `master` — `deploy.yml` ships to GitHub Pages on every push to
 it.
 
