@@ -82,7 +82,7 @@ export default function DocumentationPage() {
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search the documentationâ€¦"
+            placeholder="Search the documentation…"
           />
           <span>{filteredSections.length} sections</span>
         </label>
@@ -129,7 +129,7 @@ export default function DocumentationPage() {
             <div className="docs-empty">
               <MagnifyingGlassIcon aria-hidden="true" />
               <h2>No matching chapters</h2>
-              <p>Try â€œencodingâ€, â€œcomplianceâ€ or â€œnativeâ€.</p>
+              <p>Try “encoding”, “compliance” or “native”.</p>
               <button type="button" onClick={() => setQuery('')}>Clear search</button>
             </div>
           )}
@@ -157,7 +157,7 @@ export default function DocumentationPage() {
           <div className="docs-note">
             <strong>Need the formal record?</strong>
             <p>RFC-0001 is the normative reference for legacy-compatible encoding.</p>
-            <Link to="/rfc">Open RFC registry â†’</Link>
+            <Link to="/rfc">Open RFC registry →</Link>
           </div>
         </aside>
       </div>
