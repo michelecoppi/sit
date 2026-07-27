@@ -12,15 +12,19 @@ import {
 
 const sections = [
   { title: 'Introduction', body: 'The SIT Encoding Standard defines a symbolic representation of information using a restricted alphabet of 6 and 7, preserving the precision of binary while introducing a more distinctive symbolic layer.', tag: 'Overview' },
+  { title: 'The SIT Ecosystem', body: 'The website is the public standard and interactive reference. SIT Core provides shared services, REST APIs, OAuth and persistence. SIT Discord exposes the same capabilities through Discord and Telegram gateways.', tag: 'Overview' },
   { title: 'Motivation', body: 'SIT provides a compact, deterministic and inspectable representation that can be understood without opaque encoders or remote infrastructure.', tag: 'Overview' },
   { title: 'Definitions', body: 'A Symbolic Information Token is any sequence of 8 symbols, each drawn from the alphabet {6,7}. These tokens are the fundamental units of the legacy-compatible standard.', tag: 'Core' },
-  { title: 'Encoding', body: 'Each byte is converted to an 8-bit binary string, where 0 becomes 6 and 1 becomes 7. The resulting token is emitted as a sequence of 8 characters.', tag: 'Core' },
-  { title: 'Examples', body: 'The string CIAO becomes a sequence of SIT tokens that can be copied into a browser, downloaded as a .sit file, or safely passed through a text pipeline.', tag: 'Reference' },
-  { title: 'Compliance', body: 'A conforming input contains only 6, 7, spaces, and newlines. Any other character triggers a precise compliance error with the invalid symbol identified.', tag: 'Reference' },
-  { title: 'Performance', body: 'The reference implementation runs locally in the browser, uses route-level code splitting and performs conversion without network requests.', tag: 'Operations' },
+  { title: 'Encoding', body: 'Each UTF-8 unit is converted to an 8-bit binary string, where 0 becomes 6 and 1 becomes 7. The resulting token is emitted as a sequence of 8 characters.', tag: 'Core' },
+  { title: 'Decoding and Validation', body: 'SIT payloads are split into 8-symbol blocks, validated against the 6/7 alphabet, converted back to binary and decoded as UTF-8. Spaces and newlines are formatting separators.', tag: 'Core' },
+  { title: 'Examples', body: 'The character C becomes 01000011 in binary and 67666677 in SIT. The same deterministic transformation is available in the browser playground and in SIT Core APIs.', tag: 'Reference' },
+  { title: 'Compliance', body: 'A conforming input contains only 6, 7, spaces, and newlines, with a digit count divisible by 8. Invalid symbols and incomplete blocks are reported as compliance errors.', tag: 'Reference' },
+  { title: 'Implementation', body: 'The frontend keeps encoding logic in framework-free helpers under src/utils, route pages under src/pages, reusable UI under src/components and native registries under src/data.', tag: 'Operations' },
+  { title: 'Development Workflow', body: 'Use a feature branch, run build, tests and lint, update relevant documentation, and open a pull request against master. Issues describe scope; the PR records implementation and verification.', tag: 'Operations' },
+  { title: 'Documentation Maintenance', body: 'Documentation is part of the deliverable. Every change that affects behavior, routes, APIs, configuration, architecture or workflow must update the relevant README, docs page or architecture note in the same pull request.', tag: 'Operations' },
   { title: 'Future Work', body: 'Native SIT extends the system with canonical concepts, grammar, punctuation and a language-independent semantic layer.', tag: 'Roadmap' },
   { title: 'References', body: 'The RFC registry records the normative SIT 1.0 specification and all proposals that define the native SIT 2.0 ecosystem.', tag: 'Reference' },
-  { title: 'Peer Review', body: 'The public repository is the review surface for implementation details, open proposals and compatibility decisions.', tag: 'Operations' },
+  { title: 'Peer Review', body: 'Issues and pull requests are the review surface for implementation details, open proposals and compatibility decisions. Keep changes focused and link the relevant issue.', tag: 'Operations' },
 ]
 
 const slugify = (value: string) => value.toLowerCase().replace(/\s+/g, '-')
@@ -65,7 +69,7 @@ export default function DocumentationPage() {
         </div>
         <div className="docs-meta">
           <div><strong>2.0</strong><span>Current standard</span></div>
-          <div><strong>10</strong><span>Core chapters</span></div>
+          <div><strong>{sections.length}</strong><span>Core chapters</span></div>
           <div><strong>2026</strong><span>Last revision</span></div>
         </div>
       </motion.section>
@@ -78,7 +82,7 @@ export default function DocumentationPage() {
             type="search"
             value={query}
             onChange={(event) => setQuery(event.target.value)}
-            placeholder="Search the documentation…"
+            placeholder="Search the documentationâ€¦"
           />
           <span>{filteredSections.length} sections</span>
         </label>
@@ -125,7 +129,7 @@ export default function DocumentationPage() {
             <div className="docs-empty">
               <MagnifyingGlassIcon aria-hidden="true" />
               <h2>No matching chapters</h2>
-              <p>Try “encoding”, “compliance” or “native”.</p>
+              <p>Try â€œencodingâ€, â€œcomplianceâ€ or â€œnativeâ€.</p>
               <button type="button" onClick={() => setQuery('')}>Clear search</button>
             </div>
           )}
@@ -153,10 +157,11 @@ export default function DocumentationPage() {
           <div className="docs-note">
             <strong>Need the formal record?</strong>
             <p>RFC-0001 is the normative reference for legacy-compatible encoding.</p>
-            <a href="#/rfc">Open RFC registry →</a>
+            <Link to="/rfc">Open RFC registry â†’</Link>
           </div>
         </aside>
       </div>
     </div>
   )
 }
+
