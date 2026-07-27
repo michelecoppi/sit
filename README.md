@@ -13,13 +13,13 @@ A byte such as `01000011` becomes:
 
 ```text
 01000011
-↓
+â†“
 67666677
 ```
 
 ## Editions
 
-- **SIT 1.0 (Legacy)**: text → UTF-8 bytes → binary → SIT symbols. Supported in the playground hub.
+- **SIT 1.0 (Legacy)**: text â†’ UTF-8 bytes â†’ binary â†’ SIT symbols. Supported in the playground hub.
 - **SIT 2.0 (Native)**: semantic tokens and concept-first encoding with an official SIT alphabet, grammar, dictionary and explorer.
 
 ## Features
@@ -43,8 +43,8 @@ The website includes:
 
 Text is encoded as UTF-8 bytes, then each byte is converted to an 8-bit binary string and mapped into SIT symbols:
 
-- `0` → `6`
-- `1` → `7`
+- `0` â†’ `6`
+- `1` â†’ `7`
 
 SIT bytes are grouped into rows of four for readability.
 
@@ -77,12 +77,12 @@ Any other character is considered non-compliant.
 
 ## Project structure
 
-- `src/components` – layout, navigation and shared UI components
-- `src/pages` – home, documentation, playground, roadmap, about, RFC pages and SIT 2.0 native pages
-- `src/utils` – text encoding, decoding, binary conversion, batch packaging and validation helpers
-- `src/data` – native token registry and semantic mappings
-- `src/App.tsx` – navigation and route definitions
-- `src/index.css` – Tailwind theme, native styling and responsive utilities
+- `src/components` â€“ layout, navigation and shared UI components
+- `src/pages` â€“ home, documentation, playground, roadmap, about, RFC pages and SIT 2.0 native pages
+- `src/utils` â€“ text encoding, decoding, binary conversion, batch packaging and validation helpers
+- `src/data` â€“ native token registry and semantic mappings
+- `src/App.tsx` â€“ navigation and route definitions
+- `src/index.css` â€“ Tailwind theme, native styling and responsive utilities
 
 ## Tech stack
 
@@ -114,6 +114,19 @@ Build for production:
 npm run build
 ```
 
+## Documentation and contribution workflow
+
+The interactive reference is available at `/docs` and covers the standard,
+implementation, ecosystem and contributor workflow. Normative material lives
+in `SPECIFICATION.md`, `SPECIFICATION_2.md` and the RFC registry.
+
+Documentation is maintained with the code: changes to behavior, routes, APIs,
+configuration, architecture or workflow must update the relevant documentation
+in the same pull request. See [CONTRIBUTING.md](CONTRIBUTING.md) and
+[AGENTS.md](AGENTS.md) for the checklist used by human and coding-agent
+contributors.
+
 ## Notes
 
 This project is intentionally playful, but it is implemented as a real web app with working encoding tools and a complete front-end experience.
+
