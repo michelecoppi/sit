@@ -35,10 +35,16 @@ function mapProviderFromRichValue(provider: string, value: AccountProviderMapVal
 }
 
 function getLinkCodeExpiry(payload: Record<string, unknown>) {
-  const expiresAt = typeof payload.expiresAt === 'string' ? payload.expiresAt : null
+  const expiresAt = typeof payload.expiresAt === 'string'
+    ? payload.expiresAt
+    : typeof payload.expires_at === 'string' ? payload.expires_at : null
 
   if (typeof payload.expiresInSeconds === 'number') {
     return { expiresAt, expiresInSeconds: payload.expiresInSeconds }
+  }
+
+  if (typeof payload.expires_in_seconds === 'number') {
+    return { expiresAt, expiresInSeconds: payload.expires_in_seconds }
   }
 
   if (typeof payload.expiresIn === 'number') {
@@ -114,7 +120,9 @@ export async function linkProvider(provider: ProviderType): Promise<LinkCodeResp
   }
 
   const code = typeof payload?.code === 'string' ? payload.code : null
-  const loginUrl = typeof payload?.loginUrl === 'string' ? payload.loginUrl : null
+  const loginUrl = typeof payload?.loginUrl === 'string'
+    ? payload.loginUrl
+    : typeof payload?.login_url === 'string' ? payload.login_url : null
 
   if (!code && !loginUrl) {
     throw new Error('SIT Core did not return a valid linking payload.')
