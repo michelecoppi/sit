@@ -5,6 +5,7 @@ import DictionarySearch from '../components/DictionarySearch'
 import GrammarCard from '../components/GrammarCard'
 import { nativeDecode, nativeDictionary, nativeEncode } from '../data/native'
 import CapsuleSaveButton from '../components/capsules/CapsuleSaveButton'
+import { nativeProtocolApi } from '../services/nativeProtocolService'
 
 const punctuationSectionNames = ['COMMA', 'PERIOD', 'COLON', 'SEMICOLON', 'QUESTIONMARK', 'EXCLAMATIONMARK', 'APOSTROPHE', 'QUOTATIONMARK', 'HYPHEN', 'DASH', 'SLASH', 'ELLIPSIS'] as const
 const groupingSectionNames = ['LEFTPAREN', 'RIGHTPAREN', 'LEFTBRACKET', 'RIGHTBRACKET', 'LEFTBRACE', 'RIGHTBRACE', 'LEFTANGLE', 'RIGHTANGLE'] as const
@@ -24,6 +25,31 @@ function Header({ eyebrow, title, children }: { eyebrow: string; title: string; 
   )
 }
 
+function NativeRegistryStatus() {
+  const [state, setState] = useState<'loading' | 'live' | 'fallback'>('loading')
+  const [version, setVersion] = useState('2.0')
+
+  useEffect(() => {
+    let mounted = true
+    void nativeProtocolApi.registry()
+      .then((registry) => {
+        if (!mounted) return
+        setVersion(registry.defaultVersion)
+        setState('live')
+      })
+      .catch(() => {
+        if (mounted) setState('fallback')
+      })
+    return () => { mounted = false }
+  }, [])
+
+  return (
+    <p className="text-sm text-slate-600 dark:text-slate-300" role="status">
+      Native registry: <strong>{state === 'live' ? `live v${version}` : state === 'fallback' ? 'offline fallback (read-only)' : 'connecting…'}</strong>
+    </p>
+  )
+}
+
 export function NativePage() {
   const sections = [
     ['/alphabet', 'Official Alphabet', 'Browse native symbols and categories.'],
@@ -39,6 +65,7 @@ export function NativePage() {
         SIT no longer translates ASCII. Concepts are represented directly by an official symbolic grammar,
         with legacy conversion retained only for compatibility.
       </Header>
+      <NativeRegistryStatus />
 
       <div className="grid gap-5 md:grid-cols-2">
         <article className="native-card">
