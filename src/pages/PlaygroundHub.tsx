@@ -55,7 +55,7 @@ export default function PlaygroundHub() {
           <button type="button" role="tab" aria-selected={edition === 'labs'} onClick={() => setEdition('labs')} className={edition === 'labs' ? 'native-tab native-tab-active' : 'native-tab'}>SIT Labs</button>
         </div>
         <p>{edition === '1.0' ? 'ASCII, binary, batch conversion and compliance tools.' : edition === '2.0' ? 'Concept-first encoding, native decoding and semantic exploration.' : 'Guided experiments from easy to hard.'}</p>
-        {edition === '2.0' ? <label className="mt-3 inline-flex items-center gap-2 text-sm font-medium">Language <select value={language} onChange={(event) => void changeLanguage(event.target.value)}><option value="en">English</option><option value="it">Italiano</option></select></label> : null}
+        {edition === '2.0' || edition === 'labs' ? <label className="mt-3 inline-flex items-center gap-2 text-sm font-medium">Native language <select aria-label="Native language" value={language} onChange={(event) => void changeLanguage(event.target.value)}><option value="en">English</option><option value="it">Italiano</option></select></label> : null}
       </div>
     </section>
     <div className="playground-workspace">
