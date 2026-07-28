@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { BeakerIcon, BoltIcon, CommandLineIcon } from '@heroicons/react/24/outline'
 import type { CapsuleEdition } from '../types/capsules'
 import { useAuth } from '../context/AuthContext'
+import { setPreferredLanguage } from '../services/profileService'
 import { LabsPanel } from './LabsPage'
 
 const LegacyPlayground = lazy(() => import('./PlaygroundPage'))
@@ -29,6 +30,12 @@ export default function PlaygroundHub() {
   const [edition, setEdition] = useState<'1.0' | '2.0' | 'labs'>(
     draft?.edition ?? (requestedEdition === '2.0' ? '2.0' : '1.0'),
   )
+  const [language, setLanguage] = useState(() => window.localStorage.getItem('sit-native-language') || 'en')
+  const changeLanguage = async (next: string) => {
+    setLanguage(next)
+    window.localStorage.setItem('sit-native-language', next)
+    if (status === 'authenticated') await setPreferredLanguage(next).catch(() => undefined)
+  }
 
   return <div className="space-y-6">
     <section className="playground-header">
@@ -48,6 +55,7 @@ export default function PlaygroundHub() {
           <button type="button" role="tab" aria-selected={edition === 'labs'} onClick={() => setEdition('labs')} className={edition === 'labs' ? 'native-tab native-tab-active' : 'native-tab'}>SIT Labs</button>
         </div>
         <p>{edition === '1.0' ? 'ASCII, binary, batch conversion and compliance tools.' : edition === '2.0' ? 'Concept-first encoding, native decoding and semantic exploration.' : 'Guided experiments from easy to hard.'}</p>
+        {edition === '2.0' ? <label className="mt-3 inline-flex items-center gap-2 text-sm font-medium">Language <select value={language} onChange={(event) => void changeLanguage(event.target.value)}><option value="en">English</option><option value="it">Italiano</option></select></label> : null}
       </div>
     </section>
     <div className="playground-workspace">

@@ -6,8 +6,6 @@ import GrammarCard from '../components/GrammarCard'
 import { nativeDecode, nativeDictionary, nativeEncode } from '../data/native'
 import CapsuleSaveButton from '../components/capsules/CapsuleSaveButton'
 import { nativeProtocolApi } from '../services/nativeProtocolService'
-import { useOptionalAuth } from '../context/AuthContext'
-import { setPreferredLanguage } from '../services/profileService'
 
 const punctuationSectionNames = ['COMMA', 'PERIOD', 'COLON', 'SEMICOLON', 'QUESTIONMARK', 'EXCLAMATIONMARK', 'APOSTROPHE', 'QUOTATIONMARK', 'HYPHEN', 'DASH', 'SLASH', 'ELLIPSIS'] as const
 const groupingSectionNames = ['LEFTPAREN', 'RIGHTPAREN', 'LEFTBRACKET', 'RIGHTBRACKET', 'LEFTBRACE', 'RIGHTBRACE', 'LEFTANGLE', 'RIGHTANGLE'] as const
@@ -52,16 +50,6 @@ function NativeRegistryStatus() {
   )
 }
 
-function NativeLanguageControl() {
-  const auth = useOptionalAuth()
-  const [language, setLanguage] = useState(() => window.localStorage.getItem('sit-native-language') || 'en')
-  const changeLanguage = async (next: string) => {
-    setLanguage(next)
-    window.localStorage.setItem('sit-native-language', next)
-    if (auth?.status === 'authenticated') await setPreferredLanguage(next).catch(() => undefined)
-  }
-  return <label className="text-sm font-medium">Language <select value={language} onChange={(event) => void changeLanguage(event.target.value)}><option value="en">English</option><option value="it">Italiano</option></select></label>
-}
 
 export function NativePage() {
   const sections = [
@@ -79,7 +67,6 @@ export function NativePage() {
         with legacy conversion retained only for compatibility.
       </Header>
       <NativeRegistryStatus />
-      <NativeLanguageControl />
 
       <div className="grid gap-5 md:grid-cols-2">
         <article className="native-card">
