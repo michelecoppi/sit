@@ -25,6 +25,21 @@ export async function getMe(): Promise<MeResponse> {
   return payload as MeResponse
 }
 
+export async function setPreferredLanguage(preferredLanguage: string): Promise<string> {
+  const apiUrl = getApiUrl()
+  const response = await fetch(`${apiUrl}/api/profile/language`, {
+    method: 'PATCH',
+    headers: { ...getApiHeaders(), 'Content-Type': 'application/json' },
+    credentials: 'include',
+    body: JSON.stringify({ preferredLanguage }),
+  })
+  const payload = await parseResponsePayload(response)
+  if (!response.ok || !payload || typeof payload !== 'object' || typeof (payload as { preferredLanguage?: unknown }).preferredLanguage !== 'string') {
+    throw new Error('Unable to save language preference.')
+  }
+  return (payload as { preferredLanguage: string }).preferredLanguage
+}
+
 function isNonNegativeSafeInteger(value: unknown): value is number {
   return typeof value === 'number' && Number.isSafeInteger(value) && value >= 0
 }

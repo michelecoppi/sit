@@ -74,6 +74,13 @@ export default function Layout({ children, title }: LayoutProps) {
   const [menuOpen, setMenuOpen] = useState(false)
   const [logoClicks, setLogoClicks] = useState(0)
   const [theme, setTheme] = useState<Theme>(resolveInitialTheme)
+  const [language, setLanguage] = useState(() => window.localStorage.getItem('sit-language') || 'en')
+
+  const changeLanguage = async (nextLanguage: string) => {
+    setLanguage(nextLanguage)
+    document.documentElement.lang = nextLanguage
+    window.localStorage.setItem('sit-language', nextLanguage)
+  }
 
   const closeSecret = () => setShowSecret(false)
   const routeName = routeNames[location.pathname]
@@ -170,6 +177,11 @@ export default function Layout({ children, title }: LayoutProps) {
           </nav>
 
           <div className="header-actions">
+            <label className="sr-only" htmlFor="site-language">Language</label>
+            <select id="site-language" value={language} onChange={(event) => void changeLanguage(event.target.value)} className="icon-button" title="Language">
+              <option value="en">EN</option>
+              <option value="it">IT</option>
+            </select>
             <Link to="/native" className="native-cta">
               <BoltIcon aria-hidden="true" />
               <span>Native 2.0</span>

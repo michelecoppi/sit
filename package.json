@@ -11,6 +11,7 @@
     "test": "vitest run"
   },
   "dependencies": {
+    "@michelecoppi/sit-native-registry": "1.0.0",
     "@heroicons/react": "^2.2.0",
     "framer-motion": "^12.42.2",
     "heroicons": "^2.2.0",
