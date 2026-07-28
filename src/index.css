@@ -2586,7 +2586,7 @@ table tbody tr:hover {
   text-transform: uppercase;
 }
 
-.playground-switcher > div {
+.playground-switcher > [role="tablist"] {
   display: grid;
   grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: .4rem;
@@ -2654,7 +2654,7 @@ table tbody tr:hover {
 }
 
 @media (max-width: 520px) {
-  .playground-switcher > div {
+  .playground-switcher > [role="tablist"] {
     grid-template-columns: 1fr;
   }
 }
