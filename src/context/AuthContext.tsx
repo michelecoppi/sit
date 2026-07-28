@@ -119,3 +119,8 @@ export function useAuth() {
   }
   return context
 }
+
+/** Optional for shell-level preferences that must also work before sign-in. */
+export function useOptionalAuth() {
+  return useContext(AuthContext)
+}

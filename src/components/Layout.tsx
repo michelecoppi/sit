@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
+import { useOptionalAuth } from '../context/AuthContext'
+import { setPreferredLanguage } from '../services/profileService'
 import {
   AcademicCapIcon,
   ArchiveBoxIcon,
@@ -69,6 +71,7 @@ function resolveInitialTheme(): Theme {
 }
 
 export default function Layout({ children, title }: LayoutProps) {
+  const auth = useOptionalAuth()
   const location = useLocation()
   const [showSecret, setShowSecret] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
@@ -80,6 +83,9 @@ export default function Layout({ children, title }: LayoutProps) {
     setLanguage(nextLanguage)
     document.documentElement.lang = nextLanguage
     window.localStorage.setItem('sit-language', nextLanguage)
+    if (auth?.status === 'authenticated') {
+      try { await setPreferredLanguage(nextLanguage) } catch { /* retain the local preference while offline */ }
+    }
   }
 
   const closeSecret = () => setShowSecret(false)
