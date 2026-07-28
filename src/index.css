@@ -3773,7 +3773,13 @@ table tbody tr:hover {
 }
 
 .chat-onboarding-heading {
-  margin-bottom: 1.2rem;
+  display: block;
+  margin-bottom: 1.5rem;
+}
+
+.chat-onboarding-heading > p {
+  max-width: 52rem;
+  margin-top: 1rem;
 }
 
 .chat-onboarding-grid {
@@ -3857,6 +3863,11 @@ table tbody tr:hover {
   font-size: .82rem;
   line-height: 1.55;
   counter-increment: chat-steps;
+}
+
+.chat-onboarding-card li > span {
+  min-width: 0;
+  padding-top: .08rem;
 }
 
 .chat-onboarding-card li::before {
