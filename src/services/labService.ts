@@ -1,7 +1,8 @@
 import { getApiHeaders, getApiUrl, parseResponsePayload, throwApiError } from './apiClient'
 
 export type LabOperation = 'encode' | 'decode' | 'verify' | 'native'
-export type LabPreset = { id: string; title: string; difficulty: string; operation: LabOperation; input: string }
+export type LabDifficulty = 'easy' | 'medium' | 'hard'
+export type LabPreset = { id: string; title: string; difficulty: LabDifficulty; operation: LabOperation; input: string }
 export type LabResult = {
   contractVersion: '1'
   operation: LabOperation

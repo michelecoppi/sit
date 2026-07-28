@@ -3,6 +3,7 @@ import { useSearchParams } from 'react-router-dom'
 import { BeakerIcon, BoltIcon, CommandLineIcon } from '@heroicons/react/24/outline'
 import type { CapsuleEdition } from '../types/capsules'
 import { useAuth } from '../context/AuthContext'
+import { LabsPanel } from './LabsPage'
 
 const LegacyPlayground = lazy(() => import('./PlaygroundPage'))
 const NativePlayground = lazy(() => import('./NativePages').then((module) => ({ default: module.NativePlayground })))
@@ -25,7 +26,7 @@ export default function PlaygroundHub() {
     }
     return null
   })
-  const [edition, setEdition] = useState<'1.0' | '2.0'>(
+  const [edition, setEdition] = useState<'1.0' | '2.0' | 'labs'>(
     draft?.edition ?? (requestedEdition === '2.0' ? '2.0' : '1.0'),
   )
 
@@ -33,30 +34,31 @@ export default function PlaygroundHub() {
     <section className="playground-header">
       <div>
         <p><BeakerIcon aria-hidden="true" /> Interactive laboratory</p>
-        <h1>Encode. Decode. <span>Experiment.</span></h1>
+        <h1>{edition === 'labs' ? <>Learn by <span>experimenting.</span></> : <>Encode. Decode. <span>Experiment.</span></>}</h1>
         <div className="playground-benefits">
           <span><BoltIcon aria-hidden="true" /> Instant conversion</span>
           <span><CommandLineIcon aria-hidden="true" /> Runs locally</span>
         </div>
       </div>
       <div className="playground-switcher">
-        <span>Choose an edition</span>
+        <span>Choose a workspace</span>
         <div role="tablist" aria-label="Playground edition">
           <button type="button" role="tab" aria-selected={edition === '1.0'} onClick={() => setEdition('1.0')} className={edition === '1.0' ? 'native-tab native-tab-active' : 'native-tab'}>SIT 1.0 · Legacy</button>
           <button type="button" role="tab" aria-selected={edition === '2.0'} onClick={() => setEdition('2.0')} className={edition === '2.0' ? 'native-tab native-tab-v2-active' : 'native-tab native-tab-v2'}>SIT 2.0 · Native</button>
+          <button type="button" role="tab" aria-selected={edition === 'labs'} onClick={() => setEdition('labs')} className={edition === 'labs' ? 'native-tab native-tab-active' : 'native-tab'}>SIT Labs</button>
         </div>
-        <p>{edition === '1.0' ? 'ASCII, binary, batch conversion and compliance tools.' : 'Concept-first encoding, native decoding and semantic exploration.'}</p>
+        <p>{edition === '1.0' ? 'ASCII, binary, batch conversion and compliance tools.' : edition === '2.0' ? 'Concept-first encoding, native decoding and semantic exploration.' : 'Guided experiments from easy to hard.'}</p>
       </div>
     </section>
     <div className="playground-workspace">
       <div className="workspace-status">
         <span><i aria-hidden="true" /> Workspace ready</span>
-        <span>{edition === '1.0' ? 'LEGACY ENGINE' : 'NATIVE ENGINE'}</span>
+        <span>{edition === '1.0' ? 'LEGACY ENGINE' : edition === '2.0' ? 'NATIVE ENGINE' : 'GUIDED LABS'}</span>
       </div>
       <Suspense fallback={<div className="route-loader"><span className="route-loader-mark" aria-hidden="true"><i>6</i><i>7</i></span><span><strong>Loading playground</strong><small>Preparing conversion tools…</small></span></div>}>
         {edition === '1.0'
           ? <LegacyPlayground initialPayload={draft?.edition === '1.0' ? draft.payload : undefined} authenticated={status === 'authenticated'} />
-          : <div className="native-v2"><NativePlayground initialPayload={draft?.edition === '2.0' ? draft.payload : undefined} authenticated={status === 'authenticated'} /></div>}
+          : edition === '2.0' ? <div className="native-v2"><NativePlayground initialPayload={draft?.edition === '2.0' ? draft.payload : undefined} authenticated={status === 'authenticated'} /></div> : <LabsPanel />}
       </Suspense>
     </div>
   </div>
