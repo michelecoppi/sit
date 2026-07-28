@@ -10,6 +10,7 @@ import {
   ClipboardDocumentCheckIcon,
   CodeBracketIcon,
   CommandLineIcon,
+  ExclamationTriangleIcon,
   CubeTransparentIcon,
   GlobeAltIcon,
   LanguageIcon,
@@ -232,9 +233,16 @@ export default function HomePage() {
             <p>Use the official bot for commands, researcher progress and auto-translation with your community.</p>
             <ol>
               <li>Add the official bot to your server.</li>
-              <li>Run <code>/register</code> to create your researcher identity.</li>
+              <li>Run <code>/register</code> if you are new to SIT.</li>
               <li>Use <code>/encode</code> or <code>/decode</code> in a command.</li>
             </ol>
+            <div className="chat-onboarding-account-alert">
+              <ExclamationTriangleIcon aria-hidden="true" />
+              <p>
+                <strong>Already use SIT on Telegram?</strong> Keep one identity: open <Link to="/profile">your profile</Link>,
+                connect Discord under Connected Accounts, then complete the link there instead of running <code>/register</code>.
+              </p>
+            </div>
             <a
               href="https://discord.com/oauth2/authorize?client_id=1529070805772927076"
               className="chat-onboarding-link"
@@ -254,9 +262,16 @@ export default function HomePage() {
             <p>Open the official bot on mobile or desktop for quick, private SIT operations wherever you are.</p>
             <ol>
               <li>Open <code>@SITTTBOT</code> in Telegram.</li>
-              <li>Send <code>/start</code> to create your identity.</li>
+              <li>Send <code>/start</code> if you are new to SIT.</li>
               <li>Use <code>/encode</code> or <code>/decode</code> when you need it.</li>
             </ol>
+            <div className="chat-onboarding-account-alert">
+              <ExclamationTriangleIcon aria-hidden="true" />
+              <p>
+                <strong>Already use SIT on Discord?</strong> Do not send <code>/start</code>. Open <Link to="/profile">your profile</Link>,
+                connect Telegram under Connected Accounts, then send the generated <code>/link</code> code to the bot.
+              </p>
+            </div>
             <a href="https://t.me/SITTTBOT" className="chat-onboarding-link" target="_blank" rel="noreferrer">
               Open SIT on Telegram <ArrowRightIcon aria-hidden="true" />
             </a>
