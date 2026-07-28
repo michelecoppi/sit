@@ -126,6 +126,12 @@ in the same pull request. See [CONTRIBUTING.md](CONTRIBUTING.md) and
 [AGENTS.md](AGENTS.md) for the checklist used by human and coding-agent
 contributors.
 
+## Optional SIT Core integration
+
+Set `VITE_API_URL` to enable the live SIT Core integration. The frontend uses
+the backend OpenAPI contract and HttpOnly cookie sessions; the verified endpoint
+mapping is maintained in [docs/API_CONTRACT.md](docs/API_CONTRACT.md).
+
 ## Notes
 
 This project is intentionally playful, but it is implemented as a real web app with working encoding tools and a complete front-end experience.
