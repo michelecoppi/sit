@@ -1,6 +1,6 @@
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
 import { getApiHeaders } from './apiClient'
-import { getLoginStatus, logoutSession } from './authService'
+import { createLoginTicket, getLoginStatus, logoutSession } from './authService'
 
 describe('cookie-based authentication services', () => {
   beforeEach(() => {
@@ -16,6 +16,31 @@ describe('cookie-based authentication services', () => {
     expect(getApiHeaders()).toEqual({
       'Content-Type': 'application/json',
     })
+  })
+
+  it('uses the OpenAPI Telegram ticket contract', async () => {
+    const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(
+      JSON.stringify({
+        ticket: 'TG_LOGIN_123',
+        loginUrl: 'https://t.me/sit_bot?start=TG_LOGIN_123',
+        expiresAt: '2026-07-28T12:00:00.000Z',
+      }),
+      { status: 201, headers: { 'Content-Type': 'application/json' } },
+    ))
+
+    await expect(createLoginTicket('telegram')).resolves.toEqual({
+      ticket: 'TG_LOGIN_123',
+      loginUrl: 'https://t.me/sit_bot?start=TG_LOGIN_123',
+      expiresAt: '2026-07-28T12:00:00.000Z',
+    })
+    expect(fetchMock).toHaveBeenCalledWith(
+      'https://api.example/api/auth/login-ticket',
+      expect.objectContaining({
+        method: 'POST',
+        credentials: 'include',
+        body: JSON.stringify({ provider: 'telegram' }),
+      }),
+    )
   })
 
   it('accepts a completed Telegram login without reading a JWT', async () => {
