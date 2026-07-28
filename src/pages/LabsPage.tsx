@@ -2,6 +2,8 @@ import { useEffect, useMemo, useState } from 'react'
 import { labApi, type LabDifficulty, type LabOperation, type LabPreset, type LabResult } from '../services/labService'
 import { encodeTextToSit } from '../utils/encoder'
 import { validateSit } from '../utils/validator'
+import { nativeDecode, nativeEncode } from '../data/native'
+import type { NativeLocale } from '../services/nativeProtocolService'
 
 const difficulties: LabDifficulty[] = ['easy', 'medium', 'hard']
 const fallbackPresets: LabPreset[] = [
@@ -22,7 +24,7 @@ function localResult(operation: LabOperation, input: string): LabResult {
   return { contractVersion: '1', operation, protocolVersion: '1.0', ok, input, normalizedInput: input.replace(/\s/g, ''), output: ok ? 'Compliant Legacy payload' : null, tokens: input.match(/[67]{1,8}/g) ?? [], bytes: [], errors: ok ? [] : [{ code: 'invalid_legacy_payload', message, rule: 'A Legacy payload contains only 6/7 and has a multiple of eight symbols.', rfc: 'RFC-0001' }], warnings: [], steps: [{ label: 'Normalize', value: input.replace(/\s/g, '') || '—' }, { label: 'Validate', value: ok ? 'Passed' : message }] }
 }
 
-export function LabsPanel() {
+export function LabsPanel({ locale = 'en' }: { locale?: NativeLocale }) {
   const [presets, setPresets] = useState<LabPreset[]>(fallbackPresets)
   const [difficulty, setDifficulty] = useState<LabDifficulty>('easy')
   const [selectedId, setSelectedId] = useState(fallbackPresets[0].id)
@@ -31,6 +33,7 @@ export function LabsPanel() {
   const [usingFallback, setUsingFallback] = useState(false)
   const visiblePresets = useMemo(() => presets.filter((preset) => preset.difficulty === difficulty), [difficulty, presets])
   const activePreset = useMemo(() => visiblePresets.find((preset) => preset.id === selectedId) ?? visiblePresets[0] ?? presets[0], [presets, selectedId, visiblePresets])
+  const localizeNativeSample = (value: string) => locale === 'it' ? nativeDecode(nativeEncode(value), { locale }) : value
 
   useEffect(() => {
     void labApi.presets().then(({ presets: responsePresets }) => {
@@ -44,14 +47,20 @@ export function LabsPanel() {
     const next = visiblePresets[0]
     if (next && !visiblePresets.some((preset) => preset.id === selectedId)) {
       setSelectedId(next.id)
-      setInput(next.input)
+      setInput(next.operation === 'native' ? localizeNativeSample(next.input) : next.input)
       setResult(null)
     }
   }, [selectedId, visiblePresets])
 
   if (!activePreset) return null
-  const choosePreset = (preset: LabPreset) => { setSelectedId(preset.id); setInput(preset.input); setResult(null) }
-  const runExperiment = () => { void labApi.run(activePreset.operation, input).then(setResult).catch(() => { setUsingFallback(true); setResult(localResult(activePreset.operation, input)) }) }
+  useEffect(() => {
+    if (activePreset?.operation === 'native' && (input === 'HELLO' || input === 'CIAO')) setInput(localizeNativeSample('HELLO'))
+  // Keep only the starter Native exercise aligned with the selector; custom input is preserved.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locale])
+
+  const choosePreset = (preset: LabPreset) => { setSelectedId(preset.id); setInput(preset.operation === 'native' ? localizeNativeSample(preset.input) : preset.input); setResult(null) }
+  const runExperiment = () => { void labApi.run(activePreset.operation, input, locale).then(setResult).catch(() => { setUsingFallback(true); setResult(localResult(activePreset.operation, input)) }) }
 
   return <section className="space-y-5" aria-labelledby="labs-title">
     <div className="flex flex-wrap items-end justify-between gap-4"><div><p className="native-live">SIT LABS</p><h2 id="labs-title" className="mt-2 text-2xl font-semibold">Guided protocol experiments</h2><p className="mt-1 max-w-2xl text-sm text-slate-500 dark:text-slate-300">Choose a difficulty, edit the input, and inspect every transformation or violated rule.</p></div><span className="text-xs text-slate-500">{usingFallback ? 'Local fallback' : 'SIT Core contract'}</span></div>

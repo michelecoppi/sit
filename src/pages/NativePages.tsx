@@ -341,13 +341,20 @@ type NativeCopyFeedback = {
   tone: CopyFeedbackTone
 }
 
-export function NativePlayground({ initialPayload, authenticated = false }: { initialPayload?: string; authenticated?: boolean }) {
+export function NativePlayground({ initialPayload, authenticated = false, locale = 'en' }: { initialPayload?: string; authenticated?: boolean; locale?: 'en' | 'it' }) {
   const [mode, setMode] = useState<Mode>(initialPayload ? 'Native Decoder' : 'Native Encoder')
   const [value, setValue] = useState(initialPayload ?? 'HELLO')
   const [showCanonicalDecode, setShowCanonicalDecode] = useState(false)
   const [copyFeedback, setCopyFeedback] = useState<NativeCopyFeedback | null>(null)
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
   const deferredValue = useDeferredValue(value)
+  const localizedExample = (example: string) => nativeDecode(nativeEncode(example), { locale })
+
+  useEffect(() => {
+    if (value === 'HELLO' || value === 'CIAO') setValue(localizedExample('HELLO'))
+  // Only replace the starter example: never overwrite user-entered content.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [locale])
 
   useEffect(() => {
     if (!copyFeedback) {
@@ -419,16 +426,16 @@ export function NativePlayground({ initialPayload, authenticated = false }: { in
 
   const localOutput = useMemo(() => {
     if (mode === 'Native Encoder') {
-      return nativeEncode(deferredValue)
+      return nativeEncode(deferredValue, { locale })
     }
     if (mode === 'Native Decoder') {
-      return nativeDecode(deferredValue)
+      return nativeDecode(deferredValue, { locale })
     }
     if (mode === 'Semantic Explorer') {
       return nativeDictionary.find((item) => item.name === deferredValue.toUpperCase())?.description ?? 'Select an official concept.'
     }
     return ''
-  }, [deferredValue, mode])
+  }, [deferredValue, locale, mode])
 
   const [coreOutput, setCoreOutput] = useState<string | null>(null)
   const [coreError, setCoreError] = useState<string | null>(null)
@@ -444,8 +451,8 @@ export function NativePlayground({ initialPayload, authenticated = false }: { in
     setCoreOutput(null)
     setCoreError(null)
     const request = mode === 'Native Encoder'
-      ? nativeProtocolApi.encode(deferredValue, '2.1')
-      : nativeProtocolApi.decode(deferredValue, '2.1')
+      ? nativeProtocolApi.encode(deferredValue, '2.1', locale)
+      : nativeProtocolApi.decode(deferredValue, '2.1', false, locale)
 
     void request
       .then((result) => {
@@ -458,7 +465,7 @@ export function NativePlayground({ initialPayload, authenticated = false }: { in
       })
 
     return () => { mounted = false }
-  }, [deferredValue, mode])
+  }, [deferredValue, locale, mode])
 
   const output = coreOutput ?? localOutput
 
@@ -478,7 +485,7 @@ export function NativePlayground({ initialPayload, authenticated = false }: { in
       return
     }
     if (selectedMode === 'Native Encoder') {
-      setValue('HELLO, WORLD!')
+      setValue(localizedExample('HELLO, WORLD!'))
       return
     }
     setValue('HELLO')
@@ -539,8 +546,8 @@ export function NativePlayground({ initialPayload, authenticated = false }: { in
             {mode !== 'Native Decoder' ? (
               <div className="native-suggestions">
                 {['HELLO, WORLD!', '@USER = VALUE', '<CODE> | #TAG', 'CODE\\FILE'].map((concept) => (
-                  <button key={concept} type="button" onClick={() => setValue(concept)}>
-                    {concept}
+                  <button key={concept} type="button" onClick={() => setValue(localizedExample(concept))}>
+                    {localizedExample(concept)}
                   </button>
                 ))}
               </div>

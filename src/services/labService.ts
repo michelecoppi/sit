@@ -1,4 +1,5 @@
 import { getApiHeaders, getApiUrl, parseResponsePayload, throwApiError } from './apiClient'
+import type { NativeLocale } from './nativeProtocolService'
 
 export type LabOperation = 'encode' | 'decode' | 'verify' | 'native'
 export type LabDifficulty = 'easy' | 'medium' | 'hard'
@@ -27,5 +28,5 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const labApi = {
   presets: () => request<{ contractVersion: '1'; presets: LabPreset[] }>('/presets'),
-  run: (operation: LabOperation, input: string) => request<LabResult>('/run', { method: 'POST', body: JSON.stringify({ operation, input, version: '2.1' }) }),
+  run: (operation: LabOperation, input: string, locale: NativeLocale = 'en') => request<LabResult>('/run', { method: 'POST', body: JSON.stringify({ operation, input, version: '2.1', locale }) }),
 }
