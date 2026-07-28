@@ -241,6 +241,7 @@ export default function HomePage() {
               <p>
                 <strong>Already use SIT on Telegram?</strong> Keep one identity: open <Link to="/profile">your profile</Link>,
                 connect Discord under Connected Accounts, then complete the link there instead of running <code>/register</code>.
+                An empty profile created by mistake is recovered automatically.
               </p>
             </div>
             <a
@@ -268,8 +269,8 @@ export default function HomePage() {
             <div className="chat-onboarding-account-alert">
               <ExclamationTriangleIcon aria-hidden="true" />
               <p>
-                <strong>Already use SIT on Discord?</strong> Do not send <code>/start</code>. Open <Link to="/profile">your profile</Link>,
-                connect Telegram under Connected Accounts, then send the generated <code>/link</code> code to the bot.
+                <strong>Already use SIT on Discord?</strong> Open <Link to="/profile">your profile</Link> and connect Telegram under
+                Connected Accounts. The secure link opens the bot: press Start to finish safely. An empty profile created by mistake is recovered automatically.
               </p>
             </div>
             <a href="https://t.me/SITTTBOT" className="chat-onboarding-link" target="_blank" rel="noreferrer">
