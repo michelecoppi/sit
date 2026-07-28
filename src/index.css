@@ -3765,3 +3765,194 @@ table tbody tr:hover {
     animation-duration: .01ms !important;
   }
 }
+
+
+/* Chat bot onboarding */
+.chat-onboarding-section {
+  margin-top: clamp(2.75rem, 7vw, 5.5rem);
+}
+
+.chat-onboarding-heading {
+  margin-bottom: 1.2rem;
+}
+
+.chat-onboarding-grid {
+  display: grid;
+  gap: 1rem;
+}
+
+.chat-onboarding-card {
+  --gateway: var(--brand);
+  position: relative;
+  overflow: hidden;
+  display: flex;
+  min-height: 100%;
+  flex-direction: column;
+  padding: clamp(1.35rem, 3vw, 2rem);
+  border: 1px solid color-mix(in srgb, var(--gateway) 30%, var(--border));
+  border-radius: var(--radius-lg);
+  background:
+    radial-gradient(circle at 100% 0, color-mix(in srgb, var(--gateway) 17%, transparent), transparent 19rem),
+    var(--bg-elevated);
+  box-shadow: var(--shadow-sm);
+}
+
+.chat-onboarding-discord { --gateway: #5865f2; }
+.chat-onboarding-telegram { --gateway: #229ed9; }
+
+.chat-onboarding-card-topline {
+  display: inline-flex;
+  align-items: center;
+  gap: .55rem;
+  color: var(--gateway);
+  font-size: .72rem;
+  font-weight: 820;
+  letter-spacing: .11em;
+  text-transform: uppercase;
+}
+
+.chat-onboarding-icon {
+  width: 2.25rem;
+  height: 2.25rem;
+  display: grid;
+  place-items: center;
+  border-radius: .75rem;
+  background: color-mix(in srgb, var(--gateway) 15%, var(--bg-subtle));
+}
+
+.chat-onboarding-icon svg {
+  width: 1.15rem;
+  height: 1.15rem;
+}
+
+.chat-onboarding-card h3 {
+  margin: 1rem 0 0;
+  font-size: clamp(1.35rem, 3vw, 1.75rem);
+  letter-spacing: -.035em;
+}
+
+.chat-onboarding-card > p {
+  margin: .65rem 0 0;
+  color: var(--muted);
+  font-size: .9rem;
+  line-height: 1.65;
+}
+
+.chat-onboarding-card ol {
+  display: grid;
+  gap: .7rem;
+  margin: 1.4rem 0 1.6rem;
+  padding: 0;
+  list-style: none;
+  counter-reset: chat-steps;
+}
+
+.chat-onboarding-card li {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1.55rem minmax(0, 1fr);
+  align-items: start;
+  gap: .6rem;
+  color: var(--foreground);
+  font-size: .82rem;
+  line-height: 1.55;
+  counter-increment: chat-steps;
+}
+
+.chat-onboarding-card li::before {
+  width: 1.55rem;
+  height: 1.55rem;
+  display: grid;
+  place-items: center;
+  border-radius: 999px;
+  background: color-mix(in srgb, var(--gateway) 15%, var(--bg-subtle));
+  color: var(--gateway);
+  content: counter(chat-steps);
+  font-size: .65rem;
+  font-weight: 850;
+}
+
+.chat-onboarding-card code {
+  padding: .12rem .3rem;
+  border-radius: .35rem;
+  background: color-mix(in srgb, var(--gateway) 10%, var(--bg-subtle));
+  color: color-mix(in srgb, var(--gateway) 78%, var(--foreground));
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: .78em;
+}
+
+.chat-onboarding-link {
+  min-height: 2.85rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: .5rem;
+  margin-top: auto;
+  padding: .7rem 1rem;
+  border-radius: .9rem;
+  background: color-mix(in srgb, var(--gateway) 13%, var(--bg-subtle));
+  color: color-mix(in srgb, var(--gateway) 85%, var(--foreground));
+  font-size: .82rem;
+  font-weight: 780;
+  text-decoration: none;
+  transition: transform .18s var(--ease), background-color .18s ease, box-shadow .18s ease;
+}
+
+.chat-onboarding-link svg {
+  width: 1rem;
+  height: 1rem;
+  transition: transform .18s var(--ease);
+}
+
+.chat-onboarding-link:hover {
+  background: color-mix(in srgb, var(--gateway) 20%, var(--bg-subtle));
+  box-shadow: 0 10px 22px color-mix(in srgb, var(--gateway) 18%, transparent);
+  transform: translateY(-1px);
+}
+
+.chat-onboarding-link:hover svg {
+  transform: translateX(.18rem);
+}
+
+@media (min-width: 760px) {
+  .chat-onboarding-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+
+.chat-onboarding-account-alert {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  align-items: start;
+  gap: .65rem;
+  margin: 0 0 1rem;
+  padding: .85rem .9rem;
+  border: 1px solid color-mix(in srgb, #f59e0b 36%, var(--border));
+  border-radius: .9rem;
+  background: color-mix(in srgb, #f59e0b 9%, var(--bg-subtle));
+  color: var(--muted);
+  font-size: .75rem;
+  line-height: 1.55;
+}
+
+.chat-onboarding-account-alert svg {
+  width: 1rem;
+  height: 1rem;
+  margin-top: .08rem;
+  color: #d97706;
+}
+
+.chat-onboarding-account-alert p {
+  margin: 0;
+}
+
+.chat-onboarding-account-alert strong {
+  color: var(--foreground);
+}
+
+.chat-onboarding-account-alert a {
+  color: var(--brand-strong);
+  font-weight: 760;
+  text-underline-offset: .16em;
+}

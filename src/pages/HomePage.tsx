@@ -5,14 +5,17 @@ import {
   BeakerIcon,
   BoltIcon,
   CheckCircleIcon,
+  ChatBubbleLeftRightIcon,
   CircleStackIcon,
   ClipboardDocumentCheckIcon,
   CodeBracketIcon,
   CommandLineIcon,
+  ExclamationTriangleIcon,
   CubeTransparentIcon,
   GlobeAltIcon,
   LanguageIcon,
   LockClosedIcon,
+  PaperAirplaneIcon,
   RectangleGroupIcon,
   SparklesIcon,
 } from '@heroicons/react/24/outline'
@@ -208,6 +211,72 @@ export default function HomePage() {
           <div><strong>2</strong><span>symbols in the base alphabet</span></div>
           <div><strong>8</strong><span>symbols per legacy token</span></div>
           <div><strong>100%</strong><span>open reference code</span></div>
+        </div>
+      </section>
+
+      <section className="chat-onboarding-section" aria-labelledby="chat-onboarding-title">
+        <div className="section-heading chat-onboarding-heading">
+          <div>
+            <p className="section-kicker">SIT beyond the browser</p>
+            <h2 id="chat-onboarding-title">Start using SIT in chat.</h2>
+          </div>
+          <p>Keep the playground for local work, or bring SIT into the conversations you already have every day.</p>
+        </div>
+
+        <div className="chat-onboarding-grid">
+          <article className="chat-onboarding-card chat-onboarding-discord">
+            <div className="chat-onboarding-card-topline">
+              <span className="chat-onboarding-icon"><ChatBubbleLeftRightIcon aria-hidden="true" /></span>
+              <span>Discord</span>
+            </div>
+            <h3>Bring SIT into your server.</h3>
+            <p>Use the official bot for commands, researcher progress and auto-translation with your community.</p>
+            <ol>
+              <li>Add the official bot to your server.</li>
+              <li>Run <code>/register</code> if you are new to SIT.</li>
+              <li>Use <code>/encode</code> or <code>/decode</code> in a command.</li>
+            </ol>
+            <div className="chat-onboarding-account-alert">
+              <ExclamationTriangleIcon aria-hidden="true" />
+              <p>
+                <strong>Already use SIT on Telegram?</strong> Keep one identity: open <Link to="/profile">your profile</Link>,
+                connect Discord under Connected Accounts, then complete the link there instead of running <code>/register</code>.
+                An empty profile created by mistake is recovered automatically.
+              </p>
+            </div>
+            <a
+              href="https://discord.com/oauth2/authorize?client_id=1529070805772927076"
+              className="chat-onboarding-link"
+              target="_blank"
+              rel="noreferrer"
+            >
+              Add SIT to Discord <ArrowRightIcon aria-hidden="true" />
+            </a>
+          </article>
+
+          <article className="chat-onboarding-card chat-onboarding-telegram">
+            <div className="chat-onboarding-card-topline">
+              <span className="chat-onboarding-icon"><PaperAirplaneIcon aria-hidden="true" /></span>
+              <span>Telegram</span>
+            </div>
+            <h3>Encode and decode from anywhere.</h3>
+            <p>Open the official bot on mobile or desktop for quick, private SIT operations wherever you are.</p>
+            <ol>
+              <li>Open <code>@SITTTBOT</code> in Telegram.</li>
+              <li>Send <code>/start</code> if you are new to SIT.</li>
+              <li>Use <code>/encode</code> or <code>/decode</code> when you need it.</li>
+            </ol>
+            <div className="chat-onboarding-account-alert">
+              <ExclamationTriangleIcon aria-hidden="true" />
+              <p>
+                <strong>Already use SIT on Discord?</strong> Open <Link to="/profile">your profile</Link> and connect Telegram under
+                Connected Accounts. The secure link opens the bot: press Start to finish safely. An empty profile created by mistake is recovered automatically.
+              </p>
+            </div>
+            <a href="https://t.me/SITTTBOT" className="chat-onboarding-link" target="_blank" rel="noreferrer">
+              Open SIT on Telegram <ArrowRightIcon aria-hidden="true" />
+            </a>
+          </article>
         </div>
       </section>
 
