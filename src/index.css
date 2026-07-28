@@ -2580,7 +2580,7 @@ table tbody tr:hover {
 
 .playground-switcher > div {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
   gap: .4rem;
 }
 
@@ -2643,6 +2643,12 @@ table tbody tr:hover {
   border: 0;
   border-radius: 0;
   box-shadow: none;
+}
+
+@media (max-width: 520px) {
+  .playground-switcher > div {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (min-width: 860px) {

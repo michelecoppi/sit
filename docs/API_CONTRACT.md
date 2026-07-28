@@ -14,7 +14,7 @@ by SIT Core at `/api/docs`. The frontend deliberately uses cookie sessions
 | `missionService` | `GET /api/missions`, `GET /api/missions/history`, `GET /api/missions/streak` | Requests are authenticated and cursor values are URL encoded. |
 | `capsuleService` | `/api/capsules*` | Create, list, update, revoke, and safe public-resolution request and response shapes are parsed before rendering. |
 | `teamService` | `/api/teams*`, `/api/team-invites*` | Team mutations, membership operations, invitations, and cursor pagination match the documented route parameters. |
-| `labService` | `GET /api/lab/presets`, `POST /api/lab/run` | Lab results are contract version `1`, deterministic for equal input/version, and include steps plus rule-linked errors. |
+| `labService` | `GET /api/lab/presets`, `POST /api/lab/run` | Lab results are contract version `1`, deterministic for equal input/version, include steps plus rule-linked errors, and group presets into `easy`, `medium`, and `hard`. |
 
 The contract is exercised by the service tests. When SIT Core changes its
 OpenAPI contract, update the relevant parser, test fixture, and this table in
