@@ -232,9 +232,9 @@ export default function HomePage() {
             <h3>Bring SIT into your server.</h3>
             <p>Use the official bot for commands, researcher progress and auto-translation with your community.</p>
             <ol>
-              <li>Add the official bot to your server.</li>
-              <li>Run <code>/register</code> if you are new to SIT.</li>
-              <li>Use <code>/encode</code> or <code>/decode</code> in a command.</li>
+              <li><span>Add the official bot to your server.</span></li>
+              <li><span>Run <code>/register</code> if you are new to SIT.</span></li>
+              <li><span>Use <code>/encode</code> or <code>/decode</code> in a command.</span></li>
             </ol>
             <div className="chat-onboarding-account-alert">
               <ExclamationTriangleIcon aria-hidden="true" />
@@ -262,9 +262,9 @@ export default function HomePage() {
             <h3>Encode and decode from anywhere.</h3>
             <p>Open the official bot on mobile or desktop for quick, private SIT operations wherever you are.</p>
             <ol>
-              <li>Open <code>@SITTTBOT</code> in Telegram.</li>
-              <li>Send <code>/start</code> if you are new to SIT.</li>
-              <li>Use <code>/encode</code> or <code>/decode</code> when you need it.</li>
+              <li><span>Open <code>@SITTTBOT</code> in Telegram.</span></li>
+              <li><span>Send <code>/start</code> if you are new to SIT.</span></li>
+              <li><span>Use <code>/encode</code> or <code>/decode</code> when you need it.</span></li>
             </ol>
             <div className="chat-onboarding-account-alert">
               <ExclamationTriangleIcon aria-hidden="true" />
