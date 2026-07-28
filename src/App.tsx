@@ -26,6 +26,7 @@ const RoadmapPage = lazy(() => import('./pages/RoadmapPage'))
 const AboutPage = lazy(() => import('./pages/AboutPage'))
 const RfcPage = lazy(() => import('./pages/RfcPage'))
 const PlaygroundHub = lazy(() => import('./pages/PlaygroundHub'))
+const LabsPage = lazy(() => import('./pages/LabsPage'))
 const NativePage = lazy(() => import('./pages/NativePages').then((module) => ({ default: module.NativePage })))
 const AlphabetPage = lazy(() => import('./pages/NativePages').then((module) => ({ default: module.AlphabetPage })))
 const GrammarPage = lazy(() => import('./pages/NativePages').then((module) => ({ default: module.GrammarPage })))
@@ -90,6 +91,7 @@ function App() {
             <Route path="/" element={<HomePage />} />
             <Route path="/docs" element={<DocumentationPage />} />
             <Route path="/playground" element={<PlaygroundHub />} />
+            <Route path="/labs" element={<LabsPage />} />
             <Route path="/roadmap" element={<RoadmapPage />} />
             <Route path="/about" element={<AboutPage />} />
             <Route path="/rfc" element={<RfcPage />} />
