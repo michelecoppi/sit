@@ -1,7 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
-import { useOptionalAuth } from '../context/AuthContext'
-import { setPreferredLanguage } from '../services/profileService'
 import {
   AcademicCapIcon,
   ArchiveBoxIcon,
@@ -71,22 +69,11 @@ function resolveInitialTheme(): Theme {
 }
 
 export default function Layout({ children, title }: LayoutProps) {
-  const auth = useOptionalAuth()
   const location = useLocation()
   const [showSecret, setShowSecret] = useState(false)
   const [menuOpen, setMenuOpen] = useState(false)
   const [logoClicks, setLogoClicks] = useState(0)
   const [theme, setTheme] = useState<Theme>(resolveInitialTheme)
-  const [language, setLanguage] = useState(() => window.localStorage.getItem('sit-language') || 'en')
-
-  const changeLanguage = async (nextLanguage: string) => {
-    setLanguage(nextLanguage)
-    document.documentElement.lang = nextLanguage
-    window.localStorage.setItem('sit-language', nextLanguage)
-    if (auth?.status === 'authenticated') {
-      try { await setPreferredLanguage(nextLanguage) } catch { /* retain the local preference while offline */ }
-    }
-  }
 
   const closeSecret = () => setShowSecret(false)
   const routeName = routeNames[location.pathname]
@@ -183,11 +170,6 @@ export default function Layout({ children, title }: LayoutProps) {
           </nav>
 
           <div className="header-actions">
-            <label className="sr-only" htmlFor="site-language">Language</label>
-            <select id="site-language" value={language} onChange={(event) => void changeLanguage(event.target.value)} className="icon-button" title="Language">
-              <option value="en">EN</option>
-              <option value="it">IT</option>
-            </select>
             <Link to="/native" className="native-cta">
               <BoltIcon aria-hidden="true" />
               <span>Native 2.0</span>
