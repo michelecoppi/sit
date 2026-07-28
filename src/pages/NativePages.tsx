@@ -416,7 +416,7 @@ export function NativePlayground({ initialPayload, authenticated = false }: { in
     )
   }
 
-  const output = useMemo(() => {
+  const localOutput = useMemo(() => {
     if (mode === 'Native Encoder') {
       return nativeEncode(deferredValue)
     }
@@ -428,6 +428,38 @@ export function NativePlayground({ initialPayload, authenticated = false }: { in
     }
     return ''
   }, [deferredValue, mode])
+
+  const [coreOutput, setCoreOutput] = useState<string | null>(null)
+  const [coreError, setCoreError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (mode !== 'Native Encoder' && mode !== 'Native Decoder') {
+      setCoreOutput(null)
+      setCoreError(null)
+      return
+    }
+
+    let mounted = true
+    setCoreOutput(null)
+    setCoreError(null)
+    const request = mode === 'Native Encoder'
+      ? nativeProtocolApi.encode(deferredValue, '2.1')
+      : nativeProtocolApi.decode(deferredValue, '2.1')
+
+    void request
+      .then((result) => {
+        if (!mounted) return
+        if (result.ok) setCoreOutput(result.output ?? '')
+        else setCoreError(result.errors?.[0]?.suggestion ?? 'Native validation failed.')
+      })
+      .catch(() => {
+        if (mounted) setCoreError('Core unavailable: showing the read-only local fallback.')
+      })
+
+    return () => { mounted = false }
+  }, [deferredValue, mode])
+
+  const output = coreOutput ?? localOutput
 
   const canonicalDecodeOutput = useMemo(() => {
     if (mode !== 'Native Decoder' || !showCanonicalDecode) {
@@ -538,6 +570,7 @@ export function NativePlayground({ initialPayload, authenticated = false }: { in
               </div>
             </div>
             <pre className="native-output native-output-long mt-2">{output || '-'}</pre>
+            {coreError ? <p className="mt-2 text-sm text-amber-700 dark:text-amber-300" role="status">{coreError}</p> : null}
             {canonicalDecodeOutput ? (
               <>
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
