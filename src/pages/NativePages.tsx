@@ -5,6 +5,7 @@ import DictionarySearch from '../components/DictionarySearch'
 import GrammarCard from '../components/GrammarCard'
 import { nativeDecode, nativeDictionary, nativeEncode } from '../data/native'
 import CapsuleSaveButton from '../components/capsules/CapsuleSaveButton'
+import { nativeProtocolApi } from '../services/nativeProtocolService'
 
 const punctuationSectionNames = ['COMMA', 'PERIOD', 'COLON', 'SEMICOLON', 'QUESTIONMARK', 'EXCLAMATIONMARK', 'APOSTROPHE', 'QUOTATIONMARK', 'HYPHEN', 'DASH', 'SLASH', 'ELLIPSIS'] as const
 const groupingSectionNames = ['LEFTPAREN', 'RIGHTPAREN', 'LEFTBRACKET', 'RIGHTBRACKET', 'LEFTBRACE', 'RIGHTBRACE', 'LEFTANGLE', 'RIGHTANGLE'] as const
@@ -24,6 +25,31 @@ function Header({ eyebrow, title, children }: { eyebrow: string; title: string; 
   )
 }
 
+function NativeRegistryStatus() {
+  const [state, setState] = useState<'loading' | 'live' | 'fallback'>('loading')
+  const [version, setVersion] = useState('2.0')
+
+  useEffect(() => {
+    let mounted = true
+    void nativeProtocolApi.registry()
+      .then((registry) => {
+        if (!mounted) return
+        setVersion(registry.defaultVersion)
+        setState('live')
+      })
+      .catch(() => {
+        if (mounted) setState('fallback')
+      })
+    return () => { mounted = false }
+  }, [])
+
+  return (
+    <p className="text-sm text-slate-600 dark:text-slate-300" role="status">
+      Native registry: <strong>{state === 'live' ? `live v${version}` : state === 'fallback' ? 'offline fallback (read-only)' : 'connecting…'}</strong>
+    </p>
+  )
+}
+
 export function NativePage() {
   const sections = [
     ['/alphabet', 'Official Alphabet', 'Browse native symbols and categories.'],
@@ -39,6 +65,7 @@ export function NativePage() {
         SIT no longer translates ASCII. Concepts are represented directly by an official symbolic grammar,
         with legacy conversion retained only for compatibility.
       </Header>
+      <NativeRegistryStatus />
 
       <div className="grid gap-5 md:grid-cols-2">
         <article className="native-card">
@@ -389,7 +416,7 @@ export function NativePlayground({ initialPayload, authenticated = false }: { in
     )
   }
 
-  const output = useMemo(() => {
+  const localOutput = useMemo(() => {
     if (mode === 'Native Encoder') {
       return nativeEncode(deferredValue)
     }
@@ -401,6 +428,38 @@ export function NativePlayground({ initialPayload, authenticated = false }: { in
     }
     return ''
   }, [deferredValue, mode])
+
+  const [coreOutput, setCoreOutput] = useState<string | null>(null)
+  const [coreError, setCoreError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (mode !== 'Native Encoder' && mode !== 'Native Decoder') {
+      setCoreOutput(null)
+      setCoreError(null)
+      return
+    }
+
+    let mounted = true
+    setCoreOutput(null)
+    setCoreError(null)
+    const request = mode === 'Native Encoder'
+      ? nativeProtocolApi.encode(deferredValue, '2.1')
+      : nativeProtocolApi.decode(deferredValue, '2.1')
+
+    void request
+      .then((result) => {
+        if (!mounted) return
+        if (result.ok) setCoreOutput(result.output ?? '')
+        else setCoreError(result.errors?.[0]?.suggestion ?? 'Native validation failed.')
+      })
+      .catch(() => {
+        if (mounted) setCoreError('Core unavailable: showing the read-only local fallback.')
+      })
+
+    return () => { mounted = false }
+  }, [deferredValue, mode])
+
+  const output = coreOutput ?? localOutput
 
   const canonicalDecodeOutput = useMemo(() => {
     if (mode !== 'Native Decoder' || !showCanonicalDecode) {
@@ -511,6 +570,7 @@ export function NativePlayground({ initialPayload, authenticated = false }: { in
               </div>
             </div>
             <pre className="native-output native-output-long mt-2">{output || '-'}</pre>
+            {coreError ? <p className="mt-2 text-sm text-amber-700 dark:text-amber-300" role="status">{coreError}</p> : null}
             {canonicalDecodeOutput ? (
               <>
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-2">
