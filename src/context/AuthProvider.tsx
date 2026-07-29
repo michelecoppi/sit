@@ -1,24 +1,10 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { logoutSession } from '../services/authService'
 import { ApiClientError } from '../services/apiClient'
 import { getMe } from '../services/profileService'
 import type { MeResponse } from '../types/profile'
 import { setUnauthorizedHandler } from '../utils/authSession'
-
-type AuthStatus = 'anonymous' | 'loading' | 'authenticated'
-
-interface AuthContextValue {
-  me: MeResponse | null
-  status: AuthStatus
-  authError: string | null
-  isBootstrapping: boolean
-  completeLogin: () => Promise<void>
-  refreshMe: () => Promise<MeResponse | null>
-  logout: () => Promise<void>
-  clearAuthError: () => void
-}
-
-const AuthContext = createContext<AuthContextValue | null>(null)
+import { AuthContext, type AuthStatus } from './authContextStore'
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [me, setMe] = useState<MeResponse | null>(null)
@@ -110,17 +96,4 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   }), [authError, clearAuthError, completeLogin, isBootstrapping, logout, me, refreshMe, status])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
-}
-
-export function useAuth() {
-  const context = useContext(AuthContext)
-  if (!context) {
-    throw new Error('useAuth must be used inside AuthProvider')
-  }
-  return context
-}
-
-/** Optional for shell-level preferences that must also work before sign-in. */
-export function useOptionalAuth() {
-  return useContext(AuthContext)
 }

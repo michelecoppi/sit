@@ -1,18 +1,8 @@
-import { createContext, useCallback, useContext, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { getProviders, linkProvider } from '../services/accountService'
-import { type ConnectedAccount, type LinkCodeResponse, type ProviderType } from '../types/account'
+import { type ConnectedAccount, type ProviderType } from '../types/account'
+import { AccountContext } from './accountContextStore'
 import { useAuth } from './AuthContext'
-
-interface AccountContextValue {
-  providers: ConnectedAccount[]
-  isLoading: boolean
-  providersError: string | null
-  refreshProviders: () => Promise<void>
-  refreshProvidersOnly: () => Promise<ConnectedAccount[]>
-  generateLinkCode: (provider: ProviderType) => Promise<LinkCodeResponse>
-}
-
-const AccountContext = createContext<AccountContextValue | null>(null)
 
 export function AccountProvider({ children }: { children: React.ReactNode }) {
   const { status } = useAuth()
@@ -80,12 +70,4 @@ export function AccountProvider({ children }: { children: React.ReactNode }) {
   }), [generateLinkCode, isLoading, providers, providersError, refreshProviders, refreshProvidersOnly])
 
   return <AccountContext.Provider value={value}>{children}</AccountContext.Provider>
-}
-
-export function useAccount() {
-  const context = useContext(AccountContext)
-  if (!context) {
-    throw new Error('useAccount must be used inside AccountProvider')
-  }
-  return context
 }
