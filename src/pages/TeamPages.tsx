@@ -31,6 +31,8 @@ import {
 import type { TeamDetail, TeamInvite, TeamMember, TeamSummary, TeamVisibility } from '../types/teams'
 import TeamWorkspaceBoards from '../components/workspace/TeamWorkspaceBoards'
 
+const visibleSelectClass = 'mt-1 w-full appearance-auto rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-950 [color-scheme:light] focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:[color-scheme:dark]'
+
 function ErrorNotice({ message }: { message: string }) {
   return <div className="team-notice team-notice-error" role="alert">{message}</div>
 }
@@ -41,6 +43,7 @@ function TeamCard({ team, rank }: { team: TeamSummary, rank?: number }) {
     <article className={`team-card${rank ? ' team-card-ranked' : ''}`}>
       <div className="team-card-topline">
         <span className="team-avatar" aria-hidden="true">{initials}</span>
+        <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-200">Level {team.progression.level}</span>
         {rank ? <span className="team-rank" aria-label={`Rank ${rank}`}><TrophyIcon aria-hidden="true" /> #{rank}</span> : null}
         <span className={`team-visibility team-visibility-${team.visibility}`}>
           {team.visibility === 'public' ? <GlobeAltIcon aria-hidden="true" /> : <LockClosedIcon aria-hidden="true" />}
@@ -53,7 +56,7 @@ function TeamCard({ team, rank }: { team: TeamSummary, rank?: number }) {
       </div>
       <dl className="team-metrics">
         <div><dt>Members</dt><dd>{team.memberCount.toLocaleString()}</dd></div>
-        <div><dt>XP</dt><dd>{team.totalXp.toLocaleString()}</dd></div>
+        <div><dt>Team XP</dt><dd>{team.totalXp.toLocaleString()}</dd></div>
         <div><dt>Contributions</dt><dd>{team.totalContributions.toLocaleString()}</dd></div>
       </dl>
       <Link className="team-card-link" to={`/teams/${team.slug}`}>
@@ -145,7 +148,7 @@ function CreateTeamForm({ onCreated }: { onCreated: (team: TeamDetail) => void }
               <label>Team name<input autoFocus required minLength={2} maxLength={80} name="name" autoComplete="organization" /></label>
               <label>Registry slug<input required pattern="[a-z0-9-]+" maxLength={64} name="slug" placeholder="symbolic-systems-lab" /></label>
               <label>Public abstract<textarea maxLength={500} name="description" rows={3} /></label>
-              <label>Visibility<select name="visibility" defaultValue="public"><option value="public">Public</option><option value="private">Private</option></select></label>
+              <label>Visibility<select className={visibleSelectClass} name="visibility" defaultValue="public"><option className="bg-white text-slate-950 dark:bg-slate-900 dark:text-white" value="public">Public</option><option className="bg-white text-slate-950 dark:bg-slate-900 dark:text-white" value="private">Private</option></select></label>
               <div className="team-actions">
                 <button className="button-primary" disabled={busy}>{busy ? 'Registering…' : 'Create team'}</button>
                 <button className="button-secondary" type="button" disabled={busy} onClick={() => setOpen(false)}>Cancel</button>
@@ -257,7 +260,7 @@ export function TeamProfilePage() {
       </header>
       <dl className="team-total-strip">
         <div><dt>Verified members</dt><dd>{team.memberCount}</dd></div>
-        <div><dt>Collective XP</dt><dd>{team.totalXp.toLocaleString()}</dd></div>
+        <div><dt>Team XP</dt><dd>{team.totalXp.toLocaleString()}</dd></div>
         <div><dt>Contributions</dt><dd>{team.totalContributions.toLocaleString()}</dd></div>
       </dl>
       {team.visibility === 'public' ? (
@@ -279,7 +282,7 @@ function MemberControls({ team, member, onChanged }: { team: TeamDetail, member:
   return (
     <div className="member-actions">
       {team.permissions.changeRoles && member.role !== 'owner' ? (
-        <select aria-label={`Role for ${member.displayName}`} disabled={busy} value={member.role} onChange={(event) => void run(
+        <select className={`${visibleSelectClass} min-w-32`} aria-label={`Role for ${member.displayName}`} disabled={busy} value={member.role} onChange={(event) => void run(
           () => changeTeamMemberRole(team.id, member.researcherId, event.target.value as 'admin' | 'member' | 'viewer'),
           `Change ${member.displayName}'s role?`,
         )}><option value="viewer">Viewer</option><option value="member">Member</option><option value="admin">Admin</option></select>
@@ -287,6 +290,47 @@ function MemberControls({ team, member, onChanged }: { team: TeamDetail, member:
       {team.permissions.transferOwnership && member.role !== 'owner' ? <button disabled={busy} onClick={() => void run(() => transferTeamOwnership(team.id, member.researcherId), `Transfer ownership to ${member.displayName}? You will lose owner privileges.`)}>Transfer ownership</button> : null}
       {canManage ? <button className="danger-link" disabled={busy} onClick={() => void run(() => removeTeamMember(team.id, member.researcherId), `Remove ${member.displayName} from the team?`)}>Remove</button> : null}
     </div>
+  )
+}
+
+function TeamProgressionPanel({ team }: { team: TeamDetail }) {
+  const { progression } = team
+  const advancedTheme = progression.level >= 3
+  return (
+    <section className={`relative mt-6 overflow-hidden rounded-3xl border p-5 text-white shadow-lg sm:p-7 ${advancedTheme ? 'border-cyan-400/30 bg-gradient-to-br from-slate-950 via-cyan-950 to-indigo-950' : 'border-indigo-400/30 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900'}`} aria-labelledby="team-progression-title">
+      <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+      <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(16rem,0.7fr)] lg:items-center">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-200">Collective progression</p>
+          <div className="mt-2 flex flex-wrap items-end gap-3">
+            <h2 id="team-progression-title" className="text-3xl font-black tracking-tight sm:text-4xl">Team level {progression.level}</h2>
+            <span className="mb-1 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold">{progression.teamXp.toLocaleString()} Team XP</span>
+          </div>
+          <div className="mt-5">
+            <div className="mb-2 flex justify-between gap-4 text-xs text-indigo-100">
+              <span>{progression.currentLevelXp.toLocaleString()} XP</span>
+              <span>{progression.nextLevelXp === null ? 'Maximum tier' : `${progression.nextLevelXp.toLocaleString()} XP`}</span>
+            </div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-black/25">
+              <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-indigo-300 transition-all" style={{ width: `${Math.min(100, progression.levelProgress)}%` }} />
+            </div>
+          </div>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {progression.unlockedFeatures.map((feature) => <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-medium" key={feature.code}>✓ {feature.label}</span>)}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur">
+          <p className="text-xs font-bold uppercase tracking-wider text-indigo-200">Next unlock</p>
+          {progression.nextUnlock
+            ? <><p className="mt-2 text-lg font-bold">{progression.nextUnlock.label}</p><p className="mt-1 text-sm text-slate-300">Available at team level {progression.nextUnlock.level}.</p></>
+            : <><p className="mt-2 text-lg font-bold">All protocols unlocked</p><p className="mt-1 text-sm text-slate-300">This team has reached the current progression ceiling.</p></>}
+          <div className="mt-4 border-t border-white/10 pt-4 text-sm text-slate-300">
+            <strong className="text-white">{progression.missionPolicy.canCreateToday ? 'Daily mission available' : 'Daily mission completed'}</strong>
+            <span className="mt-1 block">Mission rewards increase with difficulty and verified collaboration size.</span>
+          </div>
+        </div>
+      </div>
+    </section>
   )
 }
 
@@ -327,12 +371,13 @@ export function TeamWorkspacePage() {
   if (error && !team) return <section className="team-page"><ErrorNotice message={error} /></section>
   if (!team) return <div className="route-loader" role="status">Opening team workspace…</div>
   return (
-    <section className="team-page team-workspace-page">
+    <section className="team-page team-workspace-page min-w-0">
       <header className="team-hero team-workspace-hero"><p className="team-eyebrow">Authenticated team workspace</p><h1>{team.name}</h1><p>Permissions below are supplied by SIT Core for your canonical researcher identity.</p></header>
+      <TeamProgressionPanel team={team} />
       {error ? <ErrorNotice message={error} /> : null}
       {message ? <div className="team-notice" role="status">{message}</div> : null}
       <div className={`team-workspace-grid${team.permissions.editTeam ? '' : ' team-workspace-grid-single'}`}>
-        {team.permissions.editTeam ? <form className="team-form team-workspace-settings" onSubmit={saveSettings}><h2>Registry settings</h2><label>Name<input name="name" defaultValue={team.name} required /></label><label>Slug<input name="slug" defaultValue={team.slug} required /></label><label>Description<textarea name="description" defaultValue={team.description} /></label><label>Visibility<select name="visibility" defaultValue={team.visibility}><option value="public">Public</option><option value="private">Private</option></select></label><button className="button-primary">Save settings</button></form> : null}
+        {team.permissions.editTeam ? <form className="team-form team-workspace-settings" onSubmit={saveSettings}><h2>Registry settings</h2><label>Name<input name="name" defaultValue={team.name} required /></label><label>Slug<input name="slug" defaultValue={team.slug} required /></label><label>Description<textarea name="description" defaultValue={team.description} /></label><label>Visibility<select className={visibleSelectClass} name="visibility" defaultValue={team.visibility}><option className="bg-white text-slate-950 dark:bg-slate-900 dark:text-white" value="public">Public</option><option className="bg-white text-slate-950 dark:bg-slate-900 dark:text-white" value="private">Private</option></select></label><button className="button-primary">Save settings</button></form> : null}
         <div className="team-workspace-rail">
           {team.permissions.inviteMembers ? <section className="team-workspace-panel"><h2>Invite researchers</h2><p>Invitations expire automatically and inherit only the selected backend role.</p><button className="button-secondary" onClick={() => void createTeamInvite(team.id, 'member', 72).then(setInvite).catch((caught) => setError(caught.message))}>Create 72-hour invite</button>{invite ? <div className="invite-box"><code>{invite.inviteUrl ?? `${window.location.origin}${window.location.pathname}#/team-invites/${invite.token}`}</code><button onClick={() => void navigator.clipboard.writeText(invite.inviteUrl ?? `${window.location.origin}${window.location.pathname}#/team-invites/${invite.token}`)}>Copy</button></div> : null}</section> : null}
           <section className="team-workspace-panel"><h2>Members</h2><div className="member-list">{members.map((member) => <div className="member-row" key={member.researcherId}><div><strong>{member.displayName}</strong><small>{member.role} · {member.contributions.toLocaleString()} contributions</small></div><MemberControls team={team} member={member} onChanged={load} /></div>)}</div></section>

@@ -5,6 +5,7 @@ import type {
   TeamMember,
   TeamPage,
   TeamPermissions,
+  TeamProgression,
   TeamRole,
   TeamSummary,
 } from '../types/teams'
@@ -28,6 +29,61 @@ function count(value: unknown): value is number {
 
 function dateOrNull(value: unknown): value is string | null {
   return value === null || (typeof value === 'string' && !Number.isNaN(Date.parse(value)))
+}
+
+function parseProgression(value: unknown): TeamProgression {
+  if (!isObject(value) || !isObject(value.missionPolicy) || !Array.isArray(value.unlockedFeatures)
+    || !Array.isArray(value.missionPolicy.availableDifficulties)) {
+    throw new Error('Invalid team progression payload.')
+  }
+  const nextUnlock = value.nextUnlock
+  const unlock = (entry: unknown) => {
+    if (!isObject(entry) || !count(entry.level) || !text(entry.code) || !text(entry.label)) {
+      throw new Error('Invalid team unlock payload.')
+    }
+    return { level: entry.level, code: entry.code, label: entry.label }
+  }
+  const difficulties = new Set(['routine', 'standard', 'advanced', 'critical'])
+  const availableDifficulties = value.missionPolicy.availableDifficulties.map((entry) => {
+    if (!isObject(entry) || typeof entry.difficulty !== 'string' || !difficulties.has(entry.difficulty)
+      || !text(entry.label) || !text(entry.description) || !count(entry.baseTeamXp)
+      || !count(entry.requiredLevel) || typeof entry.unlocked !== 'boolean'
+      || !count(entry.assignedReward) || !count(entry.teamReward)) {
+      throw new Error('Invalid team difficulty payload.')
+    }
+    return {
+      difficulty: entry.difficulty as TeamProgression['missionPolicy']['availableDifficulties'][number]['difficulty'],
+      label: entry.label,
+      description: entry.description,
+      baseTeamXp: entry.baseTeamXp,
+      requiredLevel: entry.requiredLevel,
+      unlocked: entry.unlocked,
+      assignedReward: entry.assignedReward,
+      teamReward: entry.teamReward,
+    }
+  })
+  if (!count(value.teamXp) || !count(value.level) || !count(value.currentLevelXp)
+    || (value.nextLevelXp !== null && !count(value.nextLevelXp)) || !count(value.levelProgress)
+    || !count(value.missionPolicy.dailyLimit) || typeof value.missionPolicy.canCreateToday !== 'boolean'
+    || !dateOrNull(value.missionPolicy.nextCreationAt)
+    || (nextUnlock !== null && !isObject(nextUnlock))) {
+    throw new Error('Invalid team progression payload.')
+  }
+  return {
+    teamXp: value.teamXp,
+    level: value.level,
+    currentLevelXp: value.currentLevelXp,
+    nextLevelXp: value.nextLevelXp,
+    levelProgress: value.levelProgress,
+    unlockedFeatures: value.unlockedFeatures.map(unlock),
+    nextUnlock: nextUnlock === null ? null : unlock(nextUnlock),
+    missionPolicy: {
+      dailyLimit: value.missionPolicy.dailyLimit,
+      canCreateToday: value.missionPolicy.canCreateToday,
+      nextCreationAt: value.missionPolicy.nextCreationAt,
+      availableDifficulties,
+    },
+  }
 }
 
 function parsePermissions(value: unknown): TeamPermissions {
@@ -70,6 +126,7 @@ export function parseTeamSummary(value: unknown): TeamSummary {
     memberCount,
     totalXp,
     totalContributions,
+    progression: parseProgression(value.progression),
   }
 }
 

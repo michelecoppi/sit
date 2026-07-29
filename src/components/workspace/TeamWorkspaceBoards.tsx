@@ -21,12 +21,21 @@ function progressPercent(value: number, target: number) {
   return Math.min(100, Math.round((value / Math.max(1, target)) * 100))
 }
 
+const fieldClass = 'mt-1 w-full rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-sm text-slate-950 shadow-sm outline-none transition focus:border-indigo-500 focus:ring-4 focus:ring-indigo-500/10 disabled:cursor-not-allowed disabled:bg-slate-100 disabled:text-slate-500 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-50 dark:disabled:bg-slate-900'
+const selectClass = `${fieldClass} appearance-auto [color-scheme:light] dark:[color-scheme:dark]`
+const labelClass = 'text-sm font-medium text-slate-700 dark:text-slate-200'
+
 function MissionBoard({ team }: { team: TeamDetail }) {
   const [missions, setMissions] = useState<WorkspaceMission[]>([])
   const [status, setStatus] = useState<WorkspaceMissionStatus | 'all'>('active')
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [difficulty, setDifficulty] = useState<WorkspaceMission['difficulty']>('standard')
+  const [assigneeId, setAssigneeId] = useState('')
+  const [createdToday, setCreatedToday] = useState(!team.progression.missionPolicy.canCreateToday)
+  const difficultyRule = team.progression.missionPolicy.availableDifficulties.find((entry) => entry.difficulty === difficulty)
+  const expectedReward = assigneeId.trim() ? difficultyRule?.assignedReward : difficultyRule?.teamReward
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -53,12 +62,14 @@ function MissionBoard({ team }: { team: TeamDetail }) {
         title: String(data.get('title') ?? '').trim(),
         description: String(data.get('description') ?? '').trim(),
         target: Number(data.get('target')),
-        xpReward: Number(data.get('xpReward')),
+        difficulty,
         dueAt: String(data.get('dueAt') ?? '').trim() || null,
         assigneeResearcherId: String(data.get('assigneeResearcherId') ?? '').trim() || null,
       })
       setMissions((current) => [mission, ...current])
+      setCreatedToday(true)
       form.reset()
+      setAssigneeId('')
     } catch (caught) {
       setError(messageOf(caught, 'Unable to create mission.'))
     }
@@ -92,11 +103,15 @@ function MissionBoard({ team }: { team: TeamDetail }) {
   }
 
   return (
-    <section className="workspace-board" aria-labelledby="workspace-missions-title">
-      <div className="workspace-board-header">
-        <div><p className="team-eyebrow">Shared objectives</p><h2 id="workspace-missions-title">Mission board</h2></div>
-        <label>Filter
-          <select value={status} onChange={(event) => setStatus(event.target.value as WorkspaceMissionStatus | 'all')}>
+    <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:p-8 dark:border-slate-800 dark:bg-slate-900" aria-labelledby="workspace-missions-title">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.2em] text-indigo-600 dark:text-indigo-300">Shared objectives</p>
+          <h2 id="workspace-missions-title" className="mt-1 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">Mission board</h2>
+          <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">One verified team objective per UTC day.</p>
+        </div>
+        <label className={`${labelClass} w-full sm:w-48`}>Filter
+          <select className={selectClass} value={status} onChange={(event) => setStatus(event.target.value as WorkspaceMissionStatus | 'all')}>
             <option value="active">Active</option>
             <option value="completed">Completed</option>
             <option value="archived">Archived</option>
@@ -104,47 +119,64 @@ function MissionBoard({ team }: { team: TeamDetail }) {
           </select>
         </label>
       </div>
-      {error ? <div className="team-notice team-notice-error" role="alert">{error}</div> : null}
+      {error ? <div className="mt-4 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800 dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200" role="alert">{error}</div> : null}
       {team.permissions.manageMissions ? (
-        <form className="workspace-create-grid" onSubmit={createMission}>
-          <label>Mission title<input name="title" required minLength={2} maxLength={120} /></label>
-          <label>Target<input name="target" type="number" defaultValue={1} min={1} required /></label>
-          <label>XP reward<input name="xpReward" type="number" defaultValue={0} min={0} required /></label>
-          <label>Due date<input name="dueAt" type="datetime-local" /></label>
-          <label>Assignee ID<input name="assigneeResearcherId" placeholder="Optional SIT-000067" /></label>
-          <label className="workspace-span">Mission brief<textarea name="description" maxLength={2000} /></label>
-          <button className="button-primary workspace-span">Create mission</button>
+        <form className="mt-6 grid gap-4 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4 sm:grid-cols-2 xl:grid-cols-4 dark:border-indigo-950 dark:bg-indigo-950/20" onSubmit={createMission}>
+          <label className={`${labelClass} sm:col-span-2`}>Mission title<input className={fieldClass} name="title" required minLength={2} maxLength={120} disabled={createdToday} /></label>
+          <label className={labelClass}>Difficulty
+            <select className={selectClass} name="difficulty" value={difficulty} disabled={createdToday} onChange={(event) => setDifficulty(event.target.value as WorkspaceMission['difficulty'])}>
+              {team.progression.missionPolicy.availableDifficulties.map((rule) => (
+                <option className="bg-white text-slate-950 dark:bg-slate-900 dark:text-white" key={rule.difficulty} value={rule.difficulty} disabled={!rule.unlocked}>
+                  {rule.label}{rule.unlocked ? '' : ` · level ${rule.requiredLevel}`}
+                </option>
+              ))}
+            </select>
+          </label>
+          <label className={labelClass}>Target<input className={fieldClass} name="target" type="number" defaultValue={1} min={1} required disabled={createdToday} /></label>
+          <label className={labelClass}>Due date<input className={fieldClass} name="dueAt" type="datetime-local" disabled={createdToday} /></label>
+          <label className={`${labelClass} sm:col-span-1 xl:col-span-2`}>Assignee ID
+            <input className={fieldClass} name="assigneeResearcherId" value={assigneeId} disabled={createdToday} onChange={(event) => setAssigneeId(event.target.value)} placeholder="Empty = whole team" />
+          </label>
+          <label className={`${labelClass} sm:col-span-2 xl:col-span-4`}>Mission brief<textarea className={`${fieldClass} min-h-24 resize-y`} name="description" maxLength={2000} disabled={createdToday} /></label>
+          <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between xl:col-span-4">
+            <div className="text-sm text-slate-600 dark:text-slate-300">
+              {createdToday
+                ? <>Daily slot used. Next mission {team.progression.missionPolicy.nextCreationAt ? new Date(team.progression.missionPolicy.nextCreationAt).toLocaleString() : 'tomorrow (UTC)'}.</>
+                : <><strong className="text-slate-950 dark:text-white">Core reward: {expectedReward ?? 0} Team XP</strong><span className="block text-xs">{difficultyRule?.description}</span></>}
+            </div>
+            <button className="button-primary w-full sm:w-auto" disabled={createdToday}>{createdToday ? 'Daily mission already created' : 'Create daily mission'}</button>
+          </div>
         </form>
       ) : null}
-      {loading ? <div className="route-loader" role="status">Synchronizing team missions…</div> : null}
-      {!loading && !missions.length ? <div className="workspace-empty">No missions match this filter.</div> : null}
-      <div className="workspace-card-grid">
+      {loading ? <div className="mt-6 rounded-2xl bg-slate-50 p-8 text-center text-sm text-slate-500 dark:bg-slate-950/50 dark:text-slate-400" role="status">Synchronizing team missions…</div> : null}
+      {!loading && !missions.length ? <div className="mt-6 rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">No missions match this filter.</div> : null}
+      <div className="mt-6 grid gap-4 lg:grid-cols-2">
         {missions.map((mission) => (
-          <article className="workspace-card" key={mission.id}>
-            <div className="workspace-card-topline">
-              <span className={`workspace-state workspace-state-${mission.status}`}>{mission.status}</span>
+          <article className="flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-950/40" key={mission.id}>
+            <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
+              <span><span className={`workspace-state workspace-state-${mission.status}`}>{mission.status}</span> · {mission.difficulty}</span>
               <span>rev {mission.revision}</span>
             </div>
-            <h3>{mission.title}</h3>
-            <p>{mission.description || 'No mission brief supplied.'}</p>
-            <dl className="workspace-meta">
+            <h3 className="mt-4 break-words text-lg font-bold text-slate-950 dark:text-white">{mission.title}</h3>
+            <p className="mt-1 break-words text-sm text-slate-600 dark:text-slate-300">{mission.description || 'No mission brief supplied.'}</p>
+            <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
               <div><dt>Assignee</dt><dd>{mission.assignee?.displayName ?? 'Whole team'}</dd></div>
               <div><dt>Due</dt><dd>{mission.dueAt ? new Date(mission.dueAt).toLocaleString() : 'Open'}</dd></div>
-              <div><dt>Reward</dt><dd>{mission.xpReward} XP</dd></div>
+              <div><dt>Reward</dt><dd>{mission.teamXpReward} Team XP</dd></div>
             </dl>
-            <div className="workspace-progress">
-              <div><span>Individual {mission.individualProgress}/{mission.target}</span><span>{progressPercent(mission.individualProgress, mission.target)}%</span></div>
-              <progress max={mission.target} value={mission.individualProgress} />
-              <small>Aggregate {mission.aggregateProgress}/{mission.target} · updated {new Date(mission.updatedAt).toLocaleString()}</small>
+            <div className="mt-5">
+              <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-600 dark:text-slate-300"><span>Individual {mission.individualProgress}/{mission.target}</span><span>{progressPercent(mission.individualProgress, mission.target)}%</span></div>
+              <progress className="h-2 w-full overflow-hidden rounded-full accent-indigo-600" max={mission.target} value={mission.individualProgress} />
+              <small className="mt-2 block text-xs text-slate-500">Aggregate {mission.aggregateProgress}/{mission.target} · updated {new Date(mission.updatedAt).toLocaleString()}</small>
             </div>
             {team.permissions.contribute && mission.status === 'active' ? (
-              <form className="workspace-progress-form" onSubmit={(event) => {
+              <form className="mt-auto flex flex-col gap-3 pt-5 sm:flex-row sm:items-end" onSubmit={(event) => {
                 event.preventDefault()
                 const value = Number(new FormData(event.currentTarget).get('progress'))
                 void updateProgress(mission, value)
               }}>
-                <label>Set progress<input name="progress" type="number" min={0} max={mission.target} defaultValue={mission.individualProgress} /></label>
-                <button className="button-secondary" disabled={busyId === mission.id}>{busyId === mission.id ? 'Syncing…' : 'Update'}</button>
+                <label className={`${labelClass} flex-1`}>Set progress<input className={fieldClass} name="progress" type="number" min={0} max={mission.target} defaultValue={mission.individualProgress} /></label>
+                <button className="button-secondary w-full sm:w-auto" disabled={busyId === mission.id}>{busyId === mission.id ? 'Syncing…' : 'Update'}</button>
               </form>
             ) : null}
           </article>
@@ -221,41 +253,41 @@ function CapsuleWorkspace({ team }: { team: TeamDetail }) {
   }
 
   return (
-    <section className="workspace-board" aria-labelledby="workspace-capsules-title">
-      <div className="workspace-board-header">
-        <div><p className="team-eyebrow">Versioned artifacts</p><h2 id="workspace-capsules-title">Capsule studio</h2></div>
-        <label>Filter
-          <select value={filter} onChange={(event) => setFilter(event.target.value as WorkspaceCapsuleStatus | 'all')}>
+    <section className="rounded-3xl border border-slate-200 bg-white p-4 shadow-sm sm:p-6 lg:p-8 dark:border-slate-800 dark:bg-slate-900" aria-labelledby="workspace-capsules-title">
+      <div className="flex flex-col gap-4 sm:flex-row sm:items-end sm:justify-between">
+        <div><p className="text-xs font-bold uppercase tracking-[0.2em] text-cyan-600 dark:text-cyan-300">Versioned artifacts</p><h2 id="workspace-capsules-title" className="mt-1 text-2xl font-bold tracking-tight text-slate-950 dark:text-white">Capsule studio</h2><p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Draft, review and publish without overwriting newer work.</p></div>
+        <label className={`${labelClass} w-full sm:w-48`}>Filter
+          <select className={selectClass} value={filter} onChange={(event) => setFilter(event.target.value as WorkspaceCapsuleStatus | 'all')}>
             <option value="draft">Drafts</option>
             <option value="published">Published</option>
             <option value="all">All</option>
           </select>
         </label>
       </div>
-      {error ? <div className="team-notice team-notice-error" role="alert">{error}{conflict ? <button className="button-secondary" onClick={() => void load()}>Reload Core revision</button> : null}</div> : null}
+      {error ? <div className="mt-4 flex flex-col gap-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800 sm:flex-row sm:items-center sm:justify-between dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200" role="alert"><span>{error}</span>{conflict ? <button className="button-secondary" onClick={() => void load()}>Reload Core revision</button> : null}</div> : null}
       {loading ? <div className="route-loader" role="status">Loading capsule revisions…</div> : (
-        <div className="capsule-workspace-grid">
-          <aside className="capsule-list">
-            {team.permissions.contribute ? <button className="button-secondary" onClick={() => { setSelectedId(null); setDraft({ title: '', description: '', payload: '' }); setConflict(false) }}>New draft</button> : null}
-            {!capsules.length ? <div className="workspace-empty">No capsules match this filter.</div> : capsules.map((capsule) => (
-              <button className={selectedId === capsule.id ? 'capsule-list-item capsule-list-item-active' : 'capsule-list-item'} key={capsule.id} onClick={() => setSelectedId(capsule.id)}>
+        <div className="mt-6 grid min-w-0 gap-5 lg:grid-cols-[minmax(13rem,0.7fr)_minmax(0,2fr)]">
+          <aside className="flex min-w-0 gap-2 overflow-x-auto pb-2 lg:max-h-[40rem] lg:flex-col lg:overflow-y-auto lg:pb-0">
+            {team.permissions.contribute ? <button className="button-secondary shrink-0" onClick={() => { setSelectedId(null); setDraft({ title: '', description: '', payload: '' }); setConflict(false) }}>New draft</button> : null}
+            {!capsules.length ? <div className="min-w-56 rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700">No capsules match this filter.</div> : capsules.map((capsule) => (
+              <button className={selectedId === capsule.id ? 'min-w-56 rounded-xl border border-indigo-400 bg-indigo-50 p-3 text-left text-slate-950 dark:border-indigo-500 dark:bg-indigo-950/50 dark:text-white' : 'min-w-56 rounded-xl border border-slate-200 bg-white p-3 text-left text-slate-700 hover:border-indigo-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200'} key={capsule.id} onClick={() => setSelectedId(capsule.id)}>
                 <strong>{capsule.title}</strong><span>{capsule.status} · rev {capsule.revision}</span>
               </button>
             ))}
           </aside>
-          <form className="team-form capsule-editor" onSubmit={save}>
-            <div className="workspace-card-topline"><span>{selected ? `${selected.status} · revision ${selected.revision}` : 'new draft'}</span><span>{selected?.contributors.length ?? 1} contributor(s)</span></div>
-            <label>Title<input value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} required disabled={!team.permissions.contribute || selected?.status === 'published'} /></label>
-            <label>Description<textarea value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} disabled={!team.permissions.contribute || selected?.status === 'published'} /></label>
-            <label>Capsule payload<textarea className="capsule-payload" value={draft.payload} onChange={(event) => setDraft((current) => ({ ...current, payload: event.target.value }))} required disabled={!team.permissions.contribute || selected?.status === 'published'} /></label>
-            <div className="team-actions">
+          <form className="min-w-0 space-y-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-950/40" onSubmit={save}>
+            <div className="flex flex-wrap justify-between gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500"><span>{selected ? `${selected.status} · revision ${selected.revision}` : 'new draft'}</span><span>{selected?.contributors.length ?? 1} contributor(s)</span></div>
+            <label className={labelClass}>Title<input className={fieldClass} value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} required disabled={!team.permissions.contribute || selected?.status === 'published'} /></label>
+            <label className={labelClass}>Description<textarea className={`${fieldClass} min-h-20 resize-y`} value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} disabled={!team.permissions.contribute || selected?.status === 'published'} /></label>
+            <label className={labelClass}>Capsule payload<textarea className={`${fieldClass} min-h-56 resize-y font-mono`} value={draft.payload} onChange={(event) => setDraft((current) => ({ ...current, payload: event.target.value }))} required disabled={!team.permissions.contribute || selected?.status === 'published'} /></label>
+            <div className="flex flex-col gap-3 sm:flex-row">
               {team.permissions.contribute && selected?.status !== 'published' ? <button className="button-primary" disabled={busy}>{busy ? 'Synchronizing…' : selected ? 'Save revision' : 'Create draft'}</button> : null}
               {selected && team.permissions.publishCapsules && selected.status === 'draft' ? <button className="button-secondary" type="button" disabled={busy} onClick={() => void publish()}>Publish</button> : null}
             </div>
             {selected && team.permissions.manageMembers ? (
-              <label>Add contributor
-                <span className="workspace-inline">
-                  <input name="contributor" placeholder="SIT-000067" />
+              <label className={labelClass}>Add contributor
+                <span className="mt-1 flex flex-col gap-2 sm:flex-row">
+                  <input className={fieldClass} name="contributor" placeholder="SIT-000067" />
                   <button className="button-secondary" type="button" onClick={(event) => {
                     const input = event.currentTarget.parentElement?.querySelector('input')
                     if (!input?.value.trim()) return
@@ -280,7 +312,7 @@ export default function TeamWorkspaceBoards({ team }: { team: TeamDetail }) {
     return <div className="team-notice team-notice-error" role="alert">This workspace is restricted to verified team members.</div>
   }
   return (
-    <div className="workspace-verticals">
+    <div className="mt-8 space-y-6 sm:space-y-8">
       <MissionBoard team={team} />
       <CapsuleWorkspace team={team} />
     </div>

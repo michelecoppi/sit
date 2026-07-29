@@ -46,7 +46,9 @@ export function parseWorkspaceMission(value: unknown): WorkspaceMission {
   const statuses: WorkspaceMissionStatus[] = ['active', 'completed', 'archived']
   if (
     !text(value.id) || !text(value.teamId) || !text(value.title) || typeof value.description !== 'string'
-    || !integer(value.target) || value.target < 1 || !integer(value.xpReward)
+    || !integer(value.target) || value.target < 1
+    || typeof value.difficulty !== 'string' || !['routine', 'standard', 'advanced', 'critical'].includes(value.difficulty)
+    || !integer(value.teamXpReward)
     || typeof value.status !== 'string' || !statuses.includes(value.status as WorkspaceMissionStatus)
     || !dateOrNull(value.dueAt) || !integer(value.revision)
     || !integer(value.individualProgress) || !integer(value.aggregateProgress)
@@ -59,7 +61,8 @@ export function parseWorkspaceMission(value: unknown): WorkspaceMission {
     title: value.title,
     description: value.description,
     target: value.target,
-    xpReward: value.xpReward,
+    difficulty: value.difficulty as WorkspaceMission['difficulty'],
+    teamXpReward: value.teamXpReward,
     status: value.status as WorkspaceMissionStatus,
     dueAt: value.dueAt,
     revision: value.revision,
@@ -159,7 +162,7 @@ export const createWorkspaceMission = (teamId: string, input: {
   title: string
   description: string
   target: number
-  xpReward: number
+  difficulty: WorkspaceMission['difficulty']
   dueAt?: string | null
   assigneeResearcherId?: string | null
 }) => request(
@@ -173,7 +176,6 @@ export const updateWorkspaceMission = (teamId: string, missionId: string, expect
   title: string
   description: string
   target: number
-  xpReward: number
   dueAt: string | null
   assigneeResearcherId: string | null
   status: WorkspaceMissionStatus
