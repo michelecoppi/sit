@@ -31,6 +31,9 @@ const team: TeamDetail = {
     transferOwnership: false,
     archiveTeam: false,
     leaveTeam: false,
+    manageMissions: false,
+    contribute: false,
+    publishCapsules: false,
   },
 }
 
@@ -62,6 +65,18 @@ vi.mock('../services/teamService', () => ({
   changeTeamMemberRole: vi.fn(),
   transferTeamOwnership: vi.fn(),
   respondToTeamInvite: vi.fn(),
+}))
+
+vi.mock('../services/workspaceService', () => ({
+  listWorkspaceMissions: vi.fn(async () => ({ items: [], nextCursor: null })),
+  listWorkspaceCapsules: vi.fn(async () => ({ items: [], nextCursor: null })),
+  createWorkspaceMission: vi.fn(),
+  recordWorkspaceMissionProgress: vi.fn(),
+  createWorkspaceCapsule: vi.fn(),
+  updateWorkspaceCapsule: vi.fn(),
+  publishWorkspaceCapsule: vi.fn(),
+  addWorkspaceCapsuleContributor: vi.fn(),
+  WorkspaceConflictError: class WorkspaceConflictError extends Error {},
 }))
 
 import { discoverTeams, getTeamLeaderboard } from '../services/teamService'

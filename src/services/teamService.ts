@@ -11,7 +11,7 @@ import type {
 import { getApiHeaders, getApiUrl, parseResponsePayload, throwApiError } from './apiClient'
 
 const VISIBILITIES = new Set(['public', 'private'])
-const ROLES = new Set(['owner', 'admin', 'member'])
+const ROLES = new Set(['owner', 'admin', 'member', 'viewer'])
 const INVITE_STATES = new Set(['pending', 'accepted', 'declined', 'expired'])
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -40,6 +40,9 @@ function parsePermissions(value: unknown): TeamPermissions {
     'transferOwnership',
     'archiveTeam',
     'leaveTeam',
+    'manageMissions',
+    'contribute',
+    'publishCapsules',
   ]
   if (keys.some((key) => typeof value[key] !== 'boolean')) {
     throw new Error('Invalid team permissions payload.')
@@ -110,7 +113,7 @@ export function parseTeamInvite(value: unknown): TeamInvite {
   const { id, token, role, expiresAt, status, inviteUrl } = value
   const team = value.team
   if (
-    !text(id) || !text(token) || (role !== 'admin' && role !== 'member')
+    !text(id) || !text(token) || (role !== 'admin' && role !== 'member' && role !== 'viewer')
     || !text(expiresAt) || Number.isNaN(Date.parse(expiresAt))
     || typeof status !== 'string' || !INVITE_STATES.has(status)
     || (inviteUrl !== undefined && typeof inviteUrl !== 'string')

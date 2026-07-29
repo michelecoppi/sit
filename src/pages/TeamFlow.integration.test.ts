@@ -15,6 +15,9 @@ const permissions = {
   transferOwnership: true,
   archiveTeam: true,
   leaveTeam: false,
+  manageMissions: true,
+  contribute: true,
+  publishCapsules: true,
 }
 
 const owner = {
@@ -68,7 +71,7 @@ describe('create → invite → join → transfer ownership', () => {
       ...team,
       memberCount: 2,
       currentMember: { ...owner, researcherId: 'SIT-0068', displayName: 'Invited Researcher', role: 'member' },
-      permissions: { ...permissions, editTeam: false, inviteMembers: false, manageMembers: false, changeRoles: false, transferOwnership: false, archiveTeam: false, leaveTeam: true },
+      permissions: { ...permissions, editTeam: false, inviteMembers: false, manageMembers: false, changeRoles: false, transferOwnership: false, archiveTeam: false, leaveTeam: true, manageMissions: false },
     }
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify(team), { status: 201 }))

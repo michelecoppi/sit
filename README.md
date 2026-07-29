@@ -136,8 +136,16 @@ contributors.
 Set `VITE_API_URL` to enable the live SIT Core integration. The frontend uses
 the backend OpenAPI contract and HttpOnly cookie sessions; the verified endpoint
 mapping is maintained in [docs/API_CONTRACT.md](docs/API_CONTRACT.md).
+
 Native validation errors preserve the server-provided code, token position and
 suggestion, and their JSON payload can be copied for reproducible reports.
+
+Authenticated team workspaces combine four Core-authoritative areas: member
+roles and invitations, assigned mission progress, versioned capsule drafts and
+publication. Owner/admin controls are rendered only from the permission matrix
+returned by Core; members can contribute, while viewers remain read-only.
+Mission updates use optimistic UI with rollback. Capsule edits send the current
+revision and surface a reload action when Core reports a 409 conflict.
 
 ## Notes
 
