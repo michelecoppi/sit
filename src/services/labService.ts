@@ -1,5 +1,6 @@
 import { getApiHeaders, getApiUrl, parseResponsePayload, throwApiError } from './apiClient'
 import type { NativeLocale } from './nativeProtocolService'
+import { queueOfflineChange } from './offlineSyncService'
 
 export type LabOperation = 'encode' | 'decode' | 'verify' | 'native'
 export type LabDifficulty = 'easy' | 'medium' | 'hard'
@@ -28,5 +29,10 @@ async function request<T>(path: string, init?: RequestInit): Promise<T> {
 
 export const labApi = {
   presets: () => request<{ contractVersion: '1'; presets: LabPreset[] }>('/presets'),
-  run: (operation: LabOperation, input: string, locale: NativeLocale = 'en') => request<LabResult>('/run', { method: 'POST', body: JSON.stringify({ operation, input, version: '2.1', locale }) }),
+  run: async (operation: LabOperation, input: string, locale: NativeLocale = 'en') => {
+    const result = await request<LabResult>('/run', { method: 'POST', body: JSON.stringify({ operation, input, version: '2.1', locale }) })
+    await queueOfflineChange('playground_run', crypto.randomUUID(), { operation, input, locale, outcome: result.ok })
+    return result
+  },
 }
+
