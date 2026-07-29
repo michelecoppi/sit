@@ -4,6 +4,14 @@ The optional `VITE_API_URL` integration targets the OpenAPI document published
 by SIT Core at `/api/docs`. The frontend deliberately uses cookie sessions
 (`credentials: 'include'`) and never reads or stores a JWT.
 
+## Offline sync
+
+The optional Core sync protocol uses `GET /api/sync/pull?version=1` and
+`POST /api/sync/push`. Browser work is stored in IndexedDB, queued with an
+operation id and submitted in batches with an `Idempotency-Key`. Clients keep
+conflicts visible until the researcher chooses the local or remote version;
+accepted operations are removed only after Core confirms them.
+
 ## Verified client operations
 
 | Frontend service | SIT Core endpoints | Contract checked |
@@ -22,3 +30,4 @@ by SIT Core at `/api/docs`. The frontend deliberately uses cookie sessions
 The contract is exercised by the service tests. When SIT Core changes its
 OpenAPI contract, update the relevant parser, test fixture, and this table in
 the same change.
+
