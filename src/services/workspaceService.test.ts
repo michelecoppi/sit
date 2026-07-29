@@ -12,6 +12,7 @@ const mission = {
   title: 'Calibrate registry',
   description: '',
   target: 3,
+  metric: 'messages_encoded',
   difficulty: 'standard',
   teamXpReward: 70,
   status: 'active',

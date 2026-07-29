@@ -47,6 +47,7 @@ export function parseWorkspaceMission(value: unknown): WorkspaceMission {
   if (
     !text(value.id) || !text(value.teamId) || !text(value.title) || typeof value.description !== 'string'
     || !integer(value.target) || value.target < 1
+    || typeof value.metric !== 'string' || !['messages_encoded', 'messages_decoded', 'syte_processed'].includes(value.metric)
     || typeof value.difficulty !== 'string' || !['routine', 'standard', 'advanced', 'critical'].includes(value.difficulty)
     || !integer(value.teamXpReward)
     || typeof value.status !== 'string' || !statuses.includes(value.status as WorkspaceMissionStatus)
@@ -61,6 +62,7 @@ export function parseWorkspaceMission(value: unknown): WorkspaceMission {
     title: value.title,
     description: value.description,
     target: value.target,
+    metric: value.metric as WorkspaceMission['metric'],
     difficulty: value.difficulty as WorkspaceMission['difficulty'],
     teamXpReward: value.teamXpReward,
     status: value.status as WorkspaceMissionStatus,
@@ -162,8 +164,7 @@ export const createWorkspaceMission = (teamId: string, input: {
   title: string
   description: string
   target: number
-  difficulty: WorkspaceMission['difficulty']
-  dueAt?: string | null
+  metric: WorkspaceMission['metric']
   assigneeResearcherId?: string | null
 }) => request(
   `/api/teams/${encodeURIComponent(teamId)}/missions`,
@@ -176,7 +177,6 @@ export const updateWorkspaceMission = (teamId: string, missionId: string, expect
   title: string
   description: string
   target: number
-  dueAt: string | null
   assigneeResearcherId: string | null
   status: WorkspaceMissionStatus
 }>) => request(

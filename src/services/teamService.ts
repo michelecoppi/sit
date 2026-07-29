@@ -33,7 +33,7 @@ function dateOrNull(value: unknown): value is string | null {
 
 function parseProgression(value: unknown): TeamProgression {
   if (!isObject(value) || !isObject(value.missionPolicy) || !Array.isArray(value.unlockedFeatures)
-    || !Array.isArray(value.missionPolicy.availableDifficulties)) {
+    || !Array.isArray(value.missionPolicy.activityTypes)) {
     throw new Error('Invalid team progression payload.')
   }
   const nextUnlock = value.nextUnlock
@@ -44,22 +44,34 @@ function parseProgression(value: unknown): TeamProgression {
     return { level: entry.level, code: entry.code, label: entry.label }
   }
   const difficulties = new Set(['routine', 'standard', 'advanced', 'critical'])
-  const availableDifficulties = value.missionPolicy.availableDifficulties.map((entry) => {
-    if (!isObject(entry) || typeof entry.difficulty !== 'string' || !difficulties.has(entry.difficulty)
-      || !text(entry.label) || !text(entry.description) || !count(entry.baseTeamXp)
-      || !count(entry.requiredLevel) || typeof entry.unlocked !== 'boolean'
-      || !count(entry.assignedReward) || !count(entry.teamReward)) {
-      throw new Error('Invalid team difficulty payload.')
+  const metrics = new Set(['messages_encoded', 'messages_decoded', 'syte_processed'])
+  const activityTypes = value.missionPolicy.activityTypes.map((entry) => {
+    if (!isObject(entry) || typeof entry.metric !== 'string' || !metrics.has(entry.metric)
+      || !text(entry.label) || !text(entry.unit) || !text(entry.description) || !Array.isArray(entry.bands)) {
+      throw new Error('Invalid team activity payload.')
     }
     return {
-      difficulty: entry.difficulty as TeamProgression['missionPolicy']['availableDifficulties'][number]['difficulty'],
+      metric: entry.metric as TeamProgression['missionPolicy']['activityTypes'][number]['metric'],
       label: entry.label,
+      unit: entry.unit,
       description: entry.description,
-      baseTeamXp: entry.baseTeamXp,
-      requiredLevel: entry.requiredLevel,
-      unlocked: entry.unlocked,
-      assignedReward: entry.assignedReward,
-      teamReward: entry.teamReward,
+      bands: entry.bands.map((band) => {
+        if (!isObject(band) || (band.maxTarget !== null && !count(band.maxTarget))
+          || typeof band.difficulty !== 'string' || !difficulties.has(band.difficulty)
+          || !count(band.baseTeamXp) || !count(band.requiredLevel) || typeof band.unlocked !== 'boolean'
+          || !count(band.assignedReward) || !count(band.collaborationReward)) {
+          throw new Error('Invalid team activity band payload.')
+        }
+        return {
+          maxTarget: band.maxTarget,
+          difficulty: band.difficulty as TeamProgression['missionPolicy']['activityTypes'][number]['bands'][number]['difficulty'],
+          baseTeamXp: band.baseTeamXp,
+          requiredLevel: band.requiredLevel,
+          unlocked: band.unlocked,
+          assignedReward: band.assignedReward,
+          collaborationReward: band.collaborationReward,
+        }
+      }),
     }
   })
   if (!count(value.teamXp) || !count(value.level) || !count(value.currentLevelXp)
@@ -81,7 +93,7 @@ function parseProgression(value: unknown): TeamProgression {
       dailyLimit: value.missionPolicy.dailyLimit,
       canCreateToday: value.missionPolicy.canCreateToday,
       nextCreationAt: value.missionPolicy.nextCreationAt,
-      availableDifficulties,
+      activityTypes,
     },
   }
 }

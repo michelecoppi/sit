@@ -10,6 +10,7 @@ const mission = {
   title: 'Calibrate registry',
   description: '',
   target: 3,
+  metric: 'messages_encoded' as const,
   difficulty: 'standard' as const,
   teamXpReward: 70,
   status: 'active' as const,
@@ -60,7 +61,7 @@ const team: TeamDetail = {
       dailyLimit: 1,
       canCreateToday: true,
       nextCreationAt: null,
-      availableDifficulties: [{ difficulty: 'standard', label: 'Standard', description: 'Normal objective.', baseTeamXp: 50, requiredLevel: 1, unlocked: true, assignedReward: 50, teamReward: 50 }],
+      activityTypes: [{ metric: 'messages_encoded', label: 'Encode messages', unit: 'messages', description: 'Encode messages.', bands: [{ maxTarget: 3, difficulty: 'routine', baseTeamXp: 40, requiredLevel: 1, unlocked: true, assignedReward: 40, collaborationReward: 40 }, { maxTarget: null, difficulty: 'critical', baseTeamXp: 90, requiredLevel: 4, unlocked: false, assignedReward: 90, collaborationReward: 90 }] }],
     },
   },
   createdAt: '2026-07-29T10:00:00.000Z',
@@ -73,11 +74,12 @@ const service = vi.hoisted(() => ({
   listWorkspaceMissions: vi.fn(),
   listWorkspaceCapsules: vi.fn(),
   recordWorkspaceMissionProgress: vi.fn(),
+  createWorkspaceMission: vi.fn(),
 }))
 
 vi.mock('../../services/workspaceService', () => ({
   ...service,
-  createWorkspaceMission: vi.fn(),
+  createWorkspaceMission: service.createWorkspaceMission,
   createWorkspaceCapsule: vi.fn(),
   updateWorkspaceCapsule: vi.fn(),
   publishWorkspaceCapsule: vi.fn(),
@@ -89,12 +91,13 @@ beforeEach(() => {
   service.listWorkspaceMissions.mockResolvedValue({ items: [mission], nextCursor: null })
   service.listWorkspaceCapsules.mockResolvedValue({ items: [], nextCursor: null })
   service.recordWorkspaceMissionProgress.mockReset()
+  service.createWorkspaceMission.mockReset()
 })
 
 describe('TeamWorkspaceBoards', () => {
   it('rolls back optimistic mission progress when Core rejects synchronization', async () => {
     service.recordWorkspaceMissionProgress.mockRejectedValue(new Error('Core rejected progress.'))
-    render(<TeamWorkspaceBoards team={team} />)
+    render(<TeamWorkspaceBoards team={team} members={[team.currentMember!]} />)
 
     const progressInput = await screen.findByRole('spinbutton', { name: 'Set progress' })
     fireEvent.change(progressInput, { target: { value: '3' } })
@@ -105,7 +108,7 @@ describe('TeamWorkspaceBoards', () => {
   })
 
   it('keeps viewers read-only even when workspace data is visible', async () => {
-    render(<TeamWorkspaceBoards team={{
+    render(<TeamWorkspaceBoards members={[team.currentMember!]} team={{
       ...team,
       currentMember: { ...team.currentMember!, role: 'viewer' },
       permissions: { ...permissions, contribute: false, publishCapsules: false },
@@ -114,5 +117,24 @@ describe('TeamWorkspaceBoards', () => {
     expect(await screen.findByText('Calibrate registry')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Update' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'New draft' })).not.toBeInTheDocument()
+  })
+
+  it('derives difficulty from activity and target and selects a real team member', async () => {
+    const teammate = { ...team.currentMember!, researcherId: 'SIT-0068', displayName: 'Teammate', role: 'member' as const }
+    render(<TeamWorkspaceBoards members={[team.currentMember!, teammate]} team={{
+      ...team,
+      permissions: { ...permissions, manageMissions: true },
+    }} />)
+
+    expect(await screen.findByRole('combobox', { name: 'Activity' })).toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Difficulty' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Due date')).not.toBeInTheDocument()
+    const assignee = screen.getByRole('combobox', { name: 'Assignee' })
+    expect(assignee).toHaveTextContent('Me — Researcher')
+    expect(assignee).toHaveTextContent('Teammate · member')
+
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Target (messages)' }), { target: { value: '12' } })
+    expect(screen.getByText('Unlocks at team level 4')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Target locked' })).toBeDisabled()
   })
 })

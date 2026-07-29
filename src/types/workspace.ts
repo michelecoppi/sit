@@ -1,5 +1,6 @@
 export type WorkspaceMissionStatus = 'active' | 'completed' | 'archived'
 export type WorkspaceMissionDifficulty = 'routine' | 'standard' | 'advanced' | 'critical'
+export type WorkspaceMissionMetric = 'messages_encoded' | 'messages_decoded' | 'syte_processed'
 export type WorkspaceCapsuleStatus = 'draft' | 'published'
 
 export interface WorkspaceIdentity {
@@ -19,6 +20,7 @@ export interface WorkspaceMission {
   title: string
   description: string
   target: number
+  metric: WorkspaceMissionMetric
   difficulty: WorkspaceMissionDifficulty
   teamXpReward: number
   status: WorkspaceMissionStatus

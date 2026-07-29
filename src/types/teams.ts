@@ -14,15 +14,22 @@ export interface TeamPermissions {
   publishCapsules: boolean
 }
 
-export interface TeamDifficultyRule {
+export interface TeamMissionBand {
+  maxTarget: number | null
   difficulty: 'routine' | 'standard' | 'advanced' | 'critical'
-  label: string
-  description: string
   baseTeamXp: number
   requiredLevel: number
   unlocked: boolean
   assignedReward: number
-  teamReward: number
+  collaborationReward: number
+}
+
+export interface TeamActivityType {
+  metric: 'messages_encoded' | 'messages_decoded' | 'syte_processed'
+  label: string
+  unit: string
+  description: string
+  bands: TeamMissionBand[]
 }
 
 export interface TeamProgression {
@@ -37,7 +44,7 @@ export interface TeamProgression {
     dailyLimit: number
     canCreateToday: boolean
     nextCreationAt: string | null
-    availableDifficulties: TeamDifficultyRule[]
+    activityTypes: TeamActivityType[]
   }
 }
 
