@@ -29,6 +29,7 @@ import {
   updateTeam,
 } from '../services/teamService'
 import type { TeamDetail, TeamInvite, TeamMember, TeamSummary, TeamVisibility } from '../types/teams'
+import TeamWorkspaceBoards from '../components/workspace/TeamWorkspaceBoards'
 
 function ErrorNotice({ message }: { message: string }) {
   return <div className="team-notice team-notice-error" role="alert">{message}</div>
@@ -279,9 +280,9 @@ function MemberControls({ team, member, onChanged }: { team: TeamDetail, member:
     <div className="member-actions">
       {team.permissions.changeRoles && member.role !== 'owner' ? (
         <select aria-label={`Role for ${member.displayName}`} disabled={busy} value={member.role} onChange={(event) => void run(
-          () => changeTeamMemberRole(team.id, member.researcherId, event.target.value as 'admin' | 'member'),
+          () => changeTeamMemberRole(team.id, member.researcherId, event.target.value as 'admin' | 'member' | 'viewer'),
           `Change ${member.displayName}'s role?`,
-        )}><option value="member">Member</option><option value="admin">Admin</option></select>
+        )}><option value="viewer">Viewer</option><option value="member">Member</option><option value="admin">Admin</option></select>
       ) : null}
       {team.permissions.transferOwnership && member.role !== 'owner' ? <button disabled={busy} onClick={() => void run(() => transferTeamOwnership(team.id, member.researcherId), `Transfer ownership to ${member.displayName}? You will lose owner privileges.`)}>Transfer ownership</button> : null}
       {canManage ? <button className="danger-link" disabled={busy} onClick={() => void run(() => removeTeamMember(team.id, member.researcherId), `Remove ${member.displayName} from the team?`)}>Remove</button> : null}
@@ -341,6 +342,7 @@ export function TeamWorkspacePage() {
           </div>
         </div>
       </div>
+      <TeamWorkspaceBoards team={team} />
     </section>
   )
 }

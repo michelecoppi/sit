@@ -41,6 +41,9 @@ const permissions = {
   transferOwnership: true,
   archiveTeam: true,
   leaveTeam: false,
+  manageMissions: true,
+  contribute: true,
+  publishCapsules: true,
 }
 
 const detail = {

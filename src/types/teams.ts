@@ -1,5 +1,5 @@
 export type TeamVisibility = 'public' | 'private'
-export type TeamRole = 'owner' | 'admin' | 'member'
+export type TeamRole = 'owner' | 'admin' | 'member' | 'viewer'
 
 export interface TeamPermissions {
   editTeam: boolean
@@ -9,6 +9,9 @@ export interface TeamPermissions {
   transferOwnership: boolean
   archiveTeam: boolean
   leaveTeam: boolean
+  manageMissions: boolean
+  contribute: boolean
+  publishCapsules: boolean
 }
 
 export interface TeamSummary {

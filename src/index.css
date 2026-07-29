@@ -43,6 +43,181 @@
   --ease: cubic-bezier(.2, .8, .2, 1);
 }
 
+.workspace-verticals {
+  display: grid;
+  gap: 2rem;
+  margin-top: 2rem;
+}
+
+.workspace-board {
+  border: 1px solid var(--color-slate-200);
+  border-radius: 1.5rem;
+  background: color-mix(in srgb, white 92%, transparent);
+  padding: clamp(1rem, 3vw, 2rem);
+}
+
+.workspace-board-header,
+.workspace-card-topline,
+.workspace-progress > div,
+.workspace-inline {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+}
+
+.workspace-board-header select,
+.workspace-create-grid input,
+.workspace-create-grid textarea,
+.workspace-create-grid select,
+.workspace-progress-form input,
+.capsule-editor input,
+.capsule-editor textarea {
+  width: 100%;
+  border: 1px solid var(--color-slate-300);
+  border-radius: .75rem;
+  background: transparent;
+  padding: .7rem .85rem;
+}
+
+.workspace-create-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 1rem;
+  margin: 1.5rem 0;
+}
+
+.workspace-create-grid label,
+.workspace-progress-form label {
+  display: grid;
+  gap: .35rem;
+  font-size: .85rem;
+  font-weight: 700;
+}
+
+.workspace-span {
+  grid-column: 1 / -1;
+}
+
+.workspace-card-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+  gap: 1rem;
+}
+
+.workspace-card,
+.workspace-empty {
+  border: 1px solid var(--color-slate-200);
+  border-radius: 1.25rem;
+  background: color-mix(in srgb, var(--color-slate-50) 80%, transparent);
+  padding: 1.1rem;
+}
+
+.workspace-card h3 {
+  margin-top: .75rem;
+  font-size: 1.1rem;
+  font-weight: 800;
+}
+
+.workspace-card > p,
+.workspace-progress small {
+  color: var(--color-slate-500);
+}
+
+.workspace-state {
+  border-radius: 999px;
+  padding: .2rem .6rem;
+  font-size: .7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.workspace-state-active { background: #dbeafe; color: #1d4ed8; }
+.workspace-state-completed { background: #dcfce7; color: #166534; }
+.workspace-state-archived { background: #e2e8f0; color: #475569; }
+
+.workspace-meta {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: .6rem;
+  margin: 1rem 0;
+  font-size: .78rem;
+}
+
+.workspace-meta dt { color: var(--color-slate-500); }
+.workspace-meta dd { font-weight: 700; }
+.workspace-progress { display: grid; gap: .35rem; }
+.workspace-progress progress { width: 100%; accent-color: #2563eb; }
+.workspace-progress-form { display: flex; align-items: end; gap: .75rem; margin-top: 1rem; }
+
+.capsule-workspace-grid {
+  display: grid;
+  grid-template-columns: minmax(180px, .65fr) minmax(0, 2fr);
+  gap: 1rem;
+  margin-top: 1.25rem;
+}
+
+.capsule-list {
+  display: grid;
+  align-content: start;
+  gap: .6rem;
+}
+
+.capsule-list-item {
+  display: grid;
+  gap: .2rem;
+  border: 1px solid var(--color-slate-200);
+  border-radius: .9rem;
+  padding: .8rem;
+  text-align: left;
+}
+
+.capsule-list-item span { color: var(--color-slate-500); font-size: .78rem; }
+.capsule-list-item-active { border-color: #2563eb; background: #eff6ff; }
+.capsule-editor { min-width: 0; }
+.capsule-payload { min-height: 14rem; font-family: ui-monospace, monospace; }
+
+@media (max-width: 720px) {
+  .workspace-create-grid,
+  .capsule-workspace-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .workspace-board-header,
+  .workspace-progress-form {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .workspace-meta {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (prefers-color-scheme: dark) {
+  .workspace-board,
+  .workspace-card,
+  .workspace-empty {
+    border-color: var(--color-slate-800);
+    background: color-mix(in srgb, var(--color-slate-950) 84%, transparent);
+  }
+
+  .workspace-board-header select,
+  .workspace-create-grid input,
+  .workspace-create-grid textarea,
+  .workspace-progress-form input,
+  .capsule-editor input,
+  .capsule-editor textarea,
+  .capsule-list-item {
+    border-color: var(--color-slate-700);
+  }
+
+  .capsule-list-item-active {
+    border-color: #60a5fa;
+    background: #172554;
+  }
+}
+
 .dark {
   color: #eef2ff;
   background-color: #080b14;
