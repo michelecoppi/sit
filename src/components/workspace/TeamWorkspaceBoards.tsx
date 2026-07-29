@@ -9,7 +9,6 @@ import {
   listWorkspaceCapsules,
   listWorkspaceMissions,
   publishWorkspaceCapsule,
-  recordWorkspaceMissionProgress,
   updateWorkspaceCapsule,
 } from '../../services/workspaceService'
 
@@ -29,7 +28,6 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
   const [missions, setMissions] = useState<WorkspaceMission[]>([])
   const [status, setStatus] = useState<WorkspaceMissionStatus | 'all'>('active')
   const [loading, setLoading] = useState(true)
-  const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [metric, setMetric] = useState<WorkspaceMission['metric']>('messages_encoded')
   const [target, setTarget] = useState<number | ''>(3)
@@ -83,33 +81,6 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
       setAssigneeIds([])
     } catch (caught) {
       setError(messageOf(caught, 'Unable to create mission.'))
-    }
-  }
-
-  async function updateProgress(mission: WorkspaceMission, nextProgress: number) {
-    const previous = missions
-    const capped = Math.min(mission.target, Math.max(0, nextProgress))
-    const delta = capped - mission.individualProgress
-    setBusyId(mission.id)
-    setError(null)
-    setMissions((current) => current.map((entry) => entry.id === mission.id ? {
-      ...entry,
-      individualProgress: capped,
-      aggregateProgress: Math.max(0, entry.aggregateProgress + delta),
-    } : entry))
-    try {
-      const updated = await recordWorkspaceMissionProgress(
-        team.id,
-        mission.id,
-        capped,
-        `web-${mission.id}-${Date.now()}`,
-      )
-      setMissions((current) => current.map((entry) => entry.id === mission.id ? updated : entry))
-    } catch (caught) {
-      setMissions(previous)
-      setError(messageOf(caught, 'Progress could not be synchronized; the optimistic update was rolled back.'))
-    } finally {
-      setBusyId(null)
     }
   }
 
@@ -224,19 +195,16 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
               <div><dt>Reward</dt><dd>{mission.teamXpReward} Team XP</dd></div>
             </dl>
             <div className="mt-5">
-              <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-600 dark:text-slate-300"><span>Individual {mission.individualProgress}/{mission.target}</span><span>{progressPercent(mission.individualProgress, mission.target)}%</span></div>
+              <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-600 dark:text-slate-300"><span>Your verified activity {mission.individualProgress}/{mission.target}</span><span>{progressPercent(mission.individualProgress, mission.target)}%</span></div>
               <progress className="h-2 w-full overflow-hidden rounded-full accent-indigo-600" max={mission.target} value={mission.individualProgress} />
-              <small className="mt-2 block text-xs text-slate-500">Aggregate {mission.aggregateProgress}/{mission.target} · updated {new Date(mission.updatedAt).toLocaleString()}</small>
+              <small className="mt-2 block text-xs text-slate-500">Team verified activity {mission.aggregateProgress}/{mission.target} · updated {new Date(mission.updatedAt).toLocaleString()}</small>
             </div>
-            {team.permissions.contribute && mission.status === 'active' && mission.assignees.some((entry) => entry.researcherId === team.currentMember?.researcherId) ? (
-              <form className="mt-auto flex flex-col gap-3 pt-5 sm:flex-row sm:items-end" onSubmit={(event) => {
-                event.preventDefault()
-                const value = Number(new FormData(event.currentTarget).get('progress'))
-                void updateProgress(mission, value)
-              }}>
-                <label className={`${labelClass} flex-1`}>Set progress<input className={fieldClass} name="progress" type="number" min={0} max={mission.target} defaultValue={mission.individualProgress} /></label>
-                <button className="button-secondary w-full sm:w-auto" disabled={busyId === mission.id}>{busyId === mission.id ? 'Syncing…' : 'Update'}</button>
-              </form>
+            {mission.status === 'active' ? (
+              <div className="mt-auto pt-5">
+                <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5 text-xs leading-relaxed text-sky-900 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-200">
+                  Progress is automatic: Core counts verified encode, decode, and SYTE activity from assigned members. It cannot be edited manually.
+                </div>
+              </div>
             ) : null}
           </article>
         ))}
