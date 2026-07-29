@@ -1,0 +1,416 @@
+import { useCallback, useEffect, useState, type FormEvent } from 'react'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
+import {
+  ArrowRightIcon,
+  BoltIcon,
+  GlobeAltIcon,
+  LockClosedIcon,
+  ShieldCheckIcon,
+  SparklesIcon,
+  TrophyIcon,
+  UserGroupIcon,
+  XMarkIcon,
+} from '@heroicons/react/24/outline'
+import { useAuth } from '../context/AuthContext'
+import {
+  deleteTeam,
+  changeTeamMemberRole,
+  createTeam,
+  createTeamInvite,
+  discoverTeams,
+  getTeam,
+  getTeamInvite,
+  getTeamLeaderboard,
+  getTeamMembers,
+  leaveTeam,
+  removeTeamMember,
+  respondToTeamInvite,
+  transferTeamOwnership,
+  updateTeam,
+} from '../services/teamService'
+import type { TeamDetail, TeamInvite, TeamMember, TeamSummary, TeamVisibility } from '../types/teams'
+import TeamWorkspaceBoards from '../components/workspace/TeamWorkspaceBoards'
+import { listWorkspaceMissions } from '../services/workspaceService'
+import type { WorkspaceMission } from '../types/workspace'
+
+const visibleSelectClass = 'mt-1 w-full appearance-auto rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-950 [color-scheme:light] focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:[color-scheme:dark]'
+
+function ErrorNotice({ message }: { message: string }) {
+  return <div className="team-notice team-notice-error" role="alert">{message}</div>
+}
+
+function TeamCard({ team, rank }: { team: TeamSummary, rank?: number }) {
+  const initials = team.name.split(/\s+/).slice(0, 2).map((word) => word[0]).join('').toUpperCase()
+  return (
+    <article className={`team-card${rank ? ' team-card-ranked' : ''}`}>
+      <div className="team-card-topline">
+        <span className="team-avatar" aria-hidden="true">{initials}</span>
+        <span className="rounded-full bg-indigo-50 px-2.5 py-1 text-xs font-bold text-indigo-700 dark:bg-indigo-950/60 dark:text-indigo-200">Level {team.progression.level}</span>
+        {rank ? <span className="team-rank" aria-label={`Rank ${rank}`}><TrophyIcon aria-hidden="true" /> #{rank}</span> : null}
+        <span className={`team-visibility team-visibility-${team.visibility}`}>
+          {team.visibility === 'public' ? <GlobeAltIcon aria-hidden="true" /> : <LockClosedIcon aria-hidden="true" />}
+          {team.visibility}
+        </span>
+      </div>
+      <div className="team-card-copy">
+        <h3><Link to={`/teams/${team.slug}`}>{team.name}</Link></h3>
+        <p>{team.description || 'No public research abstract has been filed.'}</p>
+      </div>
+      <dl className="team-metrics">
+        <div><dt>Members</dt><dd>{team.memberCount.toLocaleString()}</dd></div>
+        <div><dt>Team XP</dt><dd>{team.totalXp.toLocaleString()}</dd></div>
+        <div><dt>Contributions</dt><dd>{team.totalContributions.toLocaleString()}</dd></div>
+      </dl>
+      <Link className="team-card-link" to={`/teams/${team.slug}`}>
+        View team <ArrowRightIcon aria-hidden="true" />
+      </Link>
+      {team.archivedAt ? <span className="team-state">Archived</span> : null}
+    </article>
+  )
+}
+
+function SectionHeading({ eyebrow, title, copy }: { eyebrow: string, title: string, copy: string }) {
+  return (
+    <div className="team-section-heading">
+      <div><p className="team-eyebrow">{eyebrow}</p><h2>{title}</h2></div>
+      <p>{copy}</p>
+    </div>
+  )
+}
+
+function CreateTeamForm({ onCreated }: { onCreated: (team: TeamDetail) => void }) {
+  const [open, setOpen] = useState(false)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    if (!open) return
+
+    const previousOverflow = document.body.style.overflow
+    const closeOnEscape = (event: KeyboardEvent) => {
+      if (event.key === 'Escape' && !busy) setOpen(false)
+    }
+
+    document.body.style.overflow = 'hidden'
+    document.addEventListener('keydown', closeOnEscape)
+    return () => {
+      document.body.style.overflow = previousOverflow
+      document.removeEventListener('keydown', closeOnEscape)
+    }
+  }, [busy, open])
+
+  async function submit(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    setBusy(true)
+    setError(null)
+    const data = new FormData(event.currentTarget)
+    try {
+      const team = await createTeam({
+        name: String(data.get('name') ?? '').trim(),
+        slug: String(data.get('slug') ?? '').trim().toLowerCase(),
+        description: String(data.get('description') ?? '').trim(),
+        visibility: data.get('visibility') as TeamVisibility,
+      })
+      onCreated(team)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unable to create the team.')
+      setBusy(false)
+    }
+  }
+
+  return (
+    <>
+      <button className="button-primary" type="button" onClick={() => setOpen(true)}>Register a team</button>
+      {open ? (
+        <div className="team-dialog-backdrop" onMouseDown={() => { if (!busy) setOpen(false) }}>
+          <div
+            className="team-dialog"
+            role="dialog"
+            aria-modal="true"
+            aria-labelledby="create-team-title"
+            onMouseDown={(event) => event.stopPropagation()}
+          >
+            <div className="team-dialog-header">
+              <div>
+                <p className="team-eyebrow">Research team registry</p>
+                <h2 id="create-team-title">Register a research team</h2>
+              </div>
+              <button
+                className="team-dialog-close"
+                type="button"
+                aria-label="Close team registration"
+                disabled={busy}
+                onClick={() => setOpen(false)}
+              >
+                <XMarkIcon aria-hidden="true" />
+              </button>
+            </div>
+            <form className="team-form team-create-form" onSubmit={submit}>
+              {error ? <ErrorNotice message={error} /> : null}
+              <label>Team name<input autoFocus required minLength={2} maxLength={80} name="name" autoComplete="organization" /></label>
+              <label>Registry slug<input required pattern="[a-z0-9-]+" maxLength={64} name="slug" placeholder="symbolic-systems-lab" /></label>
+              <label>Public abstract<textarea maxLength={500} name="description" rows={3} /></label>
+              <label>Visibility<select className={visibleSelectClass} name="visibility" defaultValue="public"><option className="bg-white text-slate-950 dark:bg-slate-900 dark:text-white" value="public">Public</option><option className="bg-white text-slate-950 dark:bg-slate-900 dark:text-white" value="private">Private</option></select></label>
+              <div className="team-actions">
+                <button className="button-primary" disabled={busy}>{busy ? 'Registeringâ€¦' : 'Create team'}</button>
+                <button className="button-secondary" type="button" disabled={busy} onClick={() => setOpen(false)}>Cancel</button>
+              </div>
+            </form>
+          </div>
+        </div>
+      ) : null}
+    </>
+  )
+}
+
+export function TeamsPage() {
+  const { status } = useAuth()
+  const navigate = useNavigate()
+  const [teams, setTeams] = useState<TeamSummary[]>([])
+  const [leaders, setLeaders] = useState<TeamSummary[]>([])
+  const [nextCursor, setNextCursor] = useState<string | null>(null)
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
+
+  const load = useCallback(async (cursor?: string) => {
+    try {
+      const [page, leaderboard] = await Promise.all([discoverTeams(cursor), cursor ? Promise.resolve(null) : getTeamLeaderboard()])
+      setTeams((current) => cursor ? [...current, ...page.items] : page.items)
+      setNextCursor(page.nextCursor)
+      if (leaderboard) setLeaders(leaderboard.items)
+    } catch (caught) {
+      setError(caught instanceof Error ? caught.message : 'Unable to load research teams.')
+    } finally {
+      setLoading(false)
+    }
+  }, [])
+
+  useEffect(() => { void load() }, [load])
+
+  if (loading) return <div className="route-loader" role="status">Loading research team registryâ€¦</div>
+  return (
+    <section className="team-page team-directory-page">
+      <header className="team-hero team-directory-hero">
+        <div className="team-hero-copy">
+          <div className="team-hero-badge"><SparklesIcon aria-hidden="true" /> Collaborative research registry</div>
+          <h1>Research,<br /><span>together.</span></h1>
+          <p>Build a shared SIT identity, combine verified contributions and move up the global research rankings.</p>
+          <div className="team-hero-actions">
+            {status === 'authenticated'
+              ? <CreateTeamForm onCreated={(team) => navigate(`/teams/${team.slug}/workspace`)} />
+              : <Link className="button-primary" to="/profile">Create your team <ArrowRightIcon aria-hidden="true" /></Link>}
+            <a className="team-text-link" href="#team-directory">Explore teams <ArrowRightIcon aria-hidden="true" /></a>
+          </div>
+          <div className="team-hero-proof" aria-label="Team platform benefits">
+            <span><ShieldCheckIcon aria-hidden="true" /> Core-authorized</span>
+            <span><BoltIcon aria-hidden="true" /> Live totals</span>
+            <span><GlobeAltIcon aria-hidden="true" /> Public rankings</span>
+          </div>
+        </div>
+        <div className="team-protocol-card" aria-label="Research team protocol summary">
+          <div className="team-protocol-chrome"><span><i aria-hidden="true" /> TEAM PROTOCOL</span><small>CORE: ONLINE</small></div>
+          <div className="team-protocol-mark"><UserGroupIcon aria-hidden="true" /><span>67</span></div>
+          <div className="team-protocol-copy"><p>Shared workspace</p><strong>One identity.<br />Every contribution.</strong></div>
+          <div className="team-protocol-grid">
+            <span><small>IDENTITY</small><strong>Canonical</strong></span>
+            <span><small>PROGRESS</small><strong>Verified</strong></span>
+            <span><small>RANKING</small><strong>Global</strong></span>
+          </div>
+        </div>
+      </header>
+      {error ? <ErrorNotice message={error} /> : null}
+      {leaders.length ? <section className="team-section team-leaderboard-section" aria-labelledby="leaderboard-title"><SectionHeading eyebrow="Global standings" title="Leading research teams" copy="Ranked by verified XP and contributions recorded by SIT Core." /><div className="team-grid team-leader-grid">{leaders.map((team, index) => <TeamCard key={team.id} team={team} rank={index + 1} />)}</div></section> : null}
+      <section id="team-directory" className="team-section" aria-labelledby="directory-title">
+        <SectionHeading eyebrow="Open registry" title="Find your collaborators" copy="Explore public teams, their focus and the researchers moving the standard forward." />
+        {teams.length
+          ? <div className="team-grid team-directory-grid">{teams.map((team) => <TeamCard key={team.id} team={team} />)}</div>
+          : <div className="team-empty-state"><span><UserGroupIcon aria-hidden="true" /></span><div><h3>The registry is ready</h3><p>Public teams will appear here as soon as SIT Core publishes them.</p></div></div>}
+      </section>
+      {nextCursor ? <button className="button-secondary team-load-more" onClick={() => void load(nextCursor)}>Load more teams</button> : null}
+    </section>
+  )
+}
+
+export function TeamProfilePage() {
+  const { slug = '' } = useParams()
+  const [team, setTeam] = useState<TeamDetail | null>(null)
+  const [members, setMembers] = useState<TeamMember[]>([])
+  const [activeMission, setActiveMission] = useState<WorkspaceMission | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  useEffect(() => {
+    let active = true
+    void getTeam(slug).then(async (result) => {
+      if (!active) return
+      setTeam(result)
+      if (result.visibility === 'public' || result.currentMember) {
+        const page = await getTeamMembers(result.id)
+        if (active) setMembers(page.items)
+      }
+      if (result.currentMember?.role === 'member') {
+        const missions = await listWorkspaceMissions(result.id, 'active')
+        if (active) setActiveMission(missions.items[0] ?? null)
+      }
+    }).catch((caught) => active && setError(caught instanceof Error ? caught.message : 'Unable to load this team.'))
+    return () => { active = false }
+  }, [slug])
+
+  if (error) return <section className="team-page"><ErrorNotice message={error} /><Link to="/teams">Return to team registry</Link></section>
+  if (!team) return <div className="route-loader" role="status">Resolving team registry entryâ€¦</div>
+  return (
+    <section className="team-page">
+      <header className="team-hero">
+        <p className="team-eyebrow">{team.visibility} team Â· {team.archivedAt ? 'archived' : 'active'}</p>
+        <h1>{team.name}</h1>
+        <p>{team.description}</p>
+        {team.currentMember && team.currentMember.role !== 'member' ? <Link className="button-primary" to={`/teams/${team.slug}/workspace`}>Open team workspace</Link> : null}
+      </header>
+      <dl className="team-total-strip">
+        <div><dt>Verified members</dt><dd>{team.memberCount}</dd></div>
+        <div><dt>Team XP</dt><dd>{team.totalXp.toLocaleString()}</dd></div>
+        <div><dt>Contributions</dt><dd>{team.totalContributions.toLocaleString()}</dd></div>
+      </dl>
+      {team.visibility === 'public' ? (
+        <section><h2>Public contributors</h2><div className="member-list">{members.map((member) => <div className="member-row" key={member.researcherId}><div><strong>{member.displayName}</strong><small>{member.researcherId}</small></div><span>{member.contributions.toLocaleString()} contributions</span></div>)}</div></section>
+      ) : <div className="team-notice">Membership details are restricted to verified team members.</div>}
+      {team.currentMember?.role === 'member' ? <section className="team-workspace-panel mt-6 overflow-hidden border-indigo-400/30 bg-gradient-to-br from-indigo-50 via-white to-cyan-50 shadow-md dark:from-indigo-950/50 dark:via-slate-950 dark:to-cyan-950/30"><div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-300">Member briefing</p><h2 className="mt-1 text-2xl font-black tracking-tight">Today's team mission</h2></div><span className="w-fit rounded-full border border-indigo-300/70 bg-white/80 px-3 py-1 text-xs font-bold text-indigo-700 shadow-sm dark:border-indigo-300/30 dark:bg-slate-950/60 dark:text-indigo-200">Read-only access</span></div>{activeMission ? <div className="mt-5 grid gap-4 rounded-2xl border border-indigo-200/80 bg-white/75 p-4 shadow-sm dark:border-indigo-300/15 dark:bg-slate-950/55 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"><div><h3 className="text-lg font-extrabold tracking-tight">{activeMission.title}</h3><p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">{activeMission.description}</p></div><div className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-sm"><span className="block text-xs font-medium text-indigo-100">Progress</span>{activeMission.aggregateProgress} / {activeMission.target}<span className="ml-1 text-xs font-medium text-indigo-100">{activeMission.metric.replaceAll('_', ' ')}</span></div></div> : <div className="mt-5 rounded-2xl border border-dashed border-indigo-300/70 bg-white/60 p-4 text-sm text-slate-600 dark:border-indigo-300/30 dark:bg-slate-950/40 dark:text-slate-300">No active daily mission has been published yet.</div>}</section> : null}
+    </section>
+  )
+}
+
+function MemberControls({ team, member, onChanged }: { team: TeamDetail, member: TeamMember, onChanged: () => Promise<void> }) {
+  const [busy, setBusy] = useState(false)
+  const canManage = team.permissions.manageMembers && member.role !== 'owner'
+  const run = async (action: () => Promise<unknown>, prompt: string) => {
+    if (!window.confirm(prompt)) return
+    setBusy(true)
+    try { await action(); await onChanged() } finally { setBusy(false) }
+  }
+  if (!canManage && !team.permissions.transferOwnership) return null
+  return (
+    <div className="member-actions w-full justify-end sm:w-auto">
+      {team.permissions.changeRoles && member.role !== 'owner' ? (
+        <select className={`${visibleSelectClass} min-w-32`} aria-label={`Role for ${member.displayName}`} disabled={busy} value={member.role} onChange={(event) => void run(
+          () => changeTeamMemberRole(team.id, member.researcherId, event.target.value as 'cofounder' | 'member'),
+          `Change ${member.displayName}'s role?`,
+        )}><option value="member">Member</option><option value="cofounder">Cofounder</option></select>
+      ) : null}
+      {team.permissions.transferOwnership && member.role === 'cofounder' ? <button disabled={busy} onClick={() => void run(() => transferTeamOwnership(team.id, member.researcherId), `Transfer ownership to ${member.displayName}? You will lose owner privileges.`)}>Transfer ownership</button> : null}
+      {canManage ? <button className="danger-link" disabled={busy} onClick={() => void run(() => removeTeamMember(team.id, member.researcherId), `Remove ${member.displayName} from the team?`)}>Remove</button> : null}
+    </div>
+  )
+}
+
+function TeamProgressionPanel({ team }: { team: TeamDetail }) {
+  const { progression } = team
+  const advancedTheme = progression.level >= 3
+  return (
+    <section className={`relative mt-6 overflow-hidden rounded-3xl border p-5 text-white shadow-lg sm:p-7 ${advancedTheme ? 'border-cyan-400/30 bg-gradient-to-br from-slate-950 via-cyan-950 to-indigo-950' : 'border-indigo-400/30 bg-gradient-to-br from-slate-950 via-indigo-950 to-slate-900'}`} aria-labelledby="team-progression-title">
+      <div className="pointer-events-none absolute -right-16 -top-20 h-64 w-64 rounded-full bg-white/10 blur-3xl" />
+      <div className="relative grid gap-6 lg:grid-cols-[minmax(0,1.3fr)_minmax(16rem,0.7fr)] lg:items-center">
+        <div>
+          <p className="text-xs font-bold uppercase tracking-[0.22em] text-indigo-200">Collective progression</p>
+          <div className="mt-2 flex flex-wrap items-end gap-3">
+            <h2 id="team-progression-title" className="text-3xl font-black tracking-tight sm:text-4xl">Team level {progression.level}</h2>
+            <span className="mb-1 rounded-full border border-white/15 bg-white/10 px-3 py-1 text-xs font-semibold">{progression.teamXp.toLocaleString()} Team XP</span>
+          </div>
+          <div className="mt-5">
+            <div className="mb-2 flex justify-between gap-4 text-xs text-indigo-100">
+              <span>{progression.currentLevelXp.toLocaleString()} XP</span>
+              <span>{progression.nextLevelXp === null ? 'Maximum tier' : `${progression.nextLevelXp.toLocaleString()} XP`}</span>
+            </div>
+            <div className="h-2.5 overflow-hidden rounded-full bg-black/25">
+              <div className="h-full rounded-full bg-gradient-to-r from-cyan-300 to-indigo-300 transition-all" style={{ width: `${Math.min(100, progression.levelProgress)}%` }} />
+            </div>
+          </div>
+          <div className="mt-5 flex flex-wrap gap-2">
+            {progression.unlockedFeatures.map((feature) => <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-medium" key={feature.code}>âœ“ {feature.label}</span>)}
+          </div>
+        </div>
+        <div className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur">
+          <p className="text-xs font-bold uppercase tracking-wider text-indigo-200">Next unlock</p>
+          {progression.nextUnlock
+            ? <><p className="mt-2 text-lg font-bold">{progression.nextUnlock.label}</p><p className="mt-1 text-sm text-slate-300">Available at team level {progression.nextUnlock.level}.</p></>
+            : <><p className="mt-2 text-lg font-bold">All protocols unlocked</p><p className="mt-1 text-sm text-slate-300">This team has reached the current progression ceiling.</p></>}
+          <div className="mt-4 border-t border-white/10 pt-4 text-sm text-slate-300">
+            <strong className="text-white">{progression.missionPolicy.canCreateToday ? 'Daily mission available' : 'Daily mission completed'}</strong>
+            <span className="mt-1 block">Core derives difficulty and Team XP from target and participants. Up to {progression.missionPolicy.maxAssignees} assignees; every mission closes at midnight UTC.</span>
+          </div>
+        </div>
+      </div>
+    </section>
+  )
+}
+
+export function TeamWorkspacePage() {
+  const { slug = '' } = useParams()
+  const navigate = useNavigate()
+  const [team, setTeam] = useState<TeamDetail | null>(null)
+  const [members, setMembers] = useState<TeamMember[]>([])
+  const [invite, setInvite] = useState<TeamInvite | null>(null)
+  const [message, setMessage] = useState<string | null>(null)
+  const [error, setError] = useState<string | null>(null)
+
+  const load = useCallback(async () => {
+    const result = await getTeam(slug)
+    if (!result.currentMember) throw new Error('This workspace is available to verified team members only.')
+    setTeam(result)
+    setMembers((await getTeamMembers(result.id)).items)
+  }, [slug])
+
+  useEffect(() => { void load().catch((caught) => setError(caught instanceof Error ? caught.message : 'Unable to load workspace.')) }, [load])
+
+  async function saveSettings(event: FormEvent<HTMLFormElement>) {
+    event.preventDefault()
+    if (!team) return
+    const data = new FormData(event.currentTarget)
+    try {
+      await updateTeam(team.id, {
+        name: String(data.get('name')),
+        slug: String(data.get('slug')),
+        description: String(data.get('description')),
+        visibility: data.get('visibility') as TeamVisibility,
+      })
+      setMessage('Team settings saved.')
+      await load()
+    } catch (caught) { setError(caught instanceof Error ? caught.message : 'Unable to save settings.') }
+  }
+
+  if (error && !team) return <section className="team-page"><ErrorNotice message={error} /></section>
+  if (!team) return <div className="route-loader" role="status">Opening team workspaceâ€¦</div>
+  if (team.currentMember?.role === 'member') return <Navigate replace to={`/teams/${team.slug}`} />
+  return (
+    <section className="team-page team-workspace-page min-w-0">
+      <header className="team-hero team-workspace-hero"><p className="team-eyebrow">Authenticated team workspace</p><h1>{team.name}</h1><p>Permissions below are supplied by SIT Core for your canonical researcher identity.</p><Link className="button-secondary inline-flex w-full justify-center sm:w-auto" to={`/teams/${team.slug}`}>View team page</Link></header>
+      <TeamProgressionPanel team={team} />
+      {error ? <ErrorNotice message={error} /> : null}
+      {message ? <div className="team-notice" role="status">{message}</div> : null}
+      <div className={`team-workspace-grid${team.permissions.editTeam ? '' : ' team-workspace-grid-single'}`}>
+        {team.permissions.editTeam ? <form className="team-form team-workspace-settings" onSubmit={saveSettings}><h2>Registry settings</h2><label>Name<input name="name" defaultValue={team.name} required /></label><label>Slug<input name="slug" defaultValue={team.slug} required /></label><label>Description<textarea name="description" defaultValue={team.description} /></label><label>Visibility<select className={visibleSelectClass} name="visibility" defaultValue={team.visibility}><option className="bg-white text-slate-950 dark:bg-slate-900 dark:text-white" value="public">Public</option><option className="bg-white text-slate-950 dark:bg-slate-900 dark:text-white" value="private">Private</option></select></label><button className="button-primary">Save settings</button></form> : null}
+        <div className="team-workspace-rail">
+          {team.permissions.inviteMembers ? <section className="team-workspace-panel"><h2>Invite researchers</h2><p>Invitations expire automatically and inherit only the selected backend role.</p><button className="button-secondary" onClick={() => void createTeamInvite(team.id, 'member', 72).then(setInvite).catch((caught) => setError(caught.message))}>Create 72-hour invite</button>{invite ? <div className="invite-box"><code>{invite.inviteUrl ?? `${window.location.origin}${window.location.pathname}#/team-invites/${invite.token}`}</code><button onClick={() => void navigator.clipboard.writeText(invite.inviteUrl ?? `${window.location.origin}${window.location.pathname}#/team-invites/${invite.token}`)}>Copy</button></div> : null}</section> : null}
+          <section className="team-workspace-panel"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600 dark:text-indigo-300">Team directory</p><h2 className="mt-1">Members</h2></div><span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">{members.length} verified</span></div><div className="member-list">{members.map((member) => <div className="member-row" key={member.researcherId}><div className="min-w-0"><strong className="break-words">{member.displayName}</strong><small className="break-all">{member.role} Â· {member.contributions.toLocaleString()} contributions</small></div><MemberControls team={team} member={member} onChanged={load} /></div>)}</div></section>
+          <div className="team-danger-zone">
+            {team.permissions.leaveTeam ? <button className="danger-button" onClick={() => { if (window.confirm(`Leave ${team.name}?`)) void leaveTeam(team.id).then(() => navigate('/teams')) }}>Leave team</button> : null}
+            {team.permissions.deleteTeam ? <button className="danger-button" onClick={() => { if (window.confirm(`Delete ${team.name}? This is permanent and is available only while you are its only member.`)) void deleteTeam(team.id).then(() => navigate('/teams')) }}>Delete team</button> : null}
+          </div>
+        </div>
+      </div>
+      <TeamWorkspaceBoards team={team} members={members} />
+    </section>
+  )
+}
+
+export function TeamInvitePage() {
+  const { token = '' } = useParams()
+  const { status } = useAuth()
+  const navigate = useNavigate()
+  const [invite, setInvite] = useState<TeamInvite | null>(null)
+  const [error, setError] = useState<string | null>(null)
+  useEffect(() => { void getTeamInvite(token).then(setInvite).catch((caught) => setError(caught instanceof Error ? caught.message : 'Unable to load invitation.')) }, [token])
+  if (error) return <section className="team-page"><ErrorNotice message={error} /></section>
+  if (!invite) return <div className="route-loader" role="status">Verifying team invitationâ€¦</div>
+  const expired = invite.status === 'expired' || Date.parse(invite.expiresAt) <= Date.now()
+  return <section className="team-page"><div className="invite-card"><p className="team-eyebrow">Research team invitation</p><h1>{invite.team.name}</h1><p>You have been invited as <strong>{invite.role}</strong>. This invitation expires {new Date(invite.expiresAt).toLocaleString()}.</p>{expired ? <ErrorNotice message="This invitation has expired. Ask a team administrator for a new one." /> : invite.status !== 'pending' ? <div className="team-notice">This invitation is already {invite.status}.</div> : status !== 'authenticated' ? <Link className="button-primary" to="/profile">Sign in to respond</Link> : <div className="team-actions"><button className="button-primary" onClick={() => void respondToTeamInvite(token, 'accept').then((team) => navigate(team ? `/teams/${team.slug}/workspace` : '/teams')).catch((caught) => setError(caught.message))}>Accept invitation</button><button className="button-secondary" onClick={() => void respondToTeamInvite(token, 'decline').then(() => navigate('/teams')).catch((caught) => setError(caught.message))}>Decline</button></div>}</div></section>
+}
+
