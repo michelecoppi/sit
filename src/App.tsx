@@ -8,15 +8,12 @@ function consumeOAuthResult() {
   const params = new URLSearchParams(window.location.search)
   const auth = params.get('auth')?.trim().toLowerCase() ?? null
   const error = params.get('error')?.trim() ?? params.get('oauth_error')?.trim() ?? null
-
   if (!auth && !error) return null
-
   params.delete('auth')
   params.delete('error')
   params.delete('oauth_error')
   const search = params.toString()
-  window.history.replaceState(null, '', `${window.location.pathname}${search ? `?${search}` : ''}${window.location.hash}`)
-
+  window.history.replaceState(null, '', window.location.pathname + (search ? '?' + search : '') + window.location.hash)
   return { auth, error }
 }
 
@@ -37,6 +34,7 @@ const ProfilePage = lazy(() => import('./pages/ProfilePage'))
 const MissionsPage = lazy(() => import('./pages/MissionsPage'))
 const CapsuleLibraryPage = lazy(() => import('./pages/CapsuleLibraryPage'))
 const CapsulePublicPage = lazy(() => import('./pages/CapsulePublicPage'))
+const ArtifactVerifyPage = lazy(() => import('./pages/ArtifactVerifyPage'))
 const TeamsPage = lazy(() => import('./pages/TeamPages').then((module) => ({ default: module.TeamsPage })))
 const TeamProfilePage = lazy(() => import('./pages/TeamPages').then((module) => ({ default: module.TeamProfilePage })))
 const TeamWorkspacePage = lazy(() => import('./pages/TeamPages').then((module) => ({ default: module.TeamWorkspacePage })))
@@ -44,33 +42,22 @@ const TeamInvitePage = lazy(() => import('./pages/TeamPages').then((module) => (
 
 function ScrollToTop() {
   const { pathname } = useLocation()
-
-  useEffect(() => {
-    window.scrollTo({ top: 0, left: 0, behavior: 'auto' })
-  }, [pathname])
-
+  useEffect(() => { window.scrollTo({ top: 0, left: 0, behavior: 'auto' }) }, [pathname])
   return null
 }
 
 function OAuthCallbackHandler() {
   const { completeLogin } = useAuth()
-
   useEffect(() => {
     const result = consumeOAuthResult()
     if (!result) return
-
     window.location.hash = '#/profile'
-
     if (result.error || result.auth !== 'success') {
       setOAuthCallbackError(result.error ?? 'oauth_failed')
       return
     }
-
-    void completeLogin().catch(() => {
-      setOAuthCallbackError('invalid_session')
-    })
+    void completeLogin().catch(() => { setOAuthCallbackError('invalid_session') })
   }, [completeLogin])
-
   return null
 }
 
@@ -80,12 +67,7 @@ function App() {
       <OAuthCallbackHandler />
       <ScrollToTop />
       <Layout title="SIT Standard">
-        <Suspense fallback={
-          <div className="route-loader" role="status" aria-live="polite">
-            <span className="route-loader-mark" aria-hidden="true"><i>6</i><i>7</i></span>
-            <span><strong>Loading registry</strong><small>Preparing the symbolic workspace…</small></span>
-          </div>
-        }>
+        <Suspense fallback={<div className="route-loader" role="status" aria-live="polite"><span className="route-loader-mark" aria-hidden="true"><i>6</i><i>7</i></span><span><strong>Loading registry</strong><small>Preparing the symbolic workspace…</small></span></div>}>
           <Routes>
             <Route path="/" element={<HomePage />} />
             <Route path="/docs" element={<DocumentationPage />} />
@@ -104,6 +86,7 @@ function App() {
             <Route path="/missions" element={<MissionsPage />} />
             <Route path="/capsules" element={<CapsuleLibraryPage />} />
             <Route path="/capsule/:publicId" element={<CapsulePublicPage />} />
+            <Route path="/artifact/:publicId/verify" element={<ArtifactVerifyPage />} />
             <Route path="/teams" element={<TeamsPage />} />
             <Route path="/teams/:slug" element={<TeamProfilePage />} />
             <Route path="/teams/:slug/workspace" element={<TeamWorkspacePage />} />
