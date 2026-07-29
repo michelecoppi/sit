@@ -40,6 +40,7 @@ const summary = {
         label: 'Encode messages',
         unit: 'messages',
         description: 'Encode verified messages.',
+        minimumTarget: 3,
         bands: [{
           maxTarget: 3,
           difficulty: 'routine',

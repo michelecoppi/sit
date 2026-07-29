@@ -63,7 +63,10 @@ const team: TeamDetail = {
       maxAssignees: 5,
       canCreateToday: true,
       nextCreationAt: null,
-      activityTypes: [{ metric: 'messages_encoded', label: 'Encode messages', unit: 'messages', description: 'Encode messages.', bands: [{ maxTarget: 3, difficulty: 'routine', baseTeamXp: 40, requiredLevel: 1, unlocked: true, assignedReward: 40, collaborationReward: 40, rewards: [{ assigneeCount: 1, teamXp: 40 }, { assigneeCount: 2, teamXp: 50 }] }, { maxTarget: null, difficulty: 'critical', baseTeamXp: 90, requiredLevel: 4, unlocked: false, assignedReward: 90, collaborationReward: 90, rewards: [{ assigneeCount: 1, teamXp: 90 }, { assigneeCount: 2, teamXp: 110 }] }] }],
+      activityTypes: [
+        { metric: 'messages_encoded', label: 'Encode messages', unit: 'messages', description: 'Encode messages.', minimumTarget: 3, bands: [{ maxTarget: 3, difficulty: 'routine', baseTeamXp: 40, requiredLevel: 1, unlocked: true, assignedReward: 40, collaborationReward: 40, rewards: [{ assigneeCount: 1, teamXp: 40 }, { assigneeCount: 2, teamXp: 50 }] }, { maxTarget: null, difficulty: 'critical', baseTeamXp: 90, requiredLevel: 4, unlocked: false, assignedReward: 90, collaborationReward: 90, rewards: [{ assigneeCount: 1, teamXp: 90 }, { assigneeCount: 2, teamXp: 110 }] }] },
+        { metric: 'syte_processed', label: 'Process SYTE', unit: 'SYTE', description: 'Process SYTE.', minimumTarget: 64, bands: [{ maxTarget: 64, difficulty: 'routine', baseTeamXp: 35, requiredLevel: 1, unlocked: true, assignedReward: 35, collaborationReward: 40, rewards: [{ assigneeCount: 1, teamXp: 35 }, { assigneeCount: 2, teamXp: 40 }] }] },
+      ],
     },
   },
   createdAt: '2026-07-29T10:00:00.000Z',
@@ -128,7 +131,8 @@ describe('TeamWorkspaceBoards', () => {
       permissions: { ...permissions, manageMissions: true },
     }} />)
 
-    expect(await screen.findByRole('combobox', { name: 'Activity' })).toBeInTheDocument()
+    const activitySelect = await screen.findByRole('combobox', { name: 'Activity' })
+    expect(activitySelect).toBeInTheDocument()
     expect(screen.queryByRole('combobox', { name: 'Difficulty' })).not.toBeInTheDocument()
     expect(screen.queryByLabelText('Due date')).not.toBeInTheDocument()
     expect(screen.getByRole('group', { name: 'Mission assignees' })).toBeInTheDocument()
@@ -141,7 +145,19 @@ describe('TeamWorkspaceBoards', () => {
     expect(screen.getByText(/2\/5 · limit grows with team level/)).toBeInTheDocument()
     expect(screen.getByText(/routine · 50 Team XP · 2 participants/)).toBeInTheDocument()
 
-    fireEvent.change(screen.getByRole('spinbutton', { name: 'Target (messages)' }), { target: { value: '12' } })
+    fireEvent.change(activitySelect, { target: { value: 'syte_processed' } })
+    const syteTarget = screen.getByRole('spinbutton', { name: /Target \(SYTE\)/ })
+    expect(syteTarget).toHaveValue(64)
+    expect(syteTarget).toHaveAttribute('min', '64')
+    expect(screen.getByText('Minimum accepted: 64 SYTE.')).toBeInTheDocument()
+
+    fireEvent.change(activitySelect, { target: { value: 'messages_encoded' } })
+    const messageTarget = screen.getByRole('spinbutton', { name: /Target \(messages\)/ })
+    fireEvent.change(messageTarget, { target: { value: '' } })
+    expect(messageTarget).toHaveValue(null)
+    expect(screen.getByRole('button', { name: 'Enter a valid target' })).toBeDisabled()
+    fireEvent.change(messageTarget, { target: { value: '12' } })
+    expect(messageTarget).toHaveValue(12)
     expect(screen.getByText('Unlocks at team level 4')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Target locked' })).toBeDisabled()
   })

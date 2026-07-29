@@ -30,6 +30,7 @@ export interface TeamActivityType {
   label: string
   unit: string
   description: string
+  minimumTarget: number
   bands: TeamMissionBand[]
 }
 

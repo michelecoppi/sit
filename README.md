@@ -157,6 +157,8 @@ Core derives difficulty and collaboration-adjusted Team XP from the same
 activity bands used by personal missions. Completion awards Team XP once,
 drives the team level, and
 progressively unlocks advanced/critical targets plus visual team treatments.
+The target control uses Core-published minimums: 3 encoded messages, 3 decoded
+messages or 64 processed SYTE.
 
 ## Notes
 

@@ -50,11 +50,13 @@ function parseProgression(value: unknown): TeamProgression {
       || !text(entry.label) || !text(entry.unit) || !text(entry.description) || !Array.isArray(entry.bands)) {
       throw new Error('Invalid team activity payload.')
     }
+    if (!count(entry.minimumTarget) || entry.minimumTarget < 1) throw new Error('Invalid team activity minimum.')
     return {
       metric: entry.metric as TeamProgression['missionPolicy']['activityTypes'][number]['metric'],
       label: entry.label,
       unit: entry.unit,
       description: entry.description,
+      minimumTarget: entry.minimumTarget,
       bands: entry.bands.map((band) => {
         if (!isObject(band) || (band.maxTarget !== null && !count(band.maxTarget))
           || typeof band.difficulty !== 'string' || !difficulties.has(band.difficulty)
