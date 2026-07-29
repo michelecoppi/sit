@@ -1,4 +1,6 @@
 import type {
+  ArtifactIntegrity,
+  ArtifactVerification,
   Capsule,
   CapsuleEdition,
   CapsulePage,
@@ -24,6 +26,14 @@ function isIsoDate(value: unknown): value is string {
   return typeof value === 'string' && !Number.isNaN(Date.parse(value))
 }
 
+function parseIntegrity(value: unknown): ArtifactIntegrity | undefined {
+  if (value === undefined) return undefined
+  if (!isObject(value) || value.algorithm !== 'sha256' || !isText(value.digest) || typeof value.verified !== 'boolean') {
+    throw new Error('Invalid artifact integrity payload.')
+  }
+  return { algorithm: 'sha256', digest: value.digest, verified: value.verified }
+}
+
 function parseOwner(value: unknown) {
   if (value === null) return null
   if (!isObject(value) || !isText(value.researcherId) || !isText(value.displayName)) {
@@ -35,51 +45,18 @@ function parseOwner(value: unknown) {
 export function parseCapsule(payload: unknown): Capsule {
   if (!isObject(payload)) throw new Error('Invalid capsule payload.')
 
-  const {
-    id,
-    publicId,
-    edition,
-    title,
-    description,
-    visibility,
-    expiresAt,
-    createdAt,
-    updatedAt,
-    revokedAt,
-    owner,
-  } = payload
-
-  if (
-    !isText(id)
-    || (publicId !== null && !isText(publicId))
-    || typeof edition !== 'string'
-    || !EDITIONS.has(edition)
-    || !isText(payload.payload)
-    || !isText(title)
-    || (description !== null && typeof description !== 'string')
-    || typeof visibility !== 'string'
-    || !VISIBILITIES.has(visibility)
-    || (expiresAt !== null && !isIsoDate(expiresAt))
-    || !isIsoDate(createdAt)
-    || !isIsoDate(updatedAt)
-    || (revokedAt !== null && !isIsoDate(revokedAt))
-  ) {
+  const { id, publicId, edition, title, description, visibility, expiresAt, createdAt, updatedAt, revokedAt, owner } = payload
+  if (!isText(id) || (publicId !== null && !isText(publicId)) || typeof edition !== 'string' || !EDITIONS.has(edition)
+    || !isText(payload.payload) || !isText(title) || (description !== null && typeof description !== 'string')
+    || typeof visibility !== 'string' || !VISIBILITIES.has(visibility) || (expiresAt !== null && !isIsoDate(expiresAt))
+    || !isIsoDate(createdAt) || !isIsoDate(updatedAt) || (revokedAt !== null && !isIsoDate(revokedAt))) {
     throw new Error('Invalid capsule payload.')
   }
 
   return {
-    id,
-    publicId,
-    edition: edition as CapsuleEdition,
-    payload: payload.payload,
-    title,
-    description,
-    visibility: visibility as CapsuleVisibility,
-    expiresAt,
-    createdAt,
-    updatedAt,
-    revokedAt,
-    owner: parseOwner(owner),
+    id, publicId, edition: edition as CapsuleEdition, payload: payload.payload, title, description,
+    visibility: visibility as CapsuleVisibility, expiresAt, createdAt, updatedAt, revokedAt,
+    integrity: parseIntegrity(payload.integrity), owner: parseOwner(owner),
   }
 }
 
@@ -88,58 +65,36 @@ export function parsePublicCapsule(payload: unknown): PublicCapsule {
     throw new Error('Invalid public capsule payload.')
   }
 
-  const {
-    publicId,
-    edition,
-    title,
-    description,
-    visibility,
-    expiresAt,
-    createdAt,
-    updatedAt,
-    owner,
-  } = payload
-
-  if (
-    !isText(publicId)
-    || typeof edition !== 'string'
-    || !EDITIONS.has(edition)
-    || !isText(payload.payload)
-    || !isText(title)
-    || (description !== null && typeof description !== 'string')
-    || (visibility !== 'unlisted' && visibility !== 'public')
-    || (expiresAt !== null && !isIsoDate(expiresAt))
-    || !isIsoDate(createdAt)
-    || !isIsoDate(updatedAt)
-  ) {
+  const { publicId, edition, title, description, visibility, expiresAt, createdAt, updatedAt, owner } = payload
+  if (!isText(publicId) || typeof edition !== 'string' || !EDITIONS.has(edition) || !isText(payload.payload)
+    || !isText(title) || (description !== null && typeof description !== 'string')
+    || (visibility !== 'unlisted' && visibility !== 'public') || (expiresAt !== null && !isIsoDate(expiresAt))
+    || !isIsoDate(createdAt) || !isIsoDate(updatedAt)) {
     throw new Error('Invalid public capsule payload.')
   }
 
   return {
-    publicId,
-    edition: edition as CapsuleEdition,
-    payload: payload.payload,
-    title,
-    description,
-    visibility,
-    expiresAt,
-    createdAt,
-    updatedAt,
-    owner: parseOwner(owner),
+    publicId, edition: edition as CapsuleEdition, payload: payload.payload, title, description, visibility,
+    expiresAt, createdAt, updatedAt, integrity: parseIntegrity(payload.integrity), owner: parseOwner(owner),
   }
 }
 
 export function parseCapsulePage(payload: unknown): CapsulePage {
-  if (!isObject(payload) || !Array.isArray(payload.items)) {
+  if (!isObject(payload) || !Array.isArray(payload.items) || (payload.nextCursor !== null && typeof payload.nextCursor !== 'string')) {
     throw new Error('Invalid capsule list payload.')
   }
-  if (payload.nextCursor !== null && typeof payload.nextCursor !== 'string') {
-    throw new Error('Invalid capsule list payload.')
+  return { items: payload.items.map(parseCapsule), nextCursor: payload.nextCursor }
+}
+
+function parseArtifactVerification(payload: unknown): ArtifactVerification {
+  if (!isObject(payload) || !isText(payload.publicId)
+    || (payload.status !== 'valid' && payload.status !== 'invalid' && payload.status !== 'revoked' && payload.status !== 'expired')
+    || (payload.expiresAt !== null && !isIsoDate(payload.expiresAt))) {
+    throw new Error('Invalid artifact verification payload.')
   }
-  return {
-    items: payload.items.map(parseCapsule),
-    nextCursor: payload.nextCursor,
-  }
+  const integrity = parseIntegrity(payload.integrity)
+  if (!integrity) throw new Error('Invalid artifact verification payload.')
+  return { publicId: payload.publicId, status: payload.status, integrity, expiresAt: payload.expiresAt }
 }
 
 type RequestOptions = {
@@ -162,10 +117,7 @@ async function request(path: string, fallback: string, options: RequestOptions =
 }
 
 export async function createCapsule(input: CreateCapsuleInput): Promise<Capsule> {
-  return parseCapsule(await request('/api/capsules', 'Unable to save this capsule.', {
-    method: 'POST',
-    body: input,
-  }))
+  return parseCapsule(await request('/api/capsules', 'Unable to save this capsule.', { method: 'POST', body: input }))
 }
 
 export async function listCapsules(cursor?: string): Promise<CapsulePage> {
@@ -174,34 +126,34 @@ export async function listCapsules(cursor?: string): Promise<CapsulePage> {
 }
 
 export async function updateCapsule(id: string, input: UpdateCapsuleInput): Promise<Capsule> {
-  return parseCapsule(await request(`/api/capsules/${encodeURIComponent(id)}`, 'Unable to update this capsule.', {
-    method: 'PATCH',
-    body: input,
-  }))
+  return parseCapsule(await request(`/api/capsules/${encodeURIComponent(id)}`, 'Unable to update this capsule.', { method: 'PATCH', body: input }))
 }
 
 export async function revokeCapsule(id: string): Promise<void> {
-  await request(`/api/capsules/${encodeURIComponent(id)}`, 'Unable to revoke this capsule.', {
-    method: 'DELETE',
-  })
+  await request(`/api/capsules/${encodeURIComponent(id)}`, 'Unable to revoke this capsule.', { method: 'DELETE' })
 }
 
 export async function getPublicCapsule(publicId: string): Promise<PublicCapsule> {
   let capsule: PublicCapsule
   try {
-    capsule = parsePublicCapsule(await request(
-      `/api/capsules/public/${encodeURIComponent(publicId)}`,
-      'This capsule is unavailable.',
-      { publicRequest: true },
-    ))
+    capsule = parsePublicCapsule(await request(`/api/artifacts/${encodeURIComponent(publicId)}`, 'This capsule is unavailable.', { publicRequest: true }))
   } catch {
-    throw new Error('This capsule is unavailable.')
+    try {
+      capsule = parsePublicCapsule(await request(`/api/capsules/public/${encodeURIComponent(publicId)}`, 'This capsule is unavailable.', { publicRequest: true }))
+    } catch {
+      throw new Error('This capsule is unavailable.')
+    }
   }
-
-  if (capsule.expiresAt && Date.parse(capsule.expiresAt) <= Date.now()) {
-    throw new Error('This capsule is unavailable.')
-  }
+  if (capsule.expiresAt && Date.parse(capsule.expiresAt) <= Date.now()) throw new Error('This capsule is unavailable.')
   return capsule
+}
+
+export async function verifyArtifact(publicId: string): Promise<ArtifactVerification> {
+  return parseArtifactVerification(await request(
+    `/api/artifacts/${encodeURIComponent(publicId)}/verify`,
+    'Artifact verification is unavailable.',
+    { publicRequest: true },
+  ))
 }
 
 export function getCapsuleShareUrl(publicId: string) {
