@@ -32,12 +32,16 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
   const [metric, setMetric] = useState<WorkspaceMission['metric']>('messages_encoded')
-  const [target, setTarget] = useState(3)
+  const [target, setTarget] = useState<number | ''>(3)
   const [assigneeIds, setAssigneeIds] = useState<string[]>([])
   const [createdToday, setCreatedToday] = useState(!team.progression.missionPolicy.canCreateToday)
   const activity = team.progression.missionPolicy.activityTypes.find((entry) => entry.metric === metric)
   const minimumTarget = activity?.minimumTarget ?? 1
-  const derivedBand = activity?.bands.find((entry) => entry.maxTarget === null || target <= entry.maxTarget)
+  const numericTarget = target === '' ? null : target
+  const targetIsValid = numericTarget !== null && numericTarget >= minimumTarget
+  const derivedBand = targetIsValid && numericTarget !== null
+    ? activity?.bands.find((entry) => entry.maxTarget === null || numericTarget <= entry.maxTarget)
+    : undefined
   const assigneeCount = Math.max(1, assigneeIds.length)
   const derivedReward = derivedBand?.rewards.find((entry) => entry.assigneeCount === assigneeCount)?.teamXp
     ?? derivedBand?.assignedReward
@@ -145,7 +149,21 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
             </select>
           </label>
           <label className={labelClass}>Target ({activity?.unit ?? 'units'})
-            <input className={fieldClass} name="target" type="number" value={target} min={minimumTarget} required disabled={createdToday} onChange={(event) => setTarget(Math.max(minimumTarget, Number(event.target.value)))} />
+            <input
+              className={fieldClass}
+              name="target"
+              type="number"
+              value={target}
+              min={minimumTarget}
+              required
+              disabled={createdToday}
+              onBlur={() => {
+                if (!targetIsValid) setTarget(minimumTarget)
+              }}
+              onChange={(event) => {
+                setTarget(event.target.value === '' ? '' : Number(event.target.value))
+              }}
+            />
             <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">Minimum accepted: {minimumTarget} {activity?.unit ?? 'units'}.</span>
           </label>
           <fieldset className="sm:col-span-2 xl:col-span-4" disabled={createdToday}>
@@ -185,7 +203,7 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
                   ? <><strong className="text-amber-700 dark:text-amber-300">Unlocks at team level {derivedBand.requiredLevel}</strong><span className="block text-xs">Reduce the target or level up the team before creating this mission.</span></>
                   : <><strong className="text-slate-950 dark:text-white">Core result: {derivedBand?.difficulty ?? 'routine'} · {derivedReward} Team XP · {assigneeCount} participant{assigneeCount === 1 ? '' : 's'}</strong><span className="block text-xs">{activity?.description} Difficulty and collaboration reward are derived by Core; the mission ends at midnight UTC.</span></>}
             </div>
-            <button className="button-primary w-full sm:w-auto" disabled={createdToday || derivedBand?.unlocked === false}>{createdToday ? 'Daily mission already created' : derivedBand?.unlocked === false ? 'Target locked' : 'Create daily mission'}</button>
+            <button className="button-primary w-full sm:w-auto" disabled={createdToday || !targetIsValid || derivedBand?.unlocked === false}>{createdToday ? 'Daily mission already created' : !targetIsValid ? 'Enter a valid target' : derivedBand?.unlocked === false ? 'Target locked' : 'Create daily mission'}</button>
           </div>
         </form>
       ) : null}

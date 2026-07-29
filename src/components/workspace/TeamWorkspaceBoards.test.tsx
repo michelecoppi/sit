@@ -152,7 +152,12 @@ describe('TeamWorkspaceBoards', () => {
     expect(screen.getByText('Minimum accepted: 64 SYTE.')).toBeInTheDocument()
 
     fireEvent.change(activitySelect, { target: { value: 'messages_encoded' } })
-    fireEvent.change(screen.getByRole('spinbutton', { name: /Target \(messages\)/ }), { target: { value: '12' } })
+    const messageTarget = screen.getByRole('spinbutton', { name: /Target \(messages\)/ })
+    fireEvent.change(messageTarget, { target: { value: '' } })
+    expect(messageTarget).toHaveValue(null)
+    expect(screen.getByRole('button', { name: 'Enter a valid target' })).toBeDisabled()
+    fireEvent.change(messageTarget, { target: { value: '12' } })
+    expect(messageTarget).toHaveValue(12)
     expect(screen.getByText('Unlocks at team level 4')).toBeInTheDocument()
     expect(screen.getByRole('button', { name: 'Target locked' })).toBeDisabled()
   })
