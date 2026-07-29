@@ -5,7 +5,8 @@ import DictionarySearch from '../components/DictionarySearch'
 import GrammarCard from '../components/GrammarCard'
 import { nativeDecode, nativeDictionary, nativeEncode } from '../data/native'
 import CapsuleSaveButton from '../components/capsules/CapsuleSaveButton'
-import { nativeProtocolApi } from '../services/nativeProtocolService'
+import { nativeProtocolApi, type NativeError, type NativeVersion } from '../services/nativeProtocolService'
+import { useNativeRegistry } from '../hooks/useNativeRegistry'
 
 const punctuationSectionNames = ['COMMA', 'PERIOD', 'COLON', 'SEMICOLON', 'QUESTIONMARK', 'EXCLAMATIONMARK', 'APOSTROPHE', 'QUOTATIONMARK', 'HYPHEN', 'DASH', 'SLASH', 'ELLIPSIS'] as const
 const groupingSectionNames = ['LEFTPAREN', 'RIGHTPAREN', 'LEFTBRACKET', 'RIGHTBRACKET', 'LEFTBRACE', 'RIGHTBRACE', 'LEFTANGLE', 'RIGHTANGLE'] as const
@@ -26,26 +27,12 @@ function Header({ eyebrow, title, children }: { eyebrow: string; title: string; 
 }
 
 function NativeRegistryStatus() {
-  const [state, setState] = useState<'loading' | 'live' | 'fallback'>('loading')
-  const [version, setVersion] = useState('2.0')
-
-  useEffect(() => {
-    let mounted = true
-    void nativeProtocolApi.registry()
-      .then((registry) => {
-        if (!mounted) return
-        setVersion(registry.defaultVersion)
-        setState('live')
-      })
-      .catch(() => {
-        if (mounted) setState('fallback')
-      })
-    return () => { mounted = false }
-  }, [])
+  const { source, registry } = useNativeRegistry()
 
   return (
     <p className="text-sm text-slate-600 dark:text-slate-300" role="status">
-      Native registry: <strong>{state === 'live' ? `live v${version}` : state === 'fallback' ? 'offline fallback (read-only)' : 'connecting…'}</strong>
+      Native registry: <strong>{source === 'live' ? `live ${registry.registryVersion} · default v${registry.defaultVersion}` : source === 'fallback' ? 'offline fallback (read-only)' : 'connecting…'}</strong>
+      {source === 'live' ? <span className="ml-2 font-mono text-xs">checksum {registry.registryChecksum.slice(0, 12)}</span> : null}
     </p>
   )
 }
@@ -104,7 +91,8 @@ export function NativePage() {
 }
 
 export function AlphabetPage() {
-  const alphabetEntries = nativeDictionary.filter((entry) => !operatorSectionNames.includes(entry.name as (typeof operatorSectionNames)[number]))
+  const { registry } = useNativeRegistry()
+  const alphabetEntries = registry.entries.filter((entry) => !operatorSectionNames.includes(entry.name as (typeof operatorSectionNames)[number]))
 
   return (
     <div className="native-v2">
@@ -233,12 +221,14 @@ export function PunctuationPage() {
 }
 
 export function DictionaryPage() {
+  const { registry } = useNativeRegistry()
+
   return (
     <div className="space-y-8">
       <Header eyebrow="Semantic registry" title="Native Dictionary">
         Search the canonical vocabulary by meaning, category or native sequence.
       </Header>
-      <DictionarySearch />
+      <DictionarySearch entries={registry.entries} />
     </div>
   )
 }
@@ -321,19 +311,21 @@ export function SemanticPage() {
 }
 
 export function CharacterExplorerPage() {
+  const { registry } = useNativeRegistry()
+
   return (
     <div className="space-y-8">
       <Header eyebrow="Registry explorer" title="Character Explorer">
         Explore every official symbolic token, its introduction version and intended usage.
       </Header>
-      <AlphabetTable />
+      <AlphabetTable entries={registry.entries} />
     </div>
   )
 }
 
 const modes = ['Native Encoder', 'Native Decoder', 'Semantic Explorer', 'Official Alphabet', 'Dictionary Explorer'] as const
 type Mode = (typeof modes)[number]
-type CopyFeedbackTarget = 'result' | 'canonical'
+type CopyFeedbackTarget = 'result' | 'canonical' | 'error'
 type CopyFeedbackTone = 'success' | 'error'
 type NativeCopyFeedback = {
   target: CopyFeedbackTarget
@@ -342,8 +334,10 @@ type NativeCopyFeedback = {
 }
 
 export function NativePlayground({ initialPayload, authenticated = false, locale = 'en' }: { initialPayload?: string; authenticated?: boolean; locale?: 'en' | 'it' }) {
+  const { source: registrySource, registry, capabilitiesFor } = useNativeRegistry()
   const [mode, setMode] = useState<Mode>(initialPayload ? 'Native Decoder' : 'Native Encoder')
   const [value, setValue] = useState(initialPayload ?? 'HELLO')
+  const [selectedVersion, setSelectedVersion] = useState<NativeVersion>('2.1')
   const [showCanonicalDecode, setShowCanonicalDecode] = useState(false)
   const [copyFeedback, setCopyFeedback] = useState<NativeCopyFeedback | null>(null)
   const inputRef = useRef<HTMLTextAreaElement | null>(null)
@@ -438,7 +432,16 @@ export function NativePlayground({ initialPayload, authenticated = false, locale
   }, [deferredValue, locale, mode])
 
   const [coreOutput, setCoreOutput] = useState<string | null>(null)
-  const [coreError, setCoreError] = useState<string | null>(null)
+  const [coreError, setCoreError] = useState<NativeError | null>(null)
+  const selectedCapabilities = capabilitiesFor(selectedVersion)
+
+  useEffect(() => {
+    if (registrySource === 'live') setSelectedVersion(registry.defaultVersion)
+  }, [registry.defaultVersion, registrySource])
+
+  useEffect(() => {
+    if (!selectedCapabilities.includes('canonical_decode')) setShowCanonicalDecode(false)
+  }, [selectedCapabilities])
 
   useEffect(() => {
     if (mode !== 'Native Encoder' && mode !== 'Native Decoder') {
@@ -450,22 +453,41 @@ export function NativePlayground({ initialPayload, authenticated = false, locale
     let mounted = true
     setCoreOutput(null)
     setCoreError(null)
+    const requiredCapability = mode === 'Native Encoder' ? 'encode' : 'decode'
+    if (registrySource !== 'live' || !selectedCapabilities.includes(requiredCapability)) {
+      setCoreError({
+        code: registrySource === 'loading' ? 'registry_loading' : 'offline_fallback',
+        position: null,
+        suggestion: registrySource === 'loading'
+          ? 'Connecting to the versioned SIT Core registry.'
+          : 'Core unavailable: local registry is read-only.',
+      })
+      return
+    }
     const request = mode === 'Native Encoder'
-      ? nativeProtocolApi.encode(deferredValue, '2.1', locale)
-      : nativeProtocolApi.decode(deferredValue, '2.1', false, locale)
+      ? nativeProtocolApi.encode(deferredValue, selectedVersion, locale)
+      : nativeProtocolApi.decode(deferredValue, selectedVersion, false, locale)
 
     void request
       .then((result) => {
         if (!mounted) return
         if (result.ok) setCoreOutput(result.output ?? '')
-        else setCoreError(result.errors?.[0]?.suggestion ?? 'Native validation failed.')
+        else setCoreError(result.errors?.[0] ?? {
+          code: 'native_validation_failed',
+          position: null,
+          suggestion: 'Native validation failed.',
+        })
       })
       .catch(() => {
-        if (mounted) setCoreError('Core unavailable: showing the read-only local fallback.')
+        if (mounted) setCoreError({
+          code: 'core_unavailable',
+          position: null,
+          suggestion: 'Core unavailable: showing the read-only local fallback.',
+        })
       })
 
     return () => { mounted = false }
-  }, [deferredValue, locale, mode])
+  }, [deferredValue, locale, mode, registrySource, selectedCapabilities, selectedVersion])
 
   const output = coreOutput ?? localOutput
 
@@ -498,14 +520,28 @@ export function NativePlayground({ initialPayload, authenticated = false, locale
       <Header eyebrow="SIT 2.0 - Native operations" title="Native Playground">
         Encode concepts directly into the SIT alphabet. No ASCII, binary or legacy conversion enters this workspace.
         <div className="native-status">
-          <span>* Native protocol online</span>
+          <span>{registrySource === 'live' ? '● Native protocol online' : '○ Read-only fallback'}</span>
           <span>6/7 alphabet only</span>
-          <span>v2.0 registry</span>
+          <span>v{selectedVersion} · {registry.registryVersion}</span>
         </div>
       </Header>
 
       <div className="native-modebar">
-        <p>Choose an operation</p>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <p>Choose an operation</p>
+          <label className="text-sm font-semibold">
+            Native version
+            <select
+              className="native-input ml-2 w-auto"
+              value={selectedVersion}
+              onChange={(event) => setSelectedVersion(event.target.value as NativeVersion)}
+              disabled={registrySource !== 'live'}
+            >
+              {registry.versions.map((entry) => <option key={entry.version} value={entry.version}>{entry.version}</option>)}
+            </select>
+          </label>
+        </div>
+        <p className="mt-2 text-xs text-slate-500">Capabilities: {selectedCapabilities.join(', ') || 'registry cache only'}</p>
         <div className="grid w-full gap-2 sm:flex sm:flex-wrap">
           {modes.map((item) => (
             <button key={item} className={mode === item ? 'native-tab native-tab-active w-full sm:w-auto' : 'native-tab w-full sm:w-auto'} onClick={() => setModeDefaults(item)}>
@@ -522,7 +558,7 @@ export function NativePlayground({ initialPayload, authenticated = false, locale
               <p className="font-semibold">{mode === 'Official Alphabet' ? 'Complete SIT alphabet' : 'Official SIT vocabulary'}</p>
               <span className="native-live">LIVE REGISTRY</span>
             </div>
-            {mode === 'Official Alphabet' ? <AlphabetTable /> : <DictionarySearch showQuickCategories />}
+            {mode === 'Official Alphabet' ? <AlphabetTable entries={registry.entries} /> : <DictionarySearch entries={registry.entries} showQuickCategories />}
           </div>
         ) : (
           <>
@@ -539,8 +575,9 @@ export function NativePlayground({ initialPayload, authenticated = false, locale
                   type="checkbox"
                   checked={showCanonicalDecode}
                   onChange={(event) => setShowCanonicalDecode(event.target.checked)}
+                  disabled={!selectedCapabilities.includes('canonical_decode')}
                 />
-                Show canonical token names
+                Show canonical token names {selectedCapabilities.includes('canonical_decode') ? '' : '(requires Native 2.1)'}
               </label>
             ) : null}
             {mode !== 'Native Decoder' ? (
@@ -578,7 +615,14 @@ export function NativePlayground({ initialPayload, authenticated = false, locale
               </div>
             </div>
             <pre className="native-output native-output-long mt-2">{output || '-'}</pre>
-            {coreError ? <p className="mt-2 text-sm text-amber-700 dark:text-amber-300" role="status">{coreError}</p> : null}
+            {coreError ? (
+              <div className="mt-3 rounded-2xl border border-amber-300 bg-amber-50 p-3 text-sm text-amber-900 dark:border-amber-800 dark:bg-amber-950/30 dark:text-amber-200" role="alert">
+                <p><strong>{coreError.code}</strong>{coreError.position === null ? '' : ` at token ${coreError.position + 1}`}</p>
+                <p className="mt-1">{coreError.suggestion}</p>
+                <button type="button" className="native-copy-btn mt-2" onClick={() => handleCopy(JSON.stringify(coreError, null, 2), 'Error payload', 'error')}>Copy error payload</button>
+                {renderCopyFeedback('error')}
+              </div>
+            ) : null}
             {canonicalDecodeOutput ? (
               <>
                 <div className="mt-4 flex flex-wrap items-center justify-between gap-2">

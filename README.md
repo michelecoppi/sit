@@ -63,6 +63,11 @@ KiloSYTE batch mode encodes multiple lines of text into structured SIT blocks an
 ### Native mode
 
 SIT 2.0 introduces a native registry of semantic tokens, a symbolic grammar, a dictionary lookup and a semantic engine for concept-driven encoding.
+With `VITE_API_URL` configured, the workspace loads the canonical registry,
+checksum, supported versions and capability matrix from SIT Core. The selected
+version controls encode/decode features; canonical decode is enabled only when
+the server advertises it. If Core is unavailable, the bundled registry remains
+available as a clearly labelled read-only cache.
 
 ### Compliance
 
@@ -131,6 +136,8 @@ contributors.
 Set `VITE_API_URL` to enable the live SIT Core integration. The frontend uses
 the backend OpenAPI contract and HttpOnly cookie sessions; the verified endpoint
 mapping is maintained in [docs/API_CONTRACT.md](docs/API_CONTRACT.md).
+Native validation errors preserve the server-provided code, token position and
+suggestion, and their JSON payload can be copied for reproducible reports.
 
 ## Notes
 
