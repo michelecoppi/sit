@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   UserCircleIcon,
@@ -220,20 +220,22 @@ function LoginPrompt() {
   const pollTimerRef = useRef<number | null>(null)
   const countdownTimerRef = useRef<number | null>(null)
   const pollInFlightRef = useRef(false)
+  const activeTicketRef = useRef<string | null>(null)
 
-  const stopPolling = (clearStoredTicket = false) => {
-    if (pollTimerRef.current) {
+  const stopPolling = useCallback((clearStoredTicket = false) => {
+    if (pollTimerRef.current !== null) {
       window.clearInterval(pollTimerRef.current)
       pollTimerRef.current = null
     }
-    if (countdownTimerRef.current) {
+    if (countdownTimerRef.current !== null) {
       window.clearInterval(countdownTimerRef.current)
       countdownTimerRef.current = null
     }
+    activeTicketRef.current = null
     if (clearStoredTicket) {
       sessionStorage.removeItem(TELEGRAM_LOGIN_TICKET_STORAGE_KEY)
     }
-  }
+  }, [])
 
   const recoverOauthError = () => {
     const code = consumeOAuthCallbackError()
@@ -241,10 +243,11 @@ function LoginPrompt() {
     setOauthError(mapOAuthCallbackError(code))
   }
 
-  const startPolling = (snapshot: TelegramLoginTicketSnapshot) => {
-    if (ticketSnapshot?.ticket === snapshot.ticket && pollTimerRef.current) return
+  const startPolling = useCallback((snapshot: TelegramLoginTicketSnapshot) => {
+    if (activeTicketRef.current === snapshot.ticket && pollTimerRef.current !== null) return
 
     stopPolling(false)
+    activeTicketRef.current = snapshot.ticket
     clearAuthError()
     setOauthError(null)
     setTelegramError(null)
@@ -321,7 +324,7 @@ function LoginPrompt() {
     pollTimerRef.current = window.setInterval(() => {
       void pollOnce()
     }, pollIntervalMs)
-  }
+  }, [clearAuthError, completeLogin, stopPolling])
 
   const createTelegramTicket = async () => {
     setTelegramLoading(true)
@@ -376,7 +379,7 @@ function LoginPrompt() {
     return () => {
       stopPolling(false)
     }
-  }, [])
+  }, [startPolling, stopPolling])
 
   const formattedRemaining = `${String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:${String(remainingSeconds % 60).padStart(2, '0')}`
 
