@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import { labApi, type LabDifficulty, type LabOperation, type LabPreset, type LabResult } from '../services/labService'
 import { encodeTextToSit } from '../utils/encoder'
 import { validateSit } from '../utils/validator'
@@ -33,7 +33,10 @@ export function LabsPanel({ locale = 'en' }: { locale?: NativeLocale }) {
   const [usingFallback, setUsingFallback] = useState(false)
   const visiblePresets = useMemo(() => presets.filter((preset) => preset.difficulty === difficulty), [difficulty, presets])
   const activePreset = useMemo(() => visiblePresets.find((preset) => preset.id === selectedId) ?? visiblePresets[0] ?? presets[0], [presets, selectedId, visiblePresets])
-  const localizeNativeSample = (value: string) => locale === 'it' ? nativeDecode(nativeEncode(value), { locale }) : value
+  const localizeNativeSample = useCallback(
+    (value: string) => locale === 'it' ? nativeDecode(nativeEncode(value), { locale }) : value,
+    [locale],
+  )
 
   useEffect(() => {
     void labApi.presets().then(({ presets: responsePresets }) => {
@@ -50,14 +53,16 @@ export function LabsPanel({ locale = 'en' }: { locale?: NativeLocale }) {
       setInput(next.operation === 'native' ? localizeNativeSample(next.input) : next.input)
       setResult(null)
     }
-  }, [selectedId, visiblePresets])
+  }, [localizeNativeSample, selectedId, visiblePresets])
+
+  useEffect(() => {
+    if (activePreset?.operation === 'native' && (input === 'HELLO' || input === 'CIAO')) {
+      const localizedInput = localizeNativeSample('HELLO')
+      if (input !== localizedInput) setInput(localizedInput)
+    }
+  }, [activePreset?.operation, input, localizeNativeSample])
 
   if (!activePreset) return null
-  useEffect(() => {
-    if (activePreset?.operation === 'native' && (input === 'HELLO' || input === 'CIAO')) setInput(localizeNativeSample('HELLO'))
-  // Keep only the starter Native exercise aligned with the selector; custom input is preserved.
-  // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [locale])
 
   const choosePreset = (preset: LabPreset) => { setSelectedId(preset.id); setInput(preset.operation === 'native' ? localizeNativeSample(preset.input) : preset.input); setResult(null) }
   const runExperiment = () => { void labApi.run(activePreset.operation, input, locale).then(setResult).catch(() => { setUsingFallback(true); setResult(localResult(activePreset.operation, input)) }) }
