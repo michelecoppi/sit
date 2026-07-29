@@ -1,13 +1,17 @@
+Exit code: 0
+Wall time: 0.3 seconds
+Output:
 import { fireEvent, render, screen, waitFor } from '@testing-library/react'
 import type { ReactNode } from 'react'
-import { describe, expect, it, vi } from 'vitest'
+import { afterEach, describe, expect, it, vi } from 'vitest'
 import ProfilePage from './ProfilePage'
 import type { MeResponse, ProfileStatistics } from '../types/profile'
 import type { StatisticsSnapshotResponse } from '../types/statistics'
 
-const { mockGetProfileStatistics, mockGetStatisticsSnapshot, mockAuth, mockAccount } = vi.hoisted(() => ({
+const { mockGetProfileStatistics, mockGetStatisticsSnapshot, mockGetLoginStatus, mockAuth, mockAccount } = vi.hoisted(() => ({
   mockGetProfileStatistics: vi.fn<() => Promise<ProfileStatistics>>(),
   mockGetStatisticsSnapshot: vi.fn<() => Promise<StatisticsSnapshotResponse>>(),
+  mockGetLoginStatus: vi.fn(),
   mockAuth: {
     me: {
       profile: {
@@ -74,8 +78,8 @@ const { mockGetProfileStatistics, mockGetStatisticsSnapshot, mockAuth, mockAccou
       ],
       achievements: [],
       linkedAccounts: [],
-    } as MeResponse,
-    status: 'authenticated' as const,
+    } as MeResponse | null,
+    status: 'authenticated' as 'anonymous' | 'loading' | 'authenticated',
     authError: null,
     isBootstrapping: false,
     completeLogin: vi.fn(),
@@ -107,6 +111,12 @@ vi.mock('../services/profileService', () => ({
   getStatisticsSnapshot: mockGetStatisticsSnapshot,
 }))
 
+vi.mock('../services/authService', () => ({
+  createLoginTicket: vi.fn(),
+  getDiscordLoginUrl: () => 'https://api.example/api/oauth/discord/login',
+  getLoginStatus: mockGetLoginStatus,
+}))
+
 vi.mock('../context/AuthContext', () => ({
   useAuth: () => mockAuth,
 }))
@@ -116,7 +126,39 @@ vi.mock('../context/AccountContext', () => ({
   useAccount: () => mockAccount,
 }))
 
+const authenticatedMe = mockAuth.me
+
 describe('ProfilePage', () => {
+  afterEach(() => {
+    sessionStorage.clear()
+    mockGetLoginStatus.mockReset()
+    mockAuth.me = authenticatedMe
+    mockAuth.status = 'authenticated'
+  })
+
+  it('recovers a Telegram ticket without starting duplicate polling on rerender', async () => {
+    mockAuth.me = null
+    mockAuth.status = 'anonymous'
+    mockGetLoginStatus.mockResolvedValue({ status: 'PENDING' })
+    sessionStorage.setItem('sit_telegram_login_ticket', JSON.stringify({
+      ticket: 'TG_LOGIN_123',
+      loginUrl: 'https://t.me/sit_bot?start=TG_LOGIN_123',
+      expiresAt: new Date(Date.now() + 60_000).toISOString(),
+      startedAt: Date.now(),
+    }))
+
+    const view = render(<ProfilePage />)
+
+    await waitFor(() => {
+      expect(mockGetLoginStatus).toHaveBeenCalledTimes(1)
+    })
+
+    view.rerender(<ProfilePage />)
+    await Promise.resolve()
+
+    expect(mockGetLoginStatus).toHaveBeenCalledTimes(1)
+  })
+
   it('uses statistics snapshot and switches between global and provider summaries', async () => {
     mockGetProfileStatistics.mockResolvedValue({
       researcherId: 'SIT-123456',
@@ -268,3 +310,4 @@ describe('ProfilePage', () => {
     })
   })
 })
+
