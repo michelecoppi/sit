@@ -6,7 +6,7 @@ import type {
   MissionRotationWindow,
   MissionStreak,
 } from '../types/missions'
-import { getApiHeaders, getApiUrl, parseResponsePayload, throwApiError } from './apiClient'
+import { ApiClientError, getApiHeaders, getApiUrl, parseResponsePayload, throwApiError } from './apiClient'
 
 const CADENCES = new Set(['daily', 'weekly'])
 const STATES = new Set(['active', 'completed'])
@@ -168,11 +168,18 @@ async function request(path: string, fallback: string) {
 }
 
 export async function getMissionDashboard(): Promise<MissionDashboard> {
-  const [active, streak] = await Promise.all([
-    request('/api/missions', 'Mission progress is currently unavailable.'),
-    request('/api/missions/streak', 'Streak data is currently unavailable.'),
-  ])
-  return parseMissionDashboard(active, streak)
+  try {
+    const dashboard = await request('/api/missions/dashboard', 'Mission dashboard is currently unavailable.')
+    return parseMissionDashboard(dashboard, dashboard)
+  } catch (error) {
+    if (!(error instanceof ApiClientError) || error.status !== 404) throw error
+
+    const [active, streak] = await Promise.all([
+      request('/api/missions', 'Mission progress is currently unavailable.'),
+      request('/api/missions/streak', 'Streak data is currently unavailable.'),
+    ])
+    return parseMissionDashboard(active, streak)
+  }
 }
 
 export async function getMissionHistory(cursor?: string): Promise<MissionHistoryPage> {
