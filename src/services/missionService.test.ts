@@ -1,5 +1,5 @@
-import { describe, expect, it } from 'vitest'
-import { parseMissionDashboard, parseMissionHistory } from './missionService'
+import { afterEach, describe, expect, it, vi } from 'vitest'
+import { getMissionDashboard, parseMissionDashboard, parseMissionHistory } from './missionService'
 
 const mission = {
   code: 'daily_encode_3',
@@ -18,6 +18,11 @@ const mission = {
 }
 
 describe('mission payload parsing', () => {
+  afterEach(() => {
+    vi.unstubAllGlobals()
+    vi.unstubAllEnvs()
+  })
+
   it('preserves backend-authored progress, remaining target and UTC streak rules', () => {
     const result = parseMissionDashboard({
       missions: [mission],
@@ -106,5 +111,31 @@ describe('mission payload parsing', () => {
       timezone: 'UTC',
       rules: 'Complete one mission.',
     })).toThrow('Invalid mission rotation payload.')
+  })
+
+  it('loads the complete dashboard with one API request', async () => {
+    vi.stubEnv('VITE_API_URL', 'https://core.example')
+    const fetchMock = vi.fn().mockResolvedValue(new Response(JSON.stringify({
+      missions: [mission],
+      streak: {
+        current: 4,
+        best: 9,
+        lastQualifiedDate: '2026-07-25T00:00:00.000Z',
+        timezone: 'UTC',
+        rules: 'Complete at least one daily mission before its UTC reset.',
+      },
+      serverTime: '2026-07-26T12:00:00.000Z',
+    }), {
+      status: 200,
+      headers: { 'content-type': 'application/json' },
+    }))
+    vi.stubGlobal('fetch', fetchMock)
+
+    const dashboard = await getMissionDashboard()
+
+    expect(dashboard.missions).toHaveLength(1)
+    expect(dashboard.streak.current).toBe(4)
+    expect(fetchMock).toHaveBeenCalledTimes(1)
+    expect(fetchMock.mock.calls[0][0]).toBe('https://core.example/api/missions/dashboard')
   })
 })

@@ -37,19 +37,16 @@ afterEach(() => {
 
 describe('authenticated mission flow', () => {
   it('loads authoritative progress and streak data without polling duplicate endpoints', async () => {
-    const fetchMock = vi.fn((input: string | URL | Request) => {
-      const url = String(input)
-      if (url.endsWith('/api/missions/streak')) {
-        return Promise.resolve(new Response(JSON.stringify({
+    const fetchMock = vi.fn((_input: string | URL | Request) => {
+      return Promise.resolve(new Response(JSON.stringify({
+        missions: [mission],
+        streak: {
           current: 4,
           best: 9,
           lastQualifiedDate: '2026-07-25T00:00:00.000Z',
           timezone: 'UTC',
           rules: 'Complete one daily directive before its UTC reset.',
-        })))
-      }
-      return Promise.resolve(new Response(JSON.stringify({
-        missions: [mission],
+        },
         rotation: {
           daily: {
             startsAt: '2026-07-26T00:00:00.000Z',
@@ -76,8 +73,7 @@ describe('authenticated mission flow', () => {
     expect(screen.getAllByText('3 rotating directives')).toHaveLength(2)
     expect(screen.getByRole('progressbar', { name: 'Three clean transmissions progress' })).toHaveAttribute('aria-valuenow', '2')
 
-    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(2))
-    expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/api/missions')).length).toBe(1)
-    expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/api/missions/streak')).length).toBe(1)
+    await waitFor(() => expect(fetchMock).toHaveBeenCalledTimes(1))
+    expect(fetchMock.mock.calls.filter(([url]) => String(url).endsWith('/api/missions/dashboard')).length).toBe(1)
   })
 })
