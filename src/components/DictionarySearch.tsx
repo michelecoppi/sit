@@ -1,13 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
-import { isPunctuationEntry, nativeCategories, nativeDictionary } from '../data/native'
+import { isPunctuationEntry, nativeCategories, nativeDictionary, type NativeEntry } from '../data/native'
 
 const quickFilters = ['All', 'Punctuation', ...nativeCategories] as const
 
 type DictionarySearchProps = {
   showQuickCategories?: boolean
+  entries?: NativeEntry[]
 }
 
-export default function DictionarySearch({ showQuickCategories = false }: DictionarySearchProps) {
+export default function DictionarySearch({ showQuickCategories = false, entries = nativeDictionary }: DictionarySearchProps) {
   const [query, setQuery] = useState('HELLO')
   const [selectedCategory, setSelectedCategory] = useState('All')
   const [page, setPage] = useState(1)
@@ -29,11 +30,11 @@ export default function DictionarySearch({ showQuickCategories = false }: Dictio
     return [1, '...', current - 1, current, current + 1, '...', total] as const
   }
 
-  const results = useMemo(() => nativeDictionary.filter((entry) => {
+  const results = useMemo(() => entries.filter((entry) => {
     const matchesQuery = `${entry.name} ${entry.symbol ?? ''} ${entry.aliases.join(' ')} ${entry.meaning} ${entry.category} ${entry.code}`.toLowerCase().includes(query.toLowerCase())
     const matchesCategory = selectedCategory === 'All' || (selectedCategory === 'Punctuation' ? isPunctuationEntry(entry) : entry.category === selectedCategory)
     return matchesQuery && matchesCategory
-  }), [query, selectedCategory])
+  }), [entries, query, selectedCategory])
 
   const totalPages = Math.max(1, Math.ceil(results.length / pageSize))
   const currentPage = Math.min(page, totalPages)

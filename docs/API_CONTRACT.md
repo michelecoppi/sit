@@ -15,6 +15,7 @@ by SIT Core at `/api/docs`. The frontend deliberately uses cookie sessions
 | `capsuleService` | `/api/capsules*` | Create, list, update, revoke, and safe public-resolution request and response shapes are parsed before rendering. |
 | `teamService` | `/api/teams*`, `/api/team-invites*` | Team mutations, membership operations, invitations, and cursor pagination match the documented route parameters. |
 | `labService` | `GET /api/lab/presets`, `POST /api/lab/run` | Lab results are contract version `1`, deterministic for equal input/version, include steps plus rule-linked errors, and group presets into `easy`, `medium`, and `hard`. |
+| `nativeProtocolService` | `GET /api/native/registry`, `GET /api/native/dictionary`, `POST /api/native/encode`, `POST /api/native/decode`, `POST /api/native/validate` | The UI consumes registry version/checksum, the 2.0/2.1 capability matrix and structured errors (`code`, `position`, `suggestion`). HTTP 422 remains a typed validation result; transport failures activate the read-only local cache. |
 
 The contract is exercised by the service tests. When SIT Core changes its
 OpenAPI contract, update the relevant parser, test fixture, and this table in
