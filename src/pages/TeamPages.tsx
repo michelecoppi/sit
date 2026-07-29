@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useState, type FormEvent } from 'react'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, Navigate, useNavigate, useParams } from 'react-router-dom'
 import {
   ArrowRightIcon,
   BoltIcon,
@@ -13,7 +13,7 @@ import {
 } from '@heroicons/react/24/outline'
 import { useAuth } from '../context/AuthContext'
 import {
-  archiveTeam,
+  deleteTeam,
   changeTeamMemberRole,
   createTeam,
   createTeamInvite,
@@ -30,6 +30,8 @@ import {
 } from '../services/teamService'
 import type { TeamDetail, TeamInvite, TeamMember, TeamSummary, TeamVisibility } from '../types/teams'
 import TeamWorkspaceBoards from '../components/workspace/TeamWorkspaceBoards'
+import { listWorkspaceMissions } from '../services/workspaceService'
+import type { WorkspaceMission } from '../types/workspace'
 
 const visibleSelectClass = 'mt-1 w-full appearance-auto rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-950 [color-scheme:light] focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:[color-scheme:dark]'
 
@@ -150,7 +152,7 @@ function CreateTeamForm({ onCreated }: { onCreated: (team: TeamDetail) => void }
               <label>Public abstract<textarea maxLength={500} name="description" rows={3} /></label>
               <label>Visibility<select className={visibleSelectClass} name="visibility" defaultValue="public"><option className="bg-white text-slate-950 dark:bg-slate-900 dark:text-white" value="public">Public</option><option className="bg-white text-slate-950 dark:bg-slate-900 dark:text-white" value="private">Private</option></select></label>
               <div className="team-actions">
-                <button className="button-primary" disabled={busy}>{busy ? 'Registering…' : 'Create team'}</button>
+                <button className="button-primary" disabled={busy}>{busy ? 'Registeringâ€¦' : 'Create team'}</button>
                 <button className="button-secondary" type="button" disabled={busy} onClick={() => setOpen(false)}>Cancel</button>
               </div>
             </form>
@@ -185,7 +187,7 @@ export function TeamsPage() {
 
   useEffect(() => { void load() }, [load])
 
-  if (loading) return <div className="route-loader" role="status">Loading research team registry…</div>
+  if (loading) return <div className="route-loader" role="status">Loading research team registryâ€¦</div>
   return (
     <section className="team-page team-directory-page">
       <header className="team-hero team-directory-hero">
@@ -233,6 +235,7 @@ export function TeamProfilePage() {
   const { slug = '' } = useParams()
   const [team, setTeam] = useState<TeamDetail | null>(null)
   const [members, setMembers] = useState<TeamMember[]>([])
+  const [activeMission, setActiveMission] = useState<WorkspaceMission | null>(null)
   const [error, setError] = useState<string | null>(null)
 
   useEffect(() => {
@@ -244,19 +247,23 @@ export function TeamProfilePage() {
         const page = await getTeamMembers(result.id)
         if (active) setMembers(page.items)
       }
+      if (result.currentMember?.role === 'member') {
+        const missions = await listWorkspaceMissions(result.id, 'active')
+        if (active) setActiveMission(missions.items[0] ?? null)
+      }
     }).catch((caught) => active && setError(caught instanceof Error ? caught.message : 'Unable to load this team.'))
     return () => { active = false }
   }, [slug])
 
   if (error) return <section className="team-page"><ErrorNotice message={error} /><Link to="/teams">Return to team registry</Link></section>
-  if (!team) return <div className="route-loader" role="status">Resolving team registry entry…</div>
+  if (!team) return <div className="route-loader" role="status">Resolving team registry entryâ€¦</div>
   return (
     <section className="team-page">
       <header className="team-hero">
-        <p className="team-eyebrow">{team.visibility} team · {team.archivedAt ? 'archived' : 'active'}</p>
+        <p className="team-eyebrow">{team.visibility} team Â· {team.archivedAt ? 'archived' : 'active'}</p>
         <h1>{team.name}</h1>
         <p>{team.description}</p>
-        {team.currentMember ? <Link className="button-primary" to={`/teams/${team.slug}/workspace`}>Open team workspace</Link> : null}
+        {team.currentMember && team.currentMember.role !== 'member' ? <Link className="button-primary" to={`/teams/${team.slug}/workspace`}>Open team workspace</Link> : null}
       </header>
       <dl className="team-total-strip">
         <div><dt>Verified members</dt><dd>{team.memberCount}</dd></div>
@@ -266,6 +273,7 @@ export function TeamProfilePage() {
       {team.visibility === 'public' ? (
         <section><h2>Public contributors</h2><div className="member-list">{members.map((member) => <div className="member-row" key={member.researcherId}><div><strong>{member.displayName}</strong><small>{member.researcherId}</small></div><span>{member.contributions.toLocaleString()} contributions</span></div>)}</div></section>
       ) : <div className="team-notice">Membership details are restricted to verified team members.</div>}
+      {team.currentMember?.role === 'member' ? <section className="team-workspace-panel mt-6 overflow-hidden border-indigo-400/30 bg-gradient-to-br from-indigo-50 via-white to-cyan-50 shadow-md dark:from-indigo-950/50 dark:via-slate-950 dark:to-cyan-950/30"><div className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between"><div><p className="text-xs font-bold uppercase tracking-[0.18em] text-indigo-600 dark:text-indigo-300">Member briefing</p><h2 className="mt-1 text-2xl font-black tracking-tight">Today's team mission</h2></div><span className="w-fit rounded-full border border-indigo-300/70 bg-white/80 px-3 py-1 text-xs font-bold text-indigo-700 shadow-sm dark:border-indigo-300/30 dark:bg-slate-950/60 dark:text-indigo-200">Read-only access</span></div>{activeMission ? <div className="mt-5 grid gap-4 rounded-2xl border border-indigo-200/80 bg-white/75 p-4 shadow-sm dark:border-indigo-300/15 dark:bg-slate-950/55 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-end"><div><h3 className="text-lg font-extrabold tracking-tight">{activeMission.title}</h3><p className="mt-1 text-sm leading-6 text-slate-600 dark:text-slate-300">{activeMission.description}</p></div><div className="rounded-xl bg-indigo-600 px-4 py-3 text-sm font-bold text-white shadow-sm"><span className="block text-xs font-medium text-indigo-100">Progress</span>{activeMission.aggregateProgress} / {activeMission.target}<span className="ml-1 text-xs font-medium text-indigo-100">{activeMission.metric.replaceAll('_', ' ')}</span></div></div> : <div className="mt-5 rounded-2xl border border-dashed border-indigo-300/70 bg-white/60 p-4 text-sm text-slate-600 dark:border-indigo-300/30 dark:bg-slate-950/40 dark:text-slate-300">No active daily mission has been published yet.</div>}</section> : null}
     </section>
   )
 }
@@ -280,14 +288,14 @@ function MemberControls({ team, member, onChanged }: { team: TeamDetail, member:
   }
   if (!canManage && !team.permissions.transferOwnership) return null
   return (
-    <div className="member-actions">
+    <div className="member-actions w-full justify-end sm:w-auto">
       {team.permissions.changeRoles && member.role !== 'owner' ? (
         <select className={`${visibleSelectClass} min-w-32`} aria-label={`Role for ${member.displayName}`} disabled={busy} value={member.role} onChange={(event) => void run(
-          () => changeTeamMemberRole(team.id, member.researcherId, event.target.value as 'admin' | 'member' | 'viewer'),
+          () => changeTeamMemberRole(team.id, member.researcherId, event.target.value as 'cofounder' | 'member'),
           `Change ${member.displayName}'s role?`,
-        )}><option value="viewer">Viewer</option><option value="member">Member</option><option value="admin">Admin</option></select>
+        )}><option value="member">Member</option><option value="cofounder">Cofounder</option></select>
       ) : null}
-      {team.permissions.transferOwnership && member.role !== 'owner' ? <button disabled={busy} onClick={() => void run(() => transferTeamOwnership(team.id, member.researcherId), `Transfer ownership to ${member.displayName}? You will lose owner privileges.`)}>Transfer ownership</button> : null}
+      {team.permissions.transferOwnership && member.role === 'cofounder' ? <button disabled={busy} onClick={() => void run(() => transferTeamOwnership(team.id, member.researcherId), `Transfer ownership to ${member.displayName}? You will lose owner privileges.`)}>Transfer ownership</button> : null}
       {canManage ? <button className="danger-link" disabled={busy} onClick={() => void run(() => removeTeamMember(team.id, member.researcherId), `Remove ${member.displayName} from the team?`)}>Remove</button> : null}
     </div>
   )
@@ -316,7 +324,7 @@ function TeamProgressionPanel({ team }: { team: TeamDetail }) {
             </div>
           </div>
           <div className="mt-5 flex flex-wrap gap-2">
-            {progression.unlockedFeatures.map((feature) => <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-medium" key={feature.code}>✓ {feature.label}</span>)}
+            {progression.unlockedFeatures.map((feature) => <span className="rounded-full border border-white/15 bg-white/10 px-3 py-1.5 text-xs font-medium" key={feature.code}>âœ“ {feature.label}</span>)}
           </div>
         </div>
         <div className="rounded-2xl border border-white/10 bg-black/20 p-4 backdrop-blur">
@@ -369,10 +377,11 @@ export function TeamWorkspacePage() {
   }
 
   if (error && !team) return <section className="team-page"><ErrorNotice message={error} /></section>
-  if (!team) return <div className="route-loader" role="status">Opening team workspace…</div>
+  if (!team) return <div className="route-loader" role="status">Opening team workspaceâ€¦</div>
+  if (team.currentMember?.role === 'member') return <Navigate replace to={`/teams/${team.slug}`} />
   return (
     <section className="team-page team-workspace-page min-w-0">
-      <header className="team-hero team-workspace-hero"><p className="team-eyebrow">Authenticated team workspace</p><h1>{team.name}</h1><p>Permissions below are supplied by SIT Core for your canonical researcher identity.</p></header>
+      <header className="team-hero team-workspace-hero"><p className="team-eyebrow">Authenticated team workspace</p><h1>{team.name}</h1><p>Permissions below are supplied by SIT Core for your canonical researcher identity.</p><Link className="button-secondary inline-flex w-full justify-center sm:w-auto" to={`/teams/${team.slug}`}>View team page</Link></header>
       <TeamProgressionPanel team={team} />
       {error ? <ErrorNotice message={error} /> : null}
       {message ? <div className="team-notice" role="status">{message}</div> : null}
@@ -380,10 +389,10 @@ export function TeamWorkspacePage() {
         {team.permissions.editTeam ? <form className="team-form team-workspace-settings" onSubmit={saveSettings}><h2>Registry settings</h2><label>Name<input name="name" defaultValue={team.name} required /></label><label>Slug<input name="slug" defaultValue={team.slug} required /></label><label>Description<textarea name="description" defaultValue={team.description} /></label><label>Visibility<select className={visibleSelectClass} name="visibility" defaultValue={team.visibility}><option className="bg-white text-slate-950 dark:bg-slate-900 dark:text-white" value="public">Public</option><option className="bg-white text-slate-950 dark:bg-slate-900 dark:text-white" value="private">Private</option></select></label><button className="button-primary">Save settings</button></form> : null}
         <div className="team-workspace-rail">
           {team.permissions.inviteMembers ? <section className="team-workspace-panel"><h2>Invite researchers</h2><p>Invitations expire automatically and inherit only the selected backend role.</p><button className="button-secondary" onClick={() => void createTeamInvite(team.id, 'member', 72).then(setInvite).catch((caught) => setError(caught.message))}>Create 72-hour invite</button>{invite ? <div className="invite-box"><code>{invite.inviteUrl ?? `${window.location.origin}${window.location.pathname}#/team-invites/${invite.token}`}</code><button onClick={() => void navigator.clipboard.writeText(invite.inviteUrl ?? `${window.location.origin}${window.location.pathname}#/team-invites/${invite.token}`)}>Copy</button></div> : null}</section> : null}
-          <section className="team-workspace-panel"><h2>Members</h2><div className="member-list">{members.map((member) => <div className="member-row" key={member.researcherId}><div><strong>{member.displayName}</strong><small>{member.role} · {member.contributions.toLocaleString()} contributions</small></div><MemberControls team={team} member={member} onChanged={load} /></div>)}</div></section>
+          <section className="team-workspace-panel"><div className="mb-4 flex flex-wrap items-center justify-between gap-3"><div><p className="text-xs font-bold uppercase tracking-[0.16em] text-indigo-600 dark:text-indigo-300">Team directory</p><h2 className="mt-1">Members</h2></div><span className="rounded-full border border-slate-200 bg-slate-50 px-3 py-1 text-xs font-bold text-slate-600 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-300">{members.length} verified</span></div><div className="member-list">{members.map((member) => <div className="member-row" key={member.researcherId}><div className="min-w-0"><strong className="break-words">{member.displayName}</strong><small className="break-all">{member.role} Â· {member.contributions.toLocaleString()} contributions</small></div><MemberControls team={team} member={member} onChanged={load} /></div>)}</div></section>
           <div className="team-danger-zone">
             {team.permissions.leaveTeam ? <button className="danger-button" onClick={() => { if (window.confirm(`Leave ${team.name}?`)) void leaveTeam(team.id).then(() => navigate('/teams')) }}>Leave team</button> : null}
-            {team.permissions.archiveTeam ? <button className="danger-button" onClick={() => { if (window.confirm(`Archive ${team.name}? This removes it from active discovery.`)) void archiveTeam(team.id).then(() => navigate(`/teams/${team.slug}`)) }}>Archive team</button> : null}
+            {team.permissions.deleteTeam ? <button className="danger-button" onClick={() => { if (window.confirm(`Delete ${team.name}? This is permanent and is available only while you are its only member.`)) void deleteTeam(team.id).then(() => navigate('/teams')) }}>Delete team</button> : null}
           </div>
         </div>
       </div>
@@ -400,7 +409,8 @@ export function TeamInvitePage() {
   const [error, setError] = useState<string | null>(null)
   useEffect(() => { void getTeamInvite(token).then(setInvite).catch((caught) => setError(caught instanceof Error ? caught.message : 'Unable to load invitation.')) }, [token])
   if (error) return <section className="team-page"><ErrorNotice message={error} /></section>
-  if (!invite) return <div className="route-loader" role="status">Verifying team invitation…</div>
+  if (!invite) return <div className="route-loader" role="status">Verifying team invitationâ€¦</div>
   const expired = invite.status === 'expired' || Date.parse(invite.expiresAt) <= Date.now()
   return <section className="team-page"><div className="invite-card"><p className="team-eyebrow">Research team invitation</p><h1>{invite.team.name}</h1><p>You have been invited as <strong>{invite.role}</strong>. This invitation expires {new Date(invite.expiresAt).toLocaleString()}.</p>{expired ? <ErrorNotice message="This invitation has expired. Ask a team administrator for a new one." /> : invite.status !== 'pending' ? <div className="team-notice">This invitation is already {invite.status}.</div> : status !== 'authenticated' ? <Link className="button-primary" to="/profile">Sign in to respond</Link> : <div className="team-actions"><button className="button-primary" onClick={() => void respondToTeamInvite(token, 'accept').then((team) => navigate(team ? `/teams/${team.slug}/workspace` : '/teams')).catch((caught) => setError(caught.message))}>Accept invitation</button><button className="button-secondary" onClick={() => void respondToTeamInvite(token, 'decline').then(() => navigate('/teams')).catch((caught) => setError(caught.message))}>Decline</button></div>}</div></section>
 }
+

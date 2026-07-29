@@ -71,7 +71,7 @@ const permissions = {
   manageMembers: true,
   changeRoles: true,
   transferOwnership: true,
-  archiveTeam: true,
+  deleteTeam: true,
   leaveTeam: false,
   manageMissions: true,
   contribute: true,
@@ -156,13 +156,13 @@ describe('team service operations', () => {
       .mockResolvedValueOnce(new Response(JSON.stringify(detail)))
     vi.stubGlobal('fetch', fetchMock)
 
-    await changeTeamMemberRole(summary.id, 'SIT-0068', 'admin')
+    await changeTeamMemberRole(summary.id, 'SIT-0068', 'cofounder')
     await respondToTeamInvite(invite.token, 'accept')
 
     expect(fetchMock).toHaveBeenNthCalledWith(1, expect.stringContaining('/members/SIT-0068'), expect.objectContaining({
       method: 'PATCH',
       credentials: 'include',
-      body: JSON.stringify({ role: 'admin' }),
+      body: JSON.stringify({ role: 'cofounder' }),
     }))
     expect(fetchMock).toHaveBeenNthCalledWith(2, expect.stringContaining('/accept'), expect.objectContaining({
       method: 'POST',
@@ -170,3 +170,4 @@ describe('team service operations', () => {
     }))
   })
 })
+

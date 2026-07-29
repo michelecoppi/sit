@@ -33,7 +33,7 @@ const permissions = {
   manageMembers: false,
   changeRoles: false,
   transferOwnership: false,
-  archiveTeam: false,
+  deleteTeam: false,
   leaveTeam: true,
   manageMissions: false,
   contribute: true,
@@ -110,7 +110,7 @@ describe('TeamWorkspaceBoards', () => {
   it('keeps viewers read-only even when workspace data is visible', async () => {
     render(<TeamWorkspaceBoards members={[team.currentMember!]} team={{
       ...team,
-      currentMember: { ...team.currentMember!, role: 'viewer' },
+      currentMember: { ...team.currentMember!, role: 'member' },
       permissions: { ...permissions, contribute: false, publishCapsules: false },
     }} />)
 
@@ -157,3 +157,4 @@ describe('TeamWorkspaceBoards', () => {
     expect(screen.getByRole('button', { name: 'Target locked' })).toBeDisabled()
   })
 })
+

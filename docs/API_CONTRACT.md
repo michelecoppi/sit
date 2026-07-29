@@ -13,7 +13,7 @@ by SIT Core at `/api/docs`. The frontend deliberately uses cookie sessions
 | `accountService` | `GET /api/account/providers`, `POST /api/account/link` | The UI supports the backend's linkable Discord and Telegram providers and preserves the temporary code/OAuth URL response. |
 | `missionService` | `GET /api/missions/dashboard`, `GET /api/missions/history` | The dashboard combines active missions, rotation and streak in one request. A `404` fallback keeps compatibility with older Core deployments by calling `GET /api/missions` and `GET /api/missions/streak`. Requests are authenticated and cursor values are URL encoded. |
 | `capsuleService` | `/api/capsules*` | Create, list, update, revoke, and safe public-resolution request and response shapes are parsed before rendering. |
-| `teamService` | `/api/teams*`, `/api/team-invites*` | Team mutations, owner/admin/member/viewer authorization, membership operations, invitations, and cursor pagination match the documented route parameters. |
+| `teamService` | `/api/teams*`, `/api/team-invites*` | Owner/cofounder/member authorization, membership operations, invitations, cursor pagination and sole-owner team deletion match the documented route parameters. Members are limited to their team profile and its active daily mission. |
 | `workspaceService` | `/api/teams/{teamId}/missions*`, `/api/teams/{teamId}/capsules*` | Mission creation sends an activity metric, target and a unique list of real team members, but never difficulty, XP or a due date. An empty list means only the creator. Core publishes a level-based maximum (5 through 10), derives collaboration-adjusted `teamXpReward`, closes the mission at the next UTC midnight, enforces the single daily slot, and awards Team XP once on aggregate completion. Mission progress sends an idempotency key and consumes individual/aggregate state. Mission and capsule writes send `expectedRevision`; 409 conflicts remain distinct from transport failures so the UI can reload. |
 | `teamService` progression | `/api/teams*` | Team summaries and details expose Team XP, derived level, current/next thresholds, unlocks, daily mission availability, the minimum accepted target for each activity and Core-calculated reward bands. The UI treats these minimums (3 encode, 3 decode, 64 SYTE) as authoritative alongside difficulty gates and level presentation. |
 | `labService` | `GET /api/lab/presets`, `POST /api/lab/run` | Lab results are contract version `1`, deterministic for equal input/version, include steps plus rule-linked errors, and group presets into `easy`, `medium`, and `hard`. |
@@ -22,4 +22,5 @@ by SIT Core at `/api/docs`. The frontend deliberately uses cookie sessions
 The contract is exercised by the service tests. When SIT Core changes its
 OpenAPI contract, update the relevant parser, test fixture, and this table in
 the same change.
+
 

@@ -45,7 +45,7 @@ const team: TeamDetail = {
     manageMembers: false,
     changeRoles: false,
     transferOwnership: false,
-    archiveTeam: false,
+    deleteTeam: false,
     leaveTeam: false,
     manageMissions: false,
     contribute: false,
@@ -75,7 +75,7 @@ vi.mock('../services/teamService', () => ({
   createTeam: vi.fn(),
   createTeamInvite: vi.fn(),
   updateTeam: vi.fn(),
-  archiveTeam: vi.fn(),
+  deleteTeam: vi.fn(),
   leaveTeam: vi.fn(),
   removeTeamMember: vi.fn(),
   changeTeamMemberRole: vi.fn(),
@@ -129,3 +129,4 @@ describe('team permission controls', () => {
     expect(screen.queryByRole('button', { name: /transfer ownership/i })).not.toBeInTheDocument()
   })
 })
+

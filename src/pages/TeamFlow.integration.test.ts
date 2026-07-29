@@ -13,7 +13,7 @@ const permissions = {
   manageMembers: true,
   changeRoles: true,
   transferOwnership: true,
-  archiveTeam: true,
+  deleteTeam: true,
   leaveTeam: false,
   manageMissions: true,
   contribute: true,
@@ -81,13 +81,13 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('create → invite → join → transfer ownership', () => {
+describe('create â†’ invite â†’ join â†’ transfer ownership', () => {
   it('keeps each authoritative transition on SIT Core', async () => {
     const joinedTeam = {
       ...team,
       memberCount: 2,
       currentMember: { ...owner, researcherId: 'SIT-0068', displayName: 'Invited Researcher', role: 'member' },
-      permissions: { ...permissions, editTeam: false, inviteMembers: false, manageMembers: false, changeRoles: false, transferOwnership: false, archiveTeam: false, leaveTeam: true, manageMissions: false },
+      permissions: { ...permissions, editTeam: false, inviteMembers: false, manageMembers: false, changeRoles: false, transferOwnership: false, deleteTeam: false, leaveTeam: true, manageMissions: false },
     }
     const fetchMock = vi.fn()
       .mockResolvedValueOnce(new Response(JSON.stringify(team), { status: 201 }))
@@ -125,3 +125,4 @@ describe('create → invite → join → transfer ownership', () => {
     )
   })
 })
+

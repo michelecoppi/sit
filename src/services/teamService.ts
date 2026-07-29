@@ -12,7 +12,7 @@ import type {
 import { getApiHeaders, getApiUrl, parseResponsePayload, throwApiError } from './apiClient'
 
 const VISIBILITIES = new Set(['public', 'private'])
-const ROLES = new Set(['owner', 'admin', 'member', 'viewer'])
+const ROLES = new Set(['owner', 'cofounder', 'member'])
 const INVITE_STATES = new Set(['pending', 'accepted', 'declined', 'expired'])
 
 function isObject(value: unknown): value is Record<string, unknown> {
@@ -117,7 +117,7 @@ function parsePermissions(value: unknown): TeamPermissions {
     'manageMembers',
     'changeRoles',
     'transferOwnership',
-    'archiveTeam',
+    'deleteTeam',
     'leaveTeam',
     'manageMissions',
     'contribute',
@@ -193,7 +193,7 @@ export function parseTeamInvite(value: unknown): TeamInvite {
   const { id, token, role, expiresAt, status, inviteUrl } = value
   const team = value.team
   if (
-    !text(id) || !text(token) || (role !== 'admin' && role !== 'member' && role !== 'viewer')
+    !text(id) || !text(token) || (role !== 'cofounder' && role !== 'member')
     || !text(expiresAt) || Number.isNaN(Date.parse(expiresAt))
     || typeof status !== 'string' || !INVITE_STATES.has(status)
     || (inviteUrl !== undefined && typeof inviteUrl !== 'string')
@@ -292,8 +292,8 @@ export async function updateTeam(teamId: string, input: Partial<CreateTeamInput>
   return await mutate(`/api/teams/${encodeURIComponent(teamId)}`, 'Unable to update the research team.', 'PATCH', input, parseTeamDetail) as TeamDetail
 }
 
-export const archiveTeam = (teamId: string) =>
-  mutate(`/api/teams/${encodeURIComponent(teamId)}/archive`, 'Unable to archive the research team.', 'POST')
+export const deleteTeam = (teamId: string) =>
+  mutate(`/api/teams/${encodeURIComponent(teamId)}`, 'Unable to delete the research team.', 'DELETE')
 
 export async function createTeamInvite(teamId: string, role: Exclude<TeamRole, 'owner'>, expiresInHours: number): Promise<TeamInvite> {
   return await mutate(`/api/teams/${encodeURIComponent(teamId)}/invites`, 'Unable to create an invitation.', 'POST', { role, expiresInHours }, parseTeamInvite) as TeamInvite
@@ -324,3 +324,4 @@ export const changeTeamMemberRole = (teamId: string, researcherId: string, role:
 
 export const transferTeamOwnership = (teamId: string, researcherId: string) =>
   mutate(`/api/teams/${encodeURIComponent(teamId)}/ownership`, 'Unable to transfer team ownership.', 'POST', { researcherId })
+
