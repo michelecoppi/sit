@@ -53,7 +53,7 @@ export function parseWorkspaceMission(value: unknown): WorkspaceMission {
     || typeof value.status !== 'string' || !statuses.includes(value.status as WorkspaceMissionStatus)
     || !dateOrNull(value.dueAt) || !integer(value.revision)
     || !integer(value.individualProgress) || !integer(value.aggregateProgress)
-    || !dateOrNull(value.completedAt) || !Array.isArray(value.contributors)
+    || !dateOrNull(value.completedAt) || !Array.isArray(value.contributors) || !Array.isArray(value.assignees)
     || !text(value.createdAt) || !text(value.updatedAt)
   ) throw new Error('Invalid workspace mission payload.')
   return {
@@ -69,6 +69,7 @@ export function parseWorkspaceMission(value: unknown): WorkspaceMission {
     dueAt: value.dueAt,
     revision: value.revision,
     assignee: value.assignee === null ? null : identity(value.assignee),
+    assignees: value.assignees.map(identity),
     createdBy: identity(value.createdBy),
     individualProgress: value.individualProgress,
     aggregateProgress: value.aggregateProgress,
@@ -165,7 +166,7 @@ export const createWorkspaceMission = (teamId: string, input: {
   description: string
   target: number
   metric: WorkspaceMission['metric']
-  assigneeResearcherId?: string | null
+  assigneeResearcherIds?: string[] | null
 }) => request(
   `/api/teams/${encodeURIComponent(teamId)}/missions`,
   'Unable to create the workspace mission.',
@@ -177,7 +178,7 @@ export const updateWorkspaceMission = (teamId: string, missionId: string, expect
   title: string
   description: string
   target: number
-  assigneeResearcherId: string | null
+  assigneeResearcherIds: string[] | null
   status: WorkspaceMissionStatus
 }>) => request(
   `/api/teams/${encodeURIComponent(teamId)}/missions/${encodeURIComponent(missionId)}`,

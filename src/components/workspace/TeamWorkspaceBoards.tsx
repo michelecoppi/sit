@@ -33,10 +33,14 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
   const [error, setError] = useState<string | null>(null)
   const [metric, setMetric] = useState<WorkspaceMission['metric']>('messages_encoded')
   const [target, setTarget] = useState(3)
-  const [assigneeId, setAssigneeId] = useState('')
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([])
   const [createdToday, setCreatedToday] = useState(!team.progression.missionPolicy.canCreateToday)
   const activity = team.progression.missionPolicy.activityTypes.find((entry) => entry.metric === metric)
   const derivedBand = activity?.bands.find((entry) => entry.maxTarget === null || target <= entry.maxTarget)
+  const assigneeCount = Math.max(1, assigneeIds.length)
+  const derivedReward = derivedBand?.rewards.find((entry) => entry.assigneeCount === assigneeCount)?.teamXp
+    ?? derivedBand?.assignedReward
+    ?? 0
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -64,14 +68,14 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
         description: String(data.get('description') ?? '').trim(),
         target: Number(data.get('target')),
         metric,
-        assigneeResearcherId: String(data.get('assigneeResearcherId') ?? '').trim() || null,
+        assigneeResearcherIds: assigneeIds,
       })
       setMissions((current) => [mission, ...current])
       setCreatedToday(true)
       form.reset()
       setMetric('messages_encoded')
       setTarget(3)
-      setAssigneeId('')
+      setAssigneeIds([])
     } catch (caught) {
       setError(messageOf(caught, 'Unable to create mission.'))
     }
@@ -135,14 +139,34 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
             </select>
           </label>
           <label className={labelClass}>Target ({activity?.unit ?? 'units'})<input className={fieldClass} name="target" type="number" value={target} min={1} required disabled={createdToday} onChange={(event) => setTarget(Math.max(1, Number(event.target.value)))} /></label>
-          <label className={`${labelClass} sm:col-span-2 xl:col-span-4`}>Assignee
-            <select className={selectClass} name="assigneeResearcherId" value={assigneeId} disabled={createdToday} onChange={(event) => setAssigneeId(event.target.value)}>
-              <option className="bg-white text-slate-950 dark:bg-slate-900 dark:text-white" value="">Me — {team.currentMember?.displayName}</option>
-              {members.filter((member) => member.researcherId !== team.currentMember?.researcherId).map((member) => (
-                <option className="bg-white text-slate-950 dark:bg-slate-900 dark:text-white" key={member.researcherId} value={member.researcherId}>{member.displayName} · {member.role}</option>
-              ))}
-            </select>
-          </label>
+          <fieldset className="sm:col-span-2 xl:col-span-4" disabled={createdToday}>
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <legend className={labelClass}>Assignees</legend>
+              <span className="text-xs text-slate-500 dark:text-slate-400">{assigneeIds.length || 1}/{team.progression.missionPolicy.maxAssignees} · limit grows with team level</span>
+            </div>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Select up to {team.progression.missionPolicy.maxAssignees} members. No selection means only you.</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3" role="group" aria-label="Mission assignees">
+              {members.map((member) => {
+                const selected = assigneeIds.includes(member.researcherId)
+                const atLimit = !selected && assigneeIds.length >= team.progression.missionPolicy.maxAssignees
+                return (
+                  <button
+                    aria-pressed={selected}
+                    className={`flex min-w-0 items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition ${selected ? 'border-indigo-500 bg-indigo-600 text-white shadow-sm' : 'border-slate-300 bg-white text-slate-900 hover:border-indigo-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100'} disabled:cursor-not-allowed disabled:opacity-50`}
+                    disabled={createdToday || atLimit}
+                    key={member.researcherId}
+                    onClick={() => setAssigneeIds((current) => selected
+                      ? current.filter((id) => id !== member.researcherId)
+                      : [...current, member.researcherId])}
+                    type="button"
+                  >
+                    <span className="min-w-0"><strong className="block truncate">{member.displayName}</strong><span className={`block truncate text-xs ${selected ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>{member.researcherId} · {member.role}</span></span>
+                    <span aria-hidden="true">{selected ? '✓' : '+'}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </fieldset>
           <label className={`${labelClass} sm:col-span-2 xl:col-span-4`}>Mission brief<textarea className={`${fieldClass} min-h-24 resize-y`} name="description" maxLength={2000} disabled={createdToday} /></label>
           <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between xl:col-span-4">
             <div className="text-sm text-slate-600 dark:text-slate-300">
@@ -150,7 +174,7 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
                 ? <>Daily slot used. Next mission {team.progression.missionPolicy.nextCreationAt ? new Date(team.progression.missionPolicy.nextCreationAt).toLocaleString() : 'tomorrow (UTC)'}.</>
                 : derivedBand?.unlocked === false
                   ? <><strong className="text-amber-700 dark:text-amber-300">Unlocks at team level {derivedBand.requiredLevel}</strong><span className="block text-xs">Reduce the target or level up the team before creating this mission.</span></>
-                  : <><strong className="text-slate-950 dark:text-white">Core result: {derivedBand?.difficulty ?? 'routine'} · {derivedBand?.assignedReward ?? 0} Team XP</strong><span className="block text-xs">{activity?.description} Difficulty is derived from activity and target; the mission ends at midnight UTC.</span></>}
+                  : <><strong className="text-slate-950 dark:text-white">Core result: {derivedBand?.difficulty ?? 'routine'} · {derivedReward} Team XP · {assigneeCount} participant{assigneeCount === 1 ? '' : 's'}</strong><span className="block text-xs">{activity?.description} Difficulty and collaboration reward are derived by Core; the mission ends at midnight UTC.</span></>}
             </div>
             <button className="button-primary w-full sm:w-auto" disabled={createdToday || derivedBand?.unlocked === false}>{createdToday ? 'Daily mission already created' : derivedBand?.unlocked === false ? 'Target locked' : 'Create daily mission'}</button>
           </div>
@@ -168,7 +192,7 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
             <h3 className="mt-4 break-words text-lg font-bold text-slate-950 dark:text-white">{mission.title}</h3>
             <p className="mt-1 break-words text-sm text-slate-600 dark:text-slate-300">{mission.description || 'No mission brief supplied.'}</p>
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-              <div><dt>Assignee</dt><dd>{mission.assignee?.displayName ?? mission.createdBy.displayName}</dd></div>
+              <div><dt>Assignees</dt><dd>{mission.assignees.map((entry) => entry.displayName).join(', ')}</dd></div>
               <div><dt>Daily window</dt><dd>{mission.dueAt ? `Ends ${new Date(mission.dueAt).toLocaleString()}` : 'Ends at UTC reset'}</dd></div>
               <div><dt>Reward</dt><dd>{mission.teamXpReward} Team XP</dd></div>
             </dl>
@@ -177,7 +201,7 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
               <progress className="h-2 w-full overflow-hidden rounded-full accent-indigo-600" max={mission.target} value={mission.individualProgress} />
               <small className="mt-2 block text-xs text-slate-500">Aggregate {mission.aggregateProgress}/{mission.target} · updated {new Date(mission.updatedAt).toLocaleString()}</small>
             </div>
-            {team.permissions.contribute && mission.status === 'active' ? (
+            {team.permissions.contribute && mission.status === 'active' && mission.assignees.some((entry) => entry.researcherId === team.currentMember?.researcherId) ? (
               <form className="mt-auto flex flex-col gap-3 pt-5 sm:flex-row sm:items-end" onSubmit={(event) => {
                 event.preventDefault()
                 const value = Number(new FormData(event.currentTarget).get('progress'))

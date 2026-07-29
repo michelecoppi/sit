@@ -32,6 +32,7 @@ const summary = {
     nextUnlock: null,
     missionPolicy: {
       dailyLimit: 1,
+      maxAssignees: 5,
       canCreateToday: true,
       nextCreationAt: null,
       activityTypes: [{
@@ -47,6 +48,7 @@ const summary = {
           unlocked: true,
           assignedReward: 40,
           collaborationReward: 50,
+          rewards: [{ assigneeCount: 1, teamXp: 40 }, { assigneeCount: 2, teamXp: 50 }],
         }],
       }],
     },

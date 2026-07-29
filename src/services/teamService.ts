@@ -59,9 +59,15 @@ function parseProgression(value: unknown): TeamProgression {
         if (!isObject(band) || (band.maxTarget !== null && !count(band.maxTarget))
           || typeof band.difficulty !== 'string' || !difficulties.has(band.difficulty)
           || !count(band.baseTeamXp) || !count(band.requiredLevel) || typeof band.unlocked !== 'boolean'
-          || !count(band.assignedReward) || !count(band.collaborationReward)) {
+          || !count(band.assignedReward) || !count(band.collaborationReward) || !Array.isArray(band.rewards)) {
           throw new Error('Invalid team activity band payload.')
         }
+        const rewards = band.rewards.map((reward) => {
+          if (!isObject(reward) || !count(reward.assigneeCount) || reward.assigneeCount < 1 || !count(reward.teamXp)) {
+            throw new Error('Invalid team activity reward payload.')
+          }
+          return { assigneeCount: reward.assigneeCount, teamXp: reward.teamXp }
+        })
         return {
           maxTarget: band.maxTarget,
           difficulty: band.difficulty as TeamProgression['missionPolicy']['activityTypes'][number]['bands'][number]['difficulty'],
@@ -70,13 +76,15 @@ function parseProgression(value: unknown): TeamProgression {
           unlocked: band.unlocked,
           assignedReward: band.assignedReward,
           collaborationReward: band.collaborationReward,
+          rewards,
         }
       }),
     }
   })
   if (!count(value.teamXp) || !count(value.level) || !count(value.currentLevelXp)
     || (value.nextLevelXp !== null && !count(value.nextLevelXp)) || !count(value.levelProgress)
-    || !count(value.missionPolicy.dailyLimit) || typeof value.missionPolicy.canCreateToday !== 'boolean'
+    || !count(value.missionPolicy.dailyLimit) || !count(value.missionPolicy.maxAssignees)
+    || value.missionPolicy.maxAssignees < 1 || typeof value.missionPolicy.canCreateToday !== 'boolean'
     || !dateOrNull(value.missionPolicy.nextCreationAt)
     || (nextUnlock !== null && !isObject(nextUnlock))) {
     throw new Error('Invalid team progression payload.')
@@ -91,6 +99,7 @@ function parseProgression(value: unknown): TeamProgression {
     nextUnlock: nextUnlock === null ? null : unlock(nextUnlock),
     missionPolicy: {
       dailyLimit: value.missionPolicy.dailyLimit,
+      maxAssignees: value.missionPolicy.maxAssignees,
       canCreateToday: value.missionPolicy.canCreateToday,
       nextCreationAt: value.missionPolicy.nextCreationAt,
       activityTypes,

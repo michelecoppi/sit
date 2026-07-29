@@ -19,6 +19,7 @@ const mission = {
   dueAt: null,
   revision: 1,
   assignee: null,
+  assignees: [{ researcherId: 'SIT-0067', displayName: 'Researcher' }],
   createdBy: identity,
   individualProgress: 3,
   aggregateProgress: 3,

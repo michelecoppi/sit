@@ -22,6 +22,7 @@ export interface TeamMissionBand {
   unlocked: boolean
   assignedReward: number
   collaborationReward: number
+  rewards: Array<{ assigneeCount: number; teamXp: number }>
 }
 
 export interface TeamActivityType {
@@ -42,6 +43,7 @@ export interface TeamProgression {
   nextUnlock: { level: number; code: string; label: string } | null
   missionPolicy: {
     dailyLimit: number
+    maxAssignees: number
     canCreateToday: boolean
     nextCreationAt: string | null
     activityTypes: TeamActivityType[]

@@ -27,6 +27,7 @@ export interface WorkspaceMission {
   dueAt: string | null
   revision: number
   assignee: WorkspaceIdentity | null
+  assignees: WorkspaceIdentity[]
   createdBy: WorkspaceIdentity
   individualProgress: number
   aggregateProgress: number
