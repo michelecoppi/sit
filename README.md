@@ -149,10 +149,14 @@ revision and surface a reload action when Core reports a 409 conflict.
 
 The team experience uses responsive Tailwind layouts and explicit light/dark
 form colors so native selects remain readable across browsers. Team missions
-are limited to one creation per UTC day: administrators select a Core-governed
-difficulty instead of entering XP. Completion awards Team XP once, drives the
-team level, and progressively unlocks advanced/critical missions plus visual
-team treatments.
+are limited to one creation per UTC day and end automatically at the next UTC
+midnight. Administrators select an activity, a target and up to the
+Core-published number of real team members. The limit starts at five, grows
+with the team level and caps at ten; no selection assigns only the creator.
+Core derives difficulty and collaboration-adjusted Team XP from the same
+activity bands used by personal missions. Completion awards Team XP once,
+drives the team level, and
+progressively unlocks advanced/critical targets plus visual team treatments.
 
 ## Notes
 

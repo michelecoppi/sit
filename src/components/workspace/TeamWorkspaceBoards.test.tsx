@@ -10,12 +10,14 @@ const mission = {
   title: 'Calibrate registry',
   description: '',
   target: 3,
+  metric: 'messages_encoded' as const,
   difficulty: 'standard' as const,
   teamXpReward: 70,
   status: 'active' as const,
   dueAt: null,
   revision: 1,
   assignee: null,
+  assignees: [identity],
   createdBy: identity,
   individualProgress: 0,
   aggregateProgress: 0,
@@ -58,9 +60,10 @@ const team: TeamDetail = {
     nextUnlock: { level: 2, code: 'advanced_missions', label: 'Advanced missions' },
     missionPolicy: {
       dailyLimit: 1,
+      maxAssignees: 5,
       canCreateToday: true,
       nextCreationAt: null,
-      availableDifficulties: [{ difficulty: 'standard', label: 'Standard', description: 'Normal objective.', baseTeamXp: 50, requiredLevel: 1, unlocked: true, assignedReward: 50, teamReward: 50 }],
+      activityTypes: [{ metric: 'messages_encoded', label: 'Encode messages', unit: 'messages', description: 'Encode messages.', bands: [{ maxTarget: 3, difficulty: 'routine', baseTeamXp: 40, requiredLevel: 1, unlocked: true, assignedReward: 40, collaborationReward: 40, rewards: [{ assigneeCount: 1, teamXp: 40 }, { assigneeCount: 2, teamXp: 50 }] }, { maxTarget: null, difficulty: 'critical', baseTeamXp: 90, requiredLevel: 4, unlocked: false, assignedReward: 90, collaborationReward: 90, rewards: [{ assigneeCount: 1, teamXp: 90 }, { assigneeCount: 2, teamXp: 110 }] }] }],
     },
   },
   createdAt: '2026-07-29T10:00:00.000Z',
@@ -73,11 +76,12 @@ const service = vi.hoisted(() => ({
   listWorkspaceMissions: vi.fn(),
   listWorkspaceCapsules: vi.fn(),
   recordWorkspaceMissionProgress: vi.fn(),
+  createWorkspaceMission: vi.fn(),
 }))
 
 vi.mock('../../services/workspaceService', () => ({
   ...service,
-  createWorkspaceMission: vi.fn(),
+  createWorkspaceMission: service.createWorkspaceMission,
   createWorkspaceCapsule: vi.fn(),
   updateWorkspaceCapsule: vi.fn(),
   publishWorkspaceCapsule: vi.fn(),
@@ -89,12 +93,13 @@ beforeEach(() => {
   service.listWorkspaceMissions.mockResolvedValue({ items: [mission], nextCursor: null })
   service.listWorkspaceCapsules.mockResolvedValue({ items: [], nextCursor: null })
   service.recordWorkspaceMissionProgress.mockReset()
+  service.createWorkspaceMission.mockReset()
 })
 
 describe('TeamWorkspaceBoards', () => {
   it('rolls back optimistic mission progress when Core rejects synchronization', async () => {
     service.recordWorkspaceMissionProgress.mockRejectedValue(new Error('Core rejected progress.'))
-    render(<TeamWorkspaceBoards team={team} />)
+    render(<TeamWorkspaceBoards team={team} members={[team.currentMember!]} />)
 
     const progressInput = await screen.findByRole('spinbutton', { name: 'Set progress' })
     fireEvent.change(progressInput, { target: { value: '3' } })
@@ -105,7 +110,7 @@ describe('TeamWorkspaceBoards', () => {
   })
 
   it('keeps viewers read-only even when workspace data is visible', async () => {
-    render(<TeamWorkspaceBoards team={{
+    render(<TeamWorkspaceBoards members={[team.currentMember!]} team={{
       ...team,
       currentMember: { ...team.currentMember!, role: 'viewer' },
       permissions: { ...permissions, contribute: false, publishCapsules: false },
@@ -114,5 +119,30 @@ describe('TeamWorkspaceBoards', () => {
     expect(await screen.findByText('Calibrate registry')).toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'Update' })).not.toBeInTheDocument()
     expect(screen.queryByRole('button', { name: 'New draft' })).not.toBeInTheDocument()
+  })
+
+  it('derives difficulty and reward while selecting multiple real team members', async () => {
+    const teammate = { ...team.currentMember!, researcherId: 'SIT-0068', displayName: 'Teammate', role: 'member' as const }
+    render(<TeamWorkspaceBoards members={[team.currentMember!, teammate]} team={{
+      ...team,
+      permissions: { ...permissions, manageMissions: true },
+    }} />)
+
+    expect(await screen.findByRole('combobox', { name: 'Activity' })).toBeInTheDocument()
+    expect(screen.queryByRole('combobox', { name: 'Difficulty' })).not.toBeInTheDocument()
+    expect(screen.queryByLabelText('Due date')).not.toBeInTheDocument()
+    expect(screen.getByRole('group', { name: 'Mission assignees' })).toBeInTheDocument()
+    const currentButton = screen.getByRole('button', { name: /Researcher.*SIT-0067/ })
+    const teammateButton = screen.getByRole('button', { name: /Teammate.*SIT-0068.*member/ })
+    fireEvent.click(currentButton)
+    fireEvent.click(teammateButton)
+    expect(currentButton).toHaveAttribute('aria-pressed', 'true')
+    expect(teammateButton).toHaveAttribute('aria-pressed', 'true')
+    expect(screen.getByText(/2\/5 · limit grows with team level/)).toBeInTheDocument()
+    expect(screen.getByText(/routine · 50 Team XP · 2 participants/)).toBeInTheDocument()
+
+    fireEvent.change(screen.getByRole('spinbutton', { name: 'Target (messages)' }), { target: { value: '12' } })
+    expect(screen.getByText('Unlocks at team level 4')).toBeInTheDocument()
+    expect(screen.getByRole('button', { name: 'Target locked' })).toBeDisabled()
   })
 })

@@ -1,5 +1,5 @@
 import { useCallback, useEffect, useMemo, useState, type FormEvent } from 'react'
-import type { TeamDetail } from '../../types/teams'
+import type { TeamDetail, TeamMember } from '../../types/teams'
 import type { WorkspaceCapsule, WorkspaceCapsuleStatus, WorkspaceMission, WorkspaceMissionStatus } from '../../types/workspace'
 import {
   WorkspaceConflictError,
@@ -25,17 +25,22 @@ const fieldClass = 'mt-1 w-full rounded-xl border border-slate-300 bg-white px-3
 const selectClass = `${fieldClass} appearance-auto [color-scheme:light] dark:[color-scheme:dark]`
 const labelClass = 'text-sm font-medium text-slate-700 dark:text-slate-200'
 
-function MissionBoard({ team }: { team: TeamDetail }) {
+function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember[] }) {
   const [missions, setMissions] = useState<WorkspaceMission[]>([])
   const [status, setStatus] = useState<WorkspaceMissionStatus | 'all'>('active')
   const [loading, setLoading] = useState(true)
   const [busyId, setBusyId] = useState<string | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [difficulty, setDifficulty] = useState<WorkspaceMission['difficulty']>('standard')
-  const [assigneeId, setAssigneeId] = useState('')
+  const [metric, setMetric] = useState<WorkspaceMission['metric']>('messages_encoded')
+  const [target, setTarget] = useState(3)
+  const [assigneeIds, setAssigneeIds] = useState<string[]>([])
   const [createdToday, setCreatedToday] = useState(!team.progression.missionPolicy.canCreateToday)
-  const difficultyRule = team.progression.missionPolicy.availableDifficulties.find((entry) => entry.difficulty === difficulty)
-  const expectedReward = assigneeId.trim() ? difficultyRule?.assignedReward : difficultyRule?.teamReward
+  const activity = team.progression.missionPolicy.activityTypes.find((entry) => entry.metric === metric)
+  const derivedBand = activity?.bands.find((entry) => entry.maxTarget === null || target <= entry.maxTarget)
+  const assigneeCount = Math.max(1, assigneeIds.length)
+  const derivedReward = derivedBand?.rewards.find((entry) => entry.assigneeCount === assigneeCount)?.teamXp
+    ?? derivedBand?.assignedReward
+    ?? 0
 
   const load = useCallback(async () => {
     setLoading(true)
@@ -62,14 +67,15 @@ function MissionBoard({ team }: { team: TeamDetail }) {
         title: String(data.get('title') ?? '').trim(),
         description: String(data.get('description') ?? '').trim(),
         target: Number(data.get('target')),
-        difficulty,
-        dueAt: String(data.get('dueAt') ?? '').trim() || null,
-        assigneeResearcherId: String(data.get('assigneeResearcherId') ?? '').trim() || null,
+        metric,
+        assigneeResearcherIds: assigneeIds,
       })
       setMissions((current) => [mission, ...current])
       setCreatedToday(true)
       form.reset()
-      setAssigneeId('')
+      setMetric('messages_encoded')
+      setTarget(3)
+      setAssigneeIds([])
     } catch (caught) {
       setError(messageOf(caught, 'Unable to create mission.'))
     }
@@ -123,28 +129,54 @@ function MissionBoard({ team }: { team: TeamDetail }) {
       {team.permissions.manageMissions ? (
         <form className="mt-6 grid gap-4 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4 sm:grid-cols-2 xl:grid-cols-4 dark:border-indigo-950 dark:bg-indigo-950/20" onSubmit={createMission}>
           <label className={`${labelClass} sm:col-span-2`}>Mission title<input className={fieldClass} name="title" required minLength={2} maxLength={120} disabled={createdToday} /></label>
-          <label className={labelClass}>Difficulty
-            <select className={selectClass} name="difficulty" value={difficulty} disabled={createdToday} onChange={(event) => setDifficulty(event.target.value as WorkspaceMission['difficulty'])}>
-              {team.progression.missionPolicy.availableDifficulties.map((rule) => (
-                <option className="bg-white text-slate-950 dark:bg-slate-900 dark:text-white" key={rule.difficulty} value={rule.difficulty} disabled={!rule.unlocked}>
-                  {rule.label}{rule.unlocked ? '' : ` · level ${rule.requiredLevel}`}
+          <label className={labelClass}>Activity
+            <select className={selectClass} name="metric" value={metric} disabled={createdToday} onChange={(event) => setMetric(event.target.value as WorkspaceMission['metric'])}>
+              {team.progression.missionPolicy.activityTypes.map((entry) => (
+                <option className="bg-white text-slate-950 dark:bg-slate-900 dark:text-white" key={entry.metric} value={entry.metric}>
+                  {entry.label}
                 </option>
               ))}
             </select>
           </label>
-          <label className={labelClass}>Target<input className={fieldClass} name="target" type="number" defaultValue={1} min={1} required disabled={createdToday} /></label>
-          <label className={labelClass}>Due date<input className={fieldClass} name="dueAt" type="datetime-local" disabled={createdToday} /></label>
-          <label className={`${labelClass} sm:col-span-1 xl:col-span-2`}>Assignee ID
-            <input className={fieldClass} name="assigneeResearcherId" value={assigneeId} disabled={createdToday} onChange={(event) => setAssigneeId(event.target.value)} placeholder="Empty = whole team" />
-          </label>
+          <label className={labelClass}>Target ({activity?.unit ?? 'units'})<input className={fieldClass} name="target" type="number" value={target} min={1} required disabled={createdToday} onChange={(event) => setTarget(Math.max(1, Number(event.target.value)))} /></label>
+          <fieldset className="sm:col-span-2 xl:col-span-4" disabled={createdToday}>
+            <div className="flex flex-wrap items-end justify-between gap-2">
+              <legend className={labelClass}>Assignees</legend>
+              <span className="text-xs text-slate-500 dark:text-slate-400">{assigneeIds.length || 1}/{team.progression.missionPolicy.maxAssignees} · limit grows with team level</span>
+            </div>
+            <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Select up to {team.progression.missionPolicy.maxAssignees} members. No selection means only you.</p>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3" role="group" aria-label="Mission assignees">
+              {members.map((member) => {
+                const selected = assigneeIds.includes(member.researcherId)
+                const atLimit = !selected && assigneeIds.length >= team.progression.missionPolicy.maxAssignees
+                return (
+                  <button
+                    aria-pressed={selected}
+                    className={`flex min-w-0 items-center justify-between gap-3 rounded-xl border px-3 py-2.5 text-left text-sm transition ${selected ? 'border-indigo-500 bg-indigo-600 text-white shadow-sm' : 'border-slate-300 bg-white text-slate-900 hover:border-indigo-400 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-100'} disabled:cursor-not-allowed disabled:opacity-50`}
+                    disabled={createdToday || atLimit}
+                    key={member.researcherId}
+                    onClick={() => setAssigneeIds((current) => selected
+                      ? current.filter((id) => id !== member.researcherId)
+                      : [...current, member.researcherId])}
+                    type="button"
+                  >
+                    <span className="min-w-0"><strong className="block truncate">{member.displayName}</strong><span className={`block truncate text-xs ${selected ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>{member.researcherId} · {member.role}</span></span>
+                    <span aria-hidden="true">{selected ? '✓' : '+'}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </fieldset>
           <label className={`${labelClass} sm:col-span-2 xl:col-span-4`}>Mission brief<textarea className={`${fieldClass} min-h-24 resize-y`} name="description" maxLength={2000} disabled={createdToday} /></label>
           <div className="flex flex-col gap-3 sm:col-span-2 sm:flex-row sm:items-center sm:justify-between xl:col-span-4">
             <div className="text-sm text-slate-600 dark:text-slate-300">
               {createdToday
                 ? <>Daily slot used. Next mission {team.progression.missionPolicy.nextCreationAt ? new Date(team.progression.missionPolicy.nextCreationAt).toLocaleString() : 'tomorrow (UTC)'}.</>
-                : <><strong className="text-slate-950 dark:text-white">Core reward: {expectedReward ?? 0} Team XP</strong><span className="block text-xs">{difficultyRule?.description}</span></>}
+                : derivedBand?.unlocked === false
+                  ? <><strong className="text-amber-700 dark:text-amber-300">Unlocks at team level {derivedBand.requiredLevel}</strong><span className="block text-xs">Reduce the target or level up the team before creating this mission.</span></>
+                  : <><strong className="text-slate-950 dark:text-white">Core result: {derivedBand?.difficulty ?? 'routine'} · {derivedReward} Team XP · {assigneeCount} participant{assigneeCount === 1 ? '' : 's'}</strong><span className="block text-xs">{activity?.description} Difficulty and collaboration reward are derived by Core; the mission ends at midnight UTC.</span></>}
             </div>
-            <button className="button-primary w-full sm:w-auto" disabled={createdToday}>{createdToday ? 'Daily mission already created' : 'Create daily mission'}</button>
+            <button className="button-primary w-full sm:w-auto" disabled={createdToday || derivedBand?.unlocked === false}>{createdToday ? 'Daily mission already created' : derivedBand?.unlocked === false ? 'Target locked' : 'Create daily mission'}</button>
           </div>
         </form>
       ) : null}
@@ -154,14 +186,14 @@ function MissionBoard({ team }: { team: TeamDetail }) {
         {missions.map((mission) => (
           <article className="flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-950/40" key={mission.id}>
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              <span><span className={`workspace-state workspace-state-${mission.status}`}>{mission.status}</span> · {mission.difficulty}</span>
+              <span><span className={`workspace-state workspace-state-${mission.status}`}>{mission.status}</span> · {mission.difficulty} · {mission.metric.replaceAll('_', ' ')}</span>
               <span>rev {mission.revision}</span>
             </div>
             <h3 className="mt-4 break-words text-lg font-bold text-slate-950 dark:text-white">{mission.title}</h3>
             <p className="mt-1 break-words text-sm text-slate-600 dark:text-slate-300">{mission.description || 'No mission brief supplied.'}</p>
             <dl className="mt-4 grid grid-cols-2 gap-3 text-sm sm:grid-cols-3">
-              <div><dt>Assignee</dt><dd>{mission.assignee?.displayName ?? 'Whole team'}</dd></div>
-              <div><dt>Due</dt><dd>{mission.dueAt ? new Date(mission.dueAt).toLocaleString() : 'Open'}</dd></div>
+              <div><dt>Assignees</dt><dd>{mission.assignees.map((entry) => entry.displayName).join(', ')}</dd></div>
+              <div><dt>Daily window</dt><dd>{mission.dueAt ? `Ends ${new Date(mission.dueAt).toLocaleString()}` : 'Ends at UTC reset'}</dd></div>
               <div><dt>Reward</dt><dd>{mission.teamXpReward} Team XP</dd></div>
             </dl>
             <div className="mt-5">
@@ -169,7 +201,7 @@ function MissionBoard({ team }: { team: TeamDetail }) {
               <progress className="h-2 w-full overflow-hidden rounded-full accent-indigo-600" max={mission.target} value={mission.individualProgress} />
               <small className="mt-2 block text-xs text-slate-500">Aggregate {mission.aggregateProgress}/{mission.target} · updated {new Date(mission.updatedAt).toLocaleString()}</small>
             </div>
-            {team.permissions.contribute && mission.status === 'active' ? (
+            {team.permissions.contribute && mission.status === 'active' && mission.assignees.some((entry) => entry.researcherId === team.currentMember?.researcherId) ? (
               <form className="mt-auto flex flex-col gap-3 pt-5 sm:flex-row sm:items-end" onSubmit={(event) => {
                 event.preventDefault()
                 const value = Number(new FormData(event.currentTarget).get('progress'))
@@ -307,13 +339,13 @@ function CapsuleWorkspace({ team }: { team: TeamDetail }) {
   )
 }
 
-export default function TeamWorkspaceBoards({ team }: { team: TeamDetail }) {
+export default function TeamWorkspaceBoards({ team, members }: { team: TeamDetail, members: TeamMember[] }) {
   if (!team.currentMember) {
     return <div className="team-notice team-notice-error" role="alert">This workspace is restricted to verified team members.</div>
   }
   return (
     <div className="mt-8 space-y-6 sm:space-y-8">
-      <MissionBoard team={team} />
+      <MissionBoard team={team} members={members} />
       <CapsuleWorkspace team={team} />
     </div>
   )

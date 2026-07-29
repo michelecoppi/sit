@@ -326,7 +326,7 @@ function TeamProgressionPanel({ team }: { team: TeamDetail }) {
             : <><p className="mt-2 text-lg font-bold">All protocols unlocked</p><p className="mt-1 text-sm text-slate-300">This team has reached the current progression ceiling.</p></>}
           <div className="mt-4 border-t border-white/10 pt-4 text-sm text-slate-300">
             <strong className="text-white">{progression.missionPolicy.canCreateToday ? 'Daily mission available' : 'Daily mission completed'}</strong>
-            <span className="mt-1 block">Mission rewards increase with difficulty and verified collaboration size.</span>
+            <span className="mt-1 block">Core derives difficulty and Team XP from target and participants. Up to {progression.missionPolicy.maxAssignees} assignees; every mission closes at midnight UTC.</span>
           </div>
         </div>
       </div>
@@ -387,7 +387,7 @@ export function TeamWorkspacePage() {
           </div>
         </div>
       </div>
-      <TeamWorkspaceBoards team={team} />
+      <TeamWorkspaceBoards team={team} members={members} />
     </section>
   )
 }

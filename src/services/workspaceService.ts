@@ -47,12 +47,13 @@ export function parseWorkspaceMission(value: unknown): WorkspaceMission {
   if (
     !text(value.id) || !text(value.teamId) || !text(value.title) || typeof value.description !== 'string'
     || !integer(value.target) || value.target < 1
+    || typeof value.metric !== 'string' || !['messages_encoded', 'messages_decoded', 'syte_processed'].includes(value.metric)
     || typeof value.difficulty !== 'string' || !['routine', 'standard', 'advanced', 'critical'].includes(value.difficulty)
     || !integer(value.teamXpReward)
     || typeof value.status !== 'string' || !statuses.includes(value.status as WorkspaceMissionStatus)
     || !dateOrNull(value.dueAt) || !integer(value.revision)
     || !integer(value.individualProgress) || !integer(value.aggregateProgress)
-    || !dateOrNull(value.completedAt) || !Array.isArray(value.contributors)
+    || !dateOrNull(value.completedAt) || !Array.isArray(value.contributors) || !Array.isArray(value.assignees)
     || !text(value.createdAt) || !text(value.updatedAt)
   ) throw new Error('Invalid workspace mission payload.')
   return {
@@ -61,12 +62,14 @@ export function parseWorkspaceMission(value: unknown): WorkspaceMission {
     title: value.title,
     description: value.description,
     target: value.target,
+    metric: value.metric as WorkspaceMission['metric'],
     difficulty: value.difficulty as WorkspaceMission['difficulty'],
     teamXpReward: value.teamXpReward,
     status: value.status as WorkspaceMissionStatus,
     dueAt: value.dueAt,
     revision: value.revision,
     assignee: value.assignee === null ? null : identity(value.assignee),
+    assignees: value.assignees.map(identity),
     createdBy: identity(value.createdBy),
     individualProgress: value.individualProgress,
     aggregateProgress: value.aggregateProgress,
@@ -162,9 +165,8 @@ export const createWorkspaceMission = (teamId: string, input: {
   title: string
   description: string
   target: number
-  difficulty: WorkspaceMission['difficulty']
-  dueAt?: string | null
-  assigneeResearcherId?: string | null
+  metric: WorkspaceMission['metric']
+  assigneeResearcherIds?: string[] | null
 }) => request(
   `/api/teams/${encodeURIComponent(teamId)}/missions`,
   'Unable to create the workspace mission.',
@@ -176,8 +178,7 @@ export const updateWorkspaceMission = (teamId: string, missionId: string, expect
   title: string
   description: string
   target: number
-  dueAt: string | null
-  assigneeResearcherId: string | null
+  assigneeResearcherIds: string[] | null
   status: WorkspaceMissionStatus
 }>) => request(
   `/api/teams/${encodeURIComponent(teamId)}/missions/${encodeURIComponent(missionId)}`,
