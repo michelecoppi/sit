@@ -22,6 +22,30 @@ const summary = {
   memberCount: 2,
   totalXp: 6700,
   totalContributions: 67,
+  progression: {
+    teamXp: 6700,
+    level: 7,
+    currentLevelXp: 5200,
+    nextLevelXp: 7100,
+    levelProgress: 79,
+    unlockedFeatures: [{ level: 1, code: 'workspace', label: 'Team workspace' }],
+    nextUnlock: null,
+    missionPolicy: {
+      dailyLimit: 1,
+      canCreateToday: true,
+      nextCreationAt: null,
+      availableDifficulties: [{
+        difficulty: 'standard',
+        label: 'Standard',
+        description: 'A normal research objective.',
+        baseTeamXp: 50,
+        requiredLevel: 1,
+        unlocked: true,
+        assignedReward: 50,
+        teamReward: 60,
+      }],
+    },
+  },
 }
 
 const member = {

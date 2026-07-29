@@ -147,6 +147,13 @@ returned by Core; members can contribute, while viewers remain read-only.
 Mission updates use optimistic UI with rollback. Capsule edits send the current
 revision and surface a reload action when Core reports a 409 conflict.
 
+The team experience uses responsive Tailwind layouts and explicit light/dark
+form colors so native selects remain readable across browsers. Team missions
+are limited to one creation per UTC day: administrators select a Core-governed
+difficulty instead of entering XP. Completion awards Team XP once, drives the
+team level, and progressively unlocks advanced/critical missions plus visual
+team treatments.
+
 ## Notes
 
 This project is intentionally playful, but it is implemented as a real web app with working encoding tools and a complete front-end experience.

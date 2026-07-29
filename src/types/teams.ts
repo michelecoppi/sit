@@ -14,6 +14,33 @@ export interface TeamPermissions {
   publishCapsules: boolean
 }
 
+export interface TeamDifficultyRule {
+  difficulty: 'routine' | 'standard' | 'advanced' | 'critical'
+  label: string
+  description: string
+  baseTeamXp: number
+  requiredLevel: number
+  unlocked: boolean
+  assignedReward: number
+  teamReward: number
+}
+
+export interface TeamProgression {
+  teamXp: number
+  level: number
+  currentLevelXp: number
+  nextLevelXp: number | null
+  levelProgress: number
+  unlockedFeatures: Array<{ level: number; code: string; label: string }>
+  nextUnlock: { level: number; code: string; label: string } | null
+  missionPolicy: {
+    dailyLimit: number
+    canCreateToday: boolean
+    nextCreationAt: string | null
+    availableDifficulties: TeamDifficultyRule[]
+  }
+}
+
 export interface TeamSummary {
   id: string
   name: string
@@ -24,6 +51,7 @@ export interface TeamSummary {
   memberCount: number
   totalXp: number
   totalContributions: number
+  progression: TeamProgression
 }
 
 export interface TeamMember {
