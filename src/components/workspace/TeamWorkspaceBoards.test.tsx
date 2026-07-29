@@ -137,8 +137,8 @@ describe('TeamWorkspaceBoards', () => {
     fireEvent.click(teammateButton)
     expect(currentButton).toHaveAttribute('aria-pressed', 'true')
     expect(teammateButton).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByText(/2\/5 Â· limit grows with team level/)).toBeInTheDocument()
-    expect(screen.getByText(/routine Â· 50 Team XP Â· 2 participants/)).toBeInTheDocument()
+    expect(screen.getByText(/2\/5 · limit grows with team level/)).toBeInTheDocument()
+    expect(screen.getByText(/routine · 50 Team XP · 2 participants/)).toBeInTheDocument()
 
     fireEvent.change(activitySelect, { target: { value: 'syte_processed' } })
     const syteTarget = screen.getByRole('spinbutton', { name: /Target \(SYTE\)/ })
