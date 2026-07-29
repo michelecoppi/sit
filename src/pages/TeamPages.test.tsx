@@ -87,7 +87,6 @@ vi.mock('../services/workspaceService', () => ({
   listWorkspaceMissions: vi.fn(async () => ({ items: [], nextCursor: null })),
   listWorkspaceCapsules: vi.fn(async () => ({ items: [], nextCursor: null })),
   createWorkspaceMission: vi.fn(),
-  recordWorkspaceMissionProgress: vi.fn(),
   createWorkspaceCapsule: vi.fn(),
   updateWorkspaceCapsule: vi.fn(),
   publishWorkspaceCapsule: vi.fn(),

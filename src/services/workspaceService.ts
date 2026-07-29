@@ -187,18 +187,6 @@ export const updateWorkspaceMission = (teamId: string, missionId: string, expect
   { method: 'PATCH', body: JSON.stringify({ ...input, expectedRevision }) },
 )
 
-export const recordWorkspaceMissionProgress = (
-  teamId: string,
-  missionId: string,
-  progress: number,
-  idempotencyKey: string,
-) => request(
-  `/api/teams/${encodeURIComponent(teamId)}/missions/${encodeURIComponent(missionId)}/progress`,
-  'Unable to record mission progress.',
-  parseWorkspaceMission,
-  { method: 'POST', headers: { 'idempotency-key': idempotencyKey }, body: JSON.stringify({ progress }) },
-)
-
 export const listWorkspaceCapsules = (teamId: string, status?: WorkspaceCapsuleStatus, cursor?: string) =>
   request(
     `/api/teams/${encodeURIComponent(teamId)}/capsules${queryString({ status, cursor })}`,

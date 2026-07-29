@@ -1,4 +1,4 @@
-import { fireEvent, render, screen, waitFor } from '@testing-library/react'
+import { fireEvent, render, screen } from '@testing-library/react'
 import { beforeEach, describe, expect, it, vi } from 'vitest'
 import type { TeamDetail } from '../../types/teams'
 import TeamWorkspaceBoards from './TeamWorkspaceBoards'
@@ -78,7 +78,6 @@ const team: TeamDetail = {
 const service = vi.hoisted(() => ({
   listWorkspaceMissions: vi.fn(),
   listWorkspaceCapsules: vi.fn(),
-  recordWorkspaceMissionProgress: vi.fn(),
   createWorkspaceMission: vi.fn(),
 }))
 
@@ -95,21 +94,17 @@ vi.mock('../../services/workspaceService', () => ({
 beforeEach(() => {
   service.listWorkspaceMissions.mockResolvedValue({ items: [mission], nextCursor: null })
   service.listWorkspaceCapsules.mockResolvedValue({ items: [], nextCursor: null })
-  service.recordWorkspaceMissionProgress.mockReset()
   service.createWorkspaceMission.mockReset()
 })
 
 describe('TeamWorkspaceBoards', () => {
-  it('rolls back optimistic mission progress when Core rejects synchronization', async () => {
-    service.recordWorkspaceMissionProgress.mockRejectedValue(new Error('Core rejected progress.'))
+  it('shows Core-derived progress without exposing a manual progress control', async () => {
     render(<TeamWorkspaceBoards team={team} members={[team.currentMember!]} />)
 
-    const progressInput = await screen.findByRole('spinbutton', { name: 'Set progress' })
-    fireEvent.change(progressInput, { target: { value: '3' } })
-    fireEvent.click(screen.getByRole('button', { name: 'Update' }))
-
-    expect(await screen.findByRole('alert')).toHaveTextContent('Core rejected progress.')
-    await waitFor(() => expect(screen.getByText('Individual 0/3')).toBeInTheDocument())
+    expect(await screen.findByText('Your verified activity 0/3')).toBeInTheDocument()
+    expect(screen.getByText(/Progress is automatic: Core counts verified encode, decode, and SYTE activity/)).toBeInTheDocument()
+    expect(screen.queryByRole('spinbutton', { name: 'Set progress' })).not.toBeInTheDocument()
+    expect(screen.queryByRole('button', { name: 'Update' })).not.toBeInTheDocument()
   })
 
   it('keeps viewers read-only even when workspace data is visible', async () => {
