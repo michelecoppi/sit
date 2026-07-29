@@ -1,4 +1,8 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+Exit code: 0
+Wall time: 0.3 seconds
+Total output lines: 1262
+Output:
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import {
   UserCircleIcon,
@@ -53,7 +57,7 @@ function getPollTimeoutMs() {
 }
 
 // ---------------------------------------------------------------------------
-// Demo data — matches the real API response shape
+// Demo data â€” matches the real API response shape
 // ---------------------------------------------------------------------------
 
 const DEMO_PROFILE: ResearcherProfile = {
@@ -167,7 +171,7 @@ function ProfileCard({ profile, isDemo = false }: { profile: ResearcherProfile; 
       {isDemo && (
         <div className="flex items-center gap-2 rounded-2xl border border-amber-200 bg-amber-50 px-4 py-3 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
           <SparklesIcon className="h-4 w-4 shrink-0" />
-          Demo profile — connect SIT Core to load live researcher data.
+          Demo profile â€” connect SIT Core to load live researcher data.
         </div>
       )}
 
@@ -220,20 +224,22 @@ function LoginPrompt() {
   const pollTimerRef = useRef<number | null>(null)
   const countdownTimerRef = useRef<number | null>(null)
   const pollInFlightRef = useRef(false)
+  const activeTicketRef = useRef<string | null>(null)
 
-  const stopPolling = (clearStoredTicket = false) => {
-    if (pollTimerRef.current) {
+  const stopPolling = useCallback((clearStoredTicket = false) => {
+    if (pollTimerRef.current !== null) {
       window.clearInterval(pollTimerRef.current)
       pollTimerRef.current = null
     }
-    if (countdownTimerRef.current) {
+    if (countdownTimerRef.current !== null) {
       window.clearInterval(countdownTimerRef.current)
       countdownTimerRef.current = null
     }
+    activeTicketRef.current = null
     if (clearStoredTicket) {
       sessionStorage.removeItem(TELEGRAM_LOGIN_TICKET_STORAGE_KEY)
     }
-  }
+  }, [])
 
   const recoverOauthError = () => {
     const code = consumeOAuthCallbackError()
@@ -241,10 +247,11 @@ function LoginPrompt() {
     setOauthError(mapOAuthCallbackError(code))
   }
 
-  const startPolling = (snapshot: TelegramLoginTicketSnapshot) => {
-    if (ticketSnapshot?.ticket === snapshot.ticket && pollTimerRef.current) return
+  const startPolling = useCallback((snapshot: TelegramLoginTicketSnapshot) => {
+    if (activeTicketRef.current === snapshot.ticket && pollTimerRef.current !== null) return
 
     stopPolling(false)
+    activeTicketRef.current = snapshot.ticket
     clearAuthError()
     setOauthError(null)
     setTelegramError(null)
@@ -321,7 +328,7 @@ function LoginPrompt() {
     pollTimerRef.current = window.setInterval(() => {
       void pollOnce()
     }, pollIntervalMs)
-  }
+  }, [clearAuthError, completeLogin, stopPolling])
 
   const createTelegramTicket = async () => {
     setTelegramLoading(true)
@@ -376,7 +383,7 @@ function LoginPrompt() {
     return () => {
       stopPolling(false)
     }
-  }, [])
+  }, [startPolling, stopPolling])
 
   const formattedRemaining = `${String(Math.floor(remainingSeconds / 60)).padStart(2, '0')}:${String(remainingSeconds % 60).padStart(2, '0')}`
 
@@ -453,376 +460,7 @@ function LoginPrompt() {
               onClick={() => {
                 stopPolling(true)
                 setTicketSnapshot(null)
-                setTelegramStatus('cancelled')
-              }}
-              className="inline-flex items-center rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-            >
-              Cancel polling
-            </button>
-          </div>
-        </div>
-      )}
-
-      {telegramStatus === 'expired' && (
-        <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
-          Telegram ticket expired. Generate a new ticket to continue.
-        </div>
-      )}
-
-      {telegramStatus === 'used' && (
-        <div className="mt-5 rounded-2xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-700 dark:border-amber-900 dark:bg-amber-950/30 dark:text-amber-300">
-          Ticket already used. Generate a new ticket and try again.
-        </div>
-      )}
-
-      {telegramStatus !== 'pending' && telegramStatus !== 'completed' && (
-        <div className="mt-4 flex justify-center">
-          <button
-            type="button"
-            onClick={() => {
-              void createTelegramTicket()
-            }}
-            disabled={telegramLoading || !import.meta.env.VITE_API_URL}
-            className="inline-flex items-center rounded-full border border-slate-300 bg-white px-4 py-2 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-40 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-          >
-            Generate new ticket
-          </button>
-        </div>
-      )}
-
-      {(telegramError || oauthError || authError) && (
-        <div className="mt-5 rounded-2xl border border-red-200 bg-red-50 p-4 text-sm text-red-700 dark:border-red-900 dark:bg-red-950/30 dark:text-red-300">
-          <div className="flex items-start gap-2">
-            <XCircleIcon className="mt-0.5 h-4 w-4 shrink-0" />
-            <p>{telegramError ?? oauthError ?? authError}</p>
-          </div>
-        </div>
-      )}
-
-      {!import.meta.env.VITE_API_URL && (
-        <p className="mt-3 text-center text-xs text-slate-400 dark:text-slate-500">
-          VITE_API_URL is not configured. Authentication requires SIT Core.
-        </p>
-      )}
-    </motion.div>
-  )
-}
-
-function formatIsoDate(value: string | null | undefined) {
-  if (!value) return 'Not available'
-  const date = new Date(value)
-  if (Number.isNaN(date.getTime())) return 'Not available'
-  return date.toLocaleString()
-}
-
-function resolveLinkCodeTtl(response: LinkCodeResponse) {
-  if (typeof response.expiresInSeconds === 'number' && response.expiresInSeconds > 0) {
-    return Math.max(1, Math.floor(response.expiresInSeconds))
-  }
-
-  if (response.expiresAt) {
-    const expiryTime = new Date(response.expiresAt).getTime()
-    if (!Number.isNaN(expiryTime)) {
-      const remainingSeconds = Math.floor((expiryTime - Date.now()) / 1000)
-      return Math.max(1, remainingSeconds)
-    }
-  }
-
-  return DEFAULT_LINK_CODE_TTL_SECONDS
-}
-
-function normalizeService(value: unknown): StatisticsProvider | null {
-  if (typeof value !== 'string') return null
-  const normalized = value.trim().toLowerCase()
-  if (normalized === 'discord') return 'discord'
-  if (normalized === 'telegram') return 'telegram'
-  return null
-}
-
-function getTranslationProvider(entry: RecentTranslation): StatisticsProvider | null {
-  return normalizeService(entry.provider)
-}
-
-function statisticsFilterLabel(filter: StatisticsFilter) {
-  if (filter === 'global') return 'Global'
-  if (filter === 'discord') return 'Discord'
-  if (filter === 'telegram') return 'Telegram'
-  return filter
-}
-
-function translationFilterLabel(filter: TranslationFilter) {
-  if (filter === 'all') return 'All'
-  if (filter === 'discord') return 'Discord'
-  if (filter === 'telegram') return 'Telegram'
-  return filter
-}
-
-function selectStatisticsSummary(
-  data: StatisticsSnapshotResponse,
-  selected: StatisticsFilter,
-): StatisticsSummary | null {
-  if (selected === 'global') return data.snapshot.global
-  return data.snapshot.byProvider[selected] ?? null
-}
-
-function mapOAuthCallbackError(code: string) {
-  if (code === 'invalid_session') {
-    return 'Discord login completed, but the session could not be restored. Please sign in again.'
-  }
-
-  return 'Discord login did not complete. Please retry from the sign-in button.'
-}
-
-function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
-  const { me, authError, clearAuthError } = useAuth()
-  const { providers, isLoading, providersError, refreshProviders, refreshProvidersOnly, generateLinkCode } = useAccount()
-  const [actionProvider, setActionProvider] = useState<string | null>(null)
-  const [linkingProvider, setLinkingProvider] = useState<string | null>(null)
-  const [linkCode, setLinkCode] = useState<string | null>(null)
-  const [linkCodeTtlSeconds, setLinkCodeTtlSeconds] = useState(DEFAULT_LINK_CODE_TTL_SECONDS)
-  const [isLinkModalOpen, setIsLinkModalOpen] = useState(false)
-  const [isLinkExpired, setIsLinkExpired] = useState(false)
-  const [successProvider, setSuccessProvider] = useState<string | null>(null)
-  const [linkError, setLinkError] = useState<string | null>(null)
-  const [activeStatisticsFilter, setActiveStatisticsFilter] = useState<StatisticsFilter>('global')
-  const [activeTranslationFilter, setActiveTranslationFilter] = useState<TranslationFilter>('all')
-  const [statisticsSnapshot, setStatisticsSnapshot] = useState<StatisticsSnapshotResponse | null>(null)
-  const [statisticsLoading, setStatisticsLoading] = useState(false)
-  const [statisticsError, setStatisticsError] = useState<string | null>(null)
-  const [profileStatistics, setProfileStatistics] = useState<ProfileStatistics | null>(null)
-  const [profileStatisticsLoading, setProfileStatisticsLoading] = useState(false)
-  const [profileStatisticsError, setProfileStatisticsError] = useState<string | null>(null)
-  const [profileStatisticsRefreshKey, setProfileStatisticsRefreshKey] = useState(0)
-
-  useEffect(() => {
-    const oauthCode = consumeOAuthCallbackError()
-    if (!oauthCode) return
-    setLinkError(mapOAuthCallbackError(oauthCode))
-  }, [])
-
-  useEffect(() => {
-    let mounted = true
-
-    const loadStatistics = async () => {
-      setStatisticsLoading(true)
-      setStatisticsError(null)
-
-      try {
-        const snapshot = await getStatisticsSnapshot()
-        if (mounted) {
-          setStatisticsSnapshot(snapshot)
-        }
-      } catch (error) {
-        if (mounted) {
-          setStatisticsError(error instanceof Error ? error.message : 'Unable to load statistics snapshot.')
-        }
-      } finally {
-        if (mounted) {
-          setStatisticsLoading(false)
-        }
-      }
-    }
-
-    void loadStatistics()
-
-    return () => {
-      mounted = false
-    }
-  }, [])
-
-  useEffect(() => {
-    let mounted = true
-
-    const loadProfileStatistics = async () => {
-      setProfileStatisticsLoading(true)
-      setProfileStatisticsError(null)
-
-      try {
-        const statistics = await getProfileStatistics()
-        if (me && statistics.researcherId !== me.profile.researcherId) {
-          throw new Error('Profile statistics do not match the authenticated researcher.')
-        }
-        if (mounted) setProfileStatistics(statistics)
-      } catch (error) {
-        if (mounted) {
-          setProfileStatistics(null)
-          setProfileStatisticsError(error instanceof Error ? error.message : 'Profile statistics are currently unavailable.')
-        }
-      } finally {
-        if (mounted) setProfileStatisticsLoading(false)
-      }
-    }
-
-    void loadProfileStatistics()
-
-    return () => {
-      mounted = false
-    }
-  }, [me, profileStatisticsRefreshKey])
-
-  const handleConnectProvider = async (providerName: string) => {
-    if (providerName === 'discord') {
-      clearAuthError()
-      setLinkError(null)
-      sessionStorage.removeItem(TELEGRAM_LOGIN_TICKET_STORAGE_KEY)
-      try {
-        const result = await generateLinkCode('discord')
-        window.location.href = result.loginUrl ?? getDiscordLoginUrl()
-      } catch {
-        window.location.href = getDiscordLoginUrl()
-      }
-      return
-    }
-
-    setActionProvider(providerName)
-    clearAuthError()
-    setLinkError(null)
-
-    try {
-      const result = await generateLinkCode(providerName)
-      setLinkingProvider(result.provider)
-      setLinkCode(result.code ?? null)
-      setLinkCodeTtlSeconds(resolveLinkCodeTtl(result))
-      setIsLinkExpired(false)
-      setIsLinkModalOpen(true)
-    } catch (error) {
-      const message = error instanceof Error ? error.message : 'Unable to start provider linking right now.'
-      setLinkError(message)
-    } finally {
-      setActionProvider(null)
-    }
-  }
-
-  useEffect(() => {
-    if (!isLinkModalOpen || !linkingProvider) return
-
-    let active = true
-    const intervalId = window.setInterval(async () => {
-      try {
-        const latestProviders = await refreshProvidersOnly()
-        const linkedProvider = latestProviders.find((provider) => provider.provider === linkingProvider)
-
-        if (active && linkedProvider?.connected) {
-          setIsLinkModalOpen(false)
-          setSuccessProvider(linkingProvider)
-          setIsLinkExpired(false)
-          setLinkCode(null)
-        } else if (active && linkedProvider?.status === 'EXPIRED_LINK_CODE') {
-          setIsLinkExpired(true)
-        }
-      } catch {
-        // Keep polling; refresh button and next poll can recover transient API issues.
-      }
-    }, 3000)
-
-    return () => {
-      active = false
-      window.clearInterval(intervalId)
-    }
-  }, [isLinkModalOpen, linkingProvider, refreshProvidersOnly])
-
-  const effectiveProfile: ResearcherProfile | null = me && profileStatistics
-    ? { ...me.profile, ...profileStatistics }
-    : null
-  const effectiveDisplayName = me?.profile.displayName ?? null
-  const effectiveResearcherId = profileStatistics?.researcherId ?? me?.profile.researcherId ?? null
-
-  const statisticsFilters = useMemo(() => ['global', ...SUPPORTED_PROVIDER_FILTERS] as StatisticsFilter[], [])
-
-  const translationFilters = useMemo(() => ['all', ...SUPPORTED_PROVIDER_FILTERS] as TranslationFilter[], [])
-
-  useEffect(() => {
-    if (!statisticsFilters.includes(activeStatisticsFilter)) {
-      setActiveStatisticsFilter('global')
-    }
-  }, [activeStatisticsFilter, statisticsFilters])
-
-  useEffect(() => {
-    if (!translationFilters.includes(activeTranslationFilter)) {
-      setActiveTranslationFilter('all')
-    }
-  }, [activeTranslationFilter, translationFilters])
-
-  const selectedStatsSummary = useMemo(() => {
-    if (!statisticsSnapshot) return null
-    return selectStatisticsSummary(statisticsSnapshot, activeStatisticsFilter)
-  }, [activeStatisticsFilter, statisticsSnapshot])
-
-  const filteredRecentTranslations = useMemo(() => {
-    if (!me) return []
-    if (activeTranslationFilter === 'all') return me.recentTranslations
-
-    return me.recentTranslations.filter((entry) => getTranslationProvider(entry) === activeTranslationFilter)
-  }, [activeTranslationFilter, me])
-
-  return (
-    <motion.div initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.4 }} className="space-y-5">
-      {effectiveProfile && <ProfileCard profile={effectiveProfile} />}
-      {me && <ProfileMissionSummary />}
-
-      <div className="flex flex-wrap items-center justify-between gap-3 rounded-2xl border border-slate-200 bg-white px-4 py-3 text-sm dark:border-slate-800 dark:bg-slate-900">
-        <div>
-          {profileStatisticsLoading && <span className="text-slate-600 dark:text-slate-300">Loading database-backed profile statistics...</span>}
-          {!profileStatisticsLoading && profileStatistics && (
-            <span className="text-slate-500 dark:text-slate-400">Statistics updated {formatIsoDate(profileStatistics.updatedAt)}</span>
-          )}
-          {!profileStatisticsLoading && profileStatisticsError && (
-            <span className="text-amber-700 dark:text-amber-300">{profileStatisticsError} No fallback values are being shown.</span>
-          )}
-        </div>
-        <button
-          type="button"
-          onClick={() => setProfileStatisticsRefreshKey((value) => value + 1)}
-          disabled={profileStatisticsLoading}
-          className="inline-flex items-center gap-2 rounded-full border border-slate-300 bg-white px-3 py-1.5 text-xs font-semibold text-slate-700 transition hover:bg-slate-50 disabled:cursor-not-allowed disabled:opacity-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800"
-        >
-          <ArrowPathIcon className={`h-4 w-4 ${profileStatisticsLoading ? 'animate-spin' : ''}`} />
-          Refresh statistics
-        </button>
-      </div>
-
-      {me && (
-        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100">Platform statistics</h4>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">
-                These totals cover the whole SIT platform. Global activity is Discord plus Telegram.
-              </p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {statisticsFilters.map((filterValue) => (
-                <button
-                  key={filterValue}
-                  type="button"
-                  onClick={() => setActiveStatisticsFilter(filterValue)}
-                  className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
-                    activeStatisticsFilter === filterValue
-                      ? 'border-blue-600 bg-blue-600 text-white'
-                      : 'border-slate-300 bg-white text-slate-700 hover:bg-slate-50 dark:border-slate-700 dark:bg-slate-900 dark:text-slate-200 dark:hover:bg-slate-800'
-                  }`}
-                >
-                  {statisticsFilterLabel(filterValue)}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-      )}
-
-      {me && (
-        <div className="rounded-[1.5rem] border border-slate-200 bg-white p-5 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <div className="flex flex-wrap items-center justify-between gap-3">
-            <div>
-              <h4 className="text-base font-semibold text-slate-900 dark:text-slate-100">Translation filter</h4>
-              <p className="mt-1 text-sm text-slate-500 dark:text-slate-400">Filter recent translations by provider or show all records.</p>
-            </div>
-            <div className="flex flex-wrap items-center gap-2">
-              {translationFilters.map((filterValue) => (
-                <button
-                  key={filterValue}
-                  type="button"
-                  onClick={() => setActiveTranslationFilter(filterValue)}
+                setTelegramStatus('cance…3860 tokens truncated…rValue)}
                   className={`rounded-full border px-3 py-1.5 text-xs font-semibold transition ${
                     activeTranslationFilter === filterValue
                       ? 'border-blue-600 bg-blue-600 text-white'
@@ -886,12 +524,12 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
 
       {filteredRecentTranslations.length ? (
         <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
-          <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Recent Translations · {translationFilterLabel(activeTranslationFilter)}</h4>
+          <h4 className="text-lg font-semibold text-slate-900 dark:text-slate-100">Recent Translations Â· {translationFilterLabel(activeTranslationFilter)}</h4>
           <div className="mt-4 space-y-3">
             {filteredRecentTranslations.slice(0, 5).map((entry) => (
               <div key={entry.id} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
                 <div className="flex flex-wrap items-center justify-between gap-2">
-                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{entry.detectedStandard} · {entry.compliance}% compliance</p>
+                  <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{entry.detectedStandard} Â· {entry.compliance}% compliance</p>
                   <p className="text-xs text-slate-500 dark:text-slate-400">{formatIsoDate(entry.createdAt)}</p>
                 </div>
                 <div className="mt-2 flex flex-wrap items-center gap-2">
@@ -919,7 +557,7 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
               <div key={`${award.achievement.code}-${award.awardedAt}`} className="rounded-2xl border border-slate-200 bg-slate-50 p-4 dark:border-slate-700 dark:bg-slate-800/50">
                 <p className="text-sm font-semibold text-slate-900 dark:text-slate-100">{award.achievement.title}</p>
                 <p className="mt-1 text-sm text-slate-600 dark:text-slate-300">{award.achievement.description}</p>
-                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">+{award.achievement.xpReward} XP · Awarded {formatIsoDate(award.awardedAt)}</p>
+                <p className="mt-2 text-xs text-slate-500 dark:text-slate-400">+{award.achievement.xpReward} XP Â· Awarded {formatIsoDate(award.awardedAt)}</p>
               </div>
             ))}
           </div>
@@ -1041,7 +679,7 @@ function PublicLookup() {
 
     const apiUrl = import.meta.env.VITE_API_URL
     if (!apiUrl) {
-      // No API configured – show demo profile for any non-empty query
+      // No API configured â€“ show demo profile for any non-empty query
       await new Promise((resolve) => setTimeout(resolve, 600))
       setProfile({ ...DEMO_PROFILE, researcherId: id })
       setState('found')
@@ -1256,3 +894,4 @@ export default function ProfilePage() {
     </div>
   )
 }
+
