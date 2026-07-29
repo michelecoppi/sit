@@ -7,6 +7,7 @@ import {
   resolveApiErrorMessage,
   throwApiError,
 } from './apiClient'
+import { queueOfflineChange } from './offlineSyncService'
 
 export async function getMe(): Promise<MeResponse> {
   const apiUrl = getApiUrl()
@@ -26,6 +27,10 @@ export async function getMe(): Promise<MeResponse> {
 }
 
 export async function setPreferredLanguage(preferredLanguage: string): Promise<string> {
+  if (!navigator.onLine) {
+    await queueOfflineChange('preference', 'preferred-language', { preferredLanguage })
+    return preferredLanguage
+  }
   const apiUrl = getApiUrl()
   const response = await fetch(`${apiUrl}/api/profile/language`, {
     method: 'PATCH',
@@ -37,7 +42,9 @@ export async function setPreferredLanguage(preferredLanguage: string): Promise<s
   if (!response.ok || !payload || typeof payload !== 'object' || typeof (payload as { preferredLanguage?: unknown }).preferredLanguage !== 'string') {
     throw new Error('Unable to save language preference.')
   }
-  return (payload as { preferredLanguage: string }).preferredLanguage
+  const saved = (payload as { preferredLanguage: string }).preferredLanguage
+  await queueOfflineChange('preference', 'preferred-language', { preferredLanguage: saved })
+  return saved
 }
 
 function isNonNegativeSafeInteger(value: unknown): value is number {
@@ -260,3 +267,4 @@ export async function getStatisticsSnapshot(): Promise<StatisticsSnapshotRespons
     throw new Error(message)
   }
 }
+

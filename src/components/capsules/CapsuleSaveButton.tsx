@@ -7,6 +7,7 @@ import {
   XMarkIcon,
 } from '@heroicons/react/24/outline'
 import { createCapsule, getCapsuleShareUrl } from '../../services/capsuleService'
+import { queueOfflineChange } from '../../services/offlineSyncService'
 import type { CapsuleEdition, CapsuleVisibility } from '../../types/capsules'
 
 const MAX_GUIDED_PAYLOAD_BYTES = 32 * 1024
@@ -85,6 +86,7 @@ export default function CapsuleSaveButton({
         visibility,
         expiresAt: expirationFromPreset(expiration),
       })
+      await queueOfflineChange('capsule_draft', capsule.publicId || crypto.randomUUID(), { edition, payload, title: title.trim(), description: description.trim() || null, visibility })
       setShareUrl(capsule.publicId ? getCapsuleShareUrl(capsule.publicId) : null)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'Unable to save this capsule.')
@@ -182,9 +184,9 @@ export default function CapsuleSaveButton({
                   <label className="text-sm font-semibold text-slate-800 dark:text-slate-200">
                     Visibility
                     <select value={visibility} onChange={(event) => setVisibility(event.target.value as CapsuleVisibility)} className="mt-2 w-full rounded-xl border border-slate-300 bg-white px-3 py-3 font-normal dark:border-slate-700 dark:bg-slate-950">
-                      <option value="private">Private — only you</option>
-                      <option value="unlisted">Unlisted — anyone with link</option>
-                      <option value="public">Public — registry visible</option>
+                      <option value="private">Private â€” only you</option>
+                      <option value="unlisted">Unlisted â€” anyone with link</option>
+                      <option value="public">Public â€” registry visible</option>
                     </select>
                   </label>
                   <label className="text-sm font-semibold text-slate-800 dark:text-slate-200">
@@ -203,7 +205,7 @@ export default function CapsuleSaveButton({
                 <div className="flex flex-wrap justify-end gap-3">
                   <button type="button" onClick={() => setOpen(false)} className="min-h-11 rounded-full border border-slate-300 px-4 py-2 text-sm font-semibold dark:border-slate-700">Cancel</button>
                   <button type="submit" disabled={saving || !title.trim()} className="min-h-11 rounded-full bg-violet-600 px-5 py-2 text-sm font-semibold text-white disabled:opacity-50">
-                    {saving ? 'Sealing capsule…' : 'Seal and issue URL'}
+                    {saving ? 'Sealing capsuleâ€¦' : 'Seal and issue URL'}
                   </button>
                 </div>
               </form>
@@ -214,3 +216,4 @@ export default function CapsuleSaveButton({
     </>
   )
 }
+
