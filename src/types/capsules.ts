@@ -1,9 +1,23 @@
 export type CapsuleEdition = '1.0' | '2.0'
 export type CapsuleVisibility = 'private' | 'unlisted' | 'public'
+export type ArtifactVerificationStatus = 'valid' | 'invalid' | 'revoked' | 'expired'
 
 export interface CapsuleOwner {
   researcherId: string
   displayName: string
+}
+
+export interface ArtifactIntegrity {
+  algorithm: 'sha256'
+  digest: string
+  verified: boolean
+}
+
+export interface ArtifactVerification {
+  publicId: string
+  status: ArtifactVerificationStatus
+  integrity: ArtifactIntegrity
+  expiresAt: string | null
 }
 
 export interface Capsule {
@@ -18,6 +32,7 @@ export interface Capsule {
   createdAt: string
   updatedAt: string
   revokedAt: string | null
+  integrity?: ArtifactIntegrity
   owner: CapsuleOwner | null
 }
 
@@ -31,6 +46,7 @@ export interface PublicCapsule {
   expiresAt: string | null
   createdAt: string
   updatedAt: string
+  integrity?: ArtifactIntegrity
   owner: CapsuleOwner | null
 }
 
