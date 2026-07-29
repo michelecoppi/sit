@@ -173,7 +173,6 @@ function ProfileCard({ profile, isDemo = false }: { profile: ResearcherProfile; 
 
       {/* Header */}
       <div className="rounded-[1.5rem] border border-slate-200 bg-white shadow-sm dark:border-slate-800 dark:bg-slate-900">
-
         <div className="grid gap-6 p-8 sm:grid-cols-[auto_1fr] sm:items-start">
           <div className="flex h-20 w-20 items-center justify-center rounded-3xl bg-gradient-to-br from-blue-500 to-violet-600 text-3xl font-bold text-white shadow-lg">
             {profile.displayName.charAt(0)}
@@ -349,7 +348,6 @@ function LoginPrompt() {
       setTelegramError(error instanceof Error ? error.message : 'Unable to start Telegram login.')
     } finally {
       setTelegramLoading(false)
-
     }
   }
 
@@ -524,7 +522,6 @@ function resolveLinkCodeTtl(response: LinkCodeResponse) {
   if (typeof response.expiresInSeconds === 'number' && response.expiresInSeconds > 0) {
     return Math.max(1, Math.floor(response.expiresInSeconds))
   }
-
 
   if (response.expiresAt) {
     const expiryTime = new Date(response.expiresAt).getTime()
@@ -702,7 +699,6 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
   useEffect(() => {
     if (!isLinkModalOpen || !linkingProvider) return
 
-
     let active = true
     const intervalId = window.setInterval(async () => {
       try {
@@ -877,7 +873,6 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
           <StatCard label="Total SYTE" value={selectedStatsSummary.totalSyte} icon={ChartBarIcon} accent="blue" />
           <StatCard label="Most Active User" value={selectedStatsSummary.mostActiveUser || 'N/A'} icon={StarIcon} accent="violet" />
         </div>
-
       )}
 
       {me?.profile && (
@@ -1053,7 +1048,6 @@ function PublicLookup() {
       await new Promise((resolve) => setTimeout(resolve, 600))
       setProfile({ ...DEMO_PROFILE, researcherId: id })
       setState('found')
-
       return
     }
 
@@ -1229,7 +1223,6 @@ export default function ProfilePage() {
         </div>
       </motion.section>
 
-
       {/* Tabs */}
       <div className="flex gap-2 rounded-2xl border border-slate-200 bg-slate-100/60 p-1 dark:border-slate-800 dark:bg-slate-800/40 w-fit">
         {(['public', 'private'] as const).map((t) => (
@@ -1266,4 +1259,3 @@ export default function ProfilePage() {
     </div>
   )
 }
-
