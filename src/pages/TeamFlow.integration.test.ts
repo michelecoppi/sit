@@ -81,7 +81,7 @@ afterEach(() => {
   vi.restoreAllMocks()
 })
 
-describe('create â†’ invite â†’ join â†’ transfer ownership', () => {
+describe('create → invite → join → transfer ownership', () => {
   it('keeps each authoritative transition on SIT Core', async () => {
     const joinedTeam = {
       ...team,
