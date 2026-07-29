@@ -60,6 +60,31 @@ describe('cookie-based authentication services', () => {
     )
   })
 
+  it('rejects an unknown Telegram login status', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(
+      JSON.stringify({ status: 'APPROVED_SOMEWHERE_ELSE' }),
+      { status: 200, headers: { 'Content-Type': 'application/json' } },
+    ))
+
+    await expect(getLoginStatus('TG_LOGIN_123')).rejects.toThrow(
+      'SIT Core returned an invalid login status.',
+    )
+  })
+
+  it('rejects incomplete login-ticket responses', async () => {
+    vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(
+      JSON.stringify({
+        ticket: 'TG_LOGIN_123',
+        loginUrl: 'https://t.me/sit_bot?start=TG_LOGIN_123',
+      }),
+      { status: 201, headers: { 'Content-Type': 'application/json' } },
+    ))
+
+    await expect(createLoginTicket('telegram')).rejects.toThrow(
+      'SIT Core returned an invalid login ticket payload.',
+    )
+  })
+
   it('logs out by asking the backend to expire the HttpOnly cookie', async () => {
     const fetchMock = vi.spyOn(globalThis, 'fetch').mockResolvedValue(new Response(null, { status: 204 }))
 
