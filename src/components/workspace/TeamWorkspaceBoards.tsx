@@ -36,6 +36,7 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
   const [assigneeIds, setAssigneeIds] = useState<string[]>([])
   const [createdToday, setCreatedToday] = useState(!team.progression.missionPolicy.canCreateToday)
   const activity = team.progression.missionPolicy.activityTypes.find((entry) => entry.metric === metric)
+  const minimumTarget = activity?.minimumTarget ?? 1
   const derivedBand = activity?.bands.find((entry) => entry.maxTarget === null || target <= entry.maxTarget)
   const assigneeCount = Math.max(1, assigneeIds.length)
   const derivedReward = derivedBand?.rewards.find((entry) => entry.assigneeCount === assigneeCount)?.teamXp
@@ -130,7 +131,12 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
         <form className="mt-6 grid gap-4 rounded-2xl border border-indigo-100 bg-indigo-50/60 p-4 sm:grid-cols-2 xl:grid-cols-4 dark:border-indigo-950 dark:bg-indigo-950/20" onSubmit={createMission}>
           <label className={`${labelClass} sm:col-span-2`}>Mission title<input className={fieldClass} name="title" required minLength={2} maxLength={120} disabled={createdToday} /></label>
           <label className={labelClass}>Activity
-            <select className={selectClass} name="metric" value={metric} disabled={createdToday} onChange={(event) => setMetric(event.target.value as WorkspaceMission['metric'])}>
+            <select className={selectClass} name="metric" value={metric} disabled={createdToday} onChange={(event) => {
+              const nextMetric = event.target.value as WorkspaceMission['metric']
+              const nextActivity = team.progression.missionPolicy.activityTypes.find((entry) => entry.metric === nextMetric)
+              setMetric(nextMetric)
+              setTarget(nextActivity?.minimumTarget ?? 1)
+            }}>
               {team.progression.missionPolicy.activityTypes.map((entry) => (
                 <option className="bg-white text-slate-950 dark:bg-slate-900 dark:text-white" key={entry.metric} value={entry.metric}>
                   {entry.label}
@@ -138,7 +144,10 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
               ))}
             </select>
           </label>
-          <label className={labelClass}>Target ({activity?.unit ?? 'units'})<input className={fieldClass} name="target" type="number" value={target} min={1} required disabled={createdToday} onChange={(event) => setTarget(Math.max(1, Number(event.target.value)))} /></label>
+          <label className={labelClass}>Target ({activity?.unit ?? 'units'})
+            <input className={fieldClass} name="target" type="number" value={target} min={minimumTarget} required disabled={createdToday} onChange={(event) => setTarget(Math.max(minimumTarget, Number(event.target.value)))} />
+            <span className="mt-1 block text-xs text-slate-500 dark:text-slate-400">Minimum accepted: {minimumTarget} {activity?.unit ?? 'units'}.</span>
+          </label>
           <fieldset className="sm:col-span-2 xl:col-span-4" disabled={createdToday}>
             <div className="flex flex-wrap items-end justify-between gap-2">
               <legend className={labelClass}>Assignees</legend>

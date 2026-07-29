@@ -52,7 +52,7 @@ const team = {
       maxAssignees: 5,
       canCreateToday: true,
       nextCreationAt: null,
-      activityTypes: [{ metric: 'messages_encoded', label: 'Encode messages', unit: 'messages', description: 'Encode messages.', bands: [{ maxTarget: 3, difficulty: 'routine', baseTeamXp: 40, requiredLevel: 1, unlocked: true, assignedReward: 40, collaborationReward: 40, rewards: [{ assigneeCount: 1, teamXp: 40 }] }] }],
+      activityTypes: [{ metric: 'messages_encoded', label: 'Encode messages', unit: 'messages', description: 'Encode messages.', minimumTarget: 3, bands: [{ maxTarget: 3, difficulty: 'routine', baseTeamXp: 40, requiredLevel: 1, unlocked: true, assignedReward: 40, collaborationReward: 40, rewards: [{ assigneeCount: 1, teamXp: 40 }] }] }],
     },
   },
   createdAt: '2026-07-26T12:00:00.000Z',
