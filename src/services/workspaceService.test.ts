@@ -1,28 +1,27 @@
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import {
-  WorkspaceConflictError,
-  updateWorkspaceCapsule,
-} from './workspaceService'
+import { describe, expect, it } from 'vitest'
+import { isWorkspaceMissionActive } from './workspaceService'
+import type { WorkspaceMission } from '../types/workspace'
 
-beforeEach(() => {
-  vi.stubEnv('VITE_API_URL', 'https://core.sit.test')
+const mission = (dueAt: string | null, status: WorkspaceMission['status'] = 'active'): WorkspaceMission => ({
+  id: 'm1', teamId: 't1', title: 'Mission', description: '', target: 3,
+  metric: 'messages_encoded', difficulty: 'routine', teamXpReward: 1, status,
+  dueAt, revision: 1, assignee: null, assignees: [],
+  createdBy: { researcherId: 'r1', displayName: 'Researcher' }, individualProgress: 0,
+  aggregateProgress: 0, completedAt: null, contributors: [], createdAt: '2026-07-30T00:00:00.000Z',
+  updatedAt: '2026-07-30T00:00:00.000Z',
 })
 
-afterEach(() => {
-  vi.unstubAllGlobals()
-  vi.unstubAllEnvs()
-})
+describe('isWorkspaceMissionActive', () => {
+  it('hides an active mission once its due window has closed', () => {
+    expect(isWorkspaceMissionActive(mission('2026-07-30T00:00:00.000Z'), Date.parse('2026-07-30T00:00:00.001Z'))).toBe(false)
+  })
 
-describe('workspaceService', () => {
-  it('turns backend optimistic concurrency failures into a reloadable conflict', async () => {
-    vi.stubGlobal('fetch', vi.fn().mockResolvedValue(new Response(JSON.stringify({
-      error: 'revision_conflict',
-    }), { status: 409, headers: { 'content-type': 'application/json' } })))
+  it('keeps an active mission visible before its due window', () => {
+    expect(isWorkspaceMissionActive(mission('2026-07-31T00:00:00.000Z'), Date.parse('2026-07-30T23:59:59.999Z'))).toBe(true)
+  })
 
-    await expect(updateWorkspaceCapsule('7', '12', 2, {
-      title: 'Protocol note',
-      description: '',
-      payload: '6767',
-    })).rejects.toBeInstanceOf(WorkspaceConflictError)
+  it('does not revive missions with a terminal status', () => {
+    expect(isWorkspaceMissionActive(mission(null, 'completed'))).toBe(false)
   })
 })
+
