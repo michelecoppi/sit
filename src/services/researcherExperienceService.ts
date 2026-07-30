@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.4 seconds
+Output:
 import {
   getApiHeaders,
   getApiUrl,
@@ -31,6 +34,12 @@ export type CursorPage<T> = {
   asOf: string
 }
 
+export type NotificationPreferences = Record<string, {
+  inApp: boolean
+  email: boolean
+  push: boolean
+}>
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${getApiUrl()}${path}`, {
     credentials: 'include',
@@ -63,6 +72,22 @@ export function markAllNotificationsRead(before?: string) {
   })
 }
 
+/**
+ * Preferences are keyed by the normalized event type. This keeps new event
+ * types forward-compatible: clients can render an unknown type as enabled.
+ */
+export function getNotificationPreferences() {
+  return request<NotificationPreferences>('/api/notification-preferences')
+}
+
+export function updateNotificationPreferences(preferences: NotificationPreferences) {
+  return request<NotificationPreferences>('/api/notification-preferences', {
+    method: 'PATCH',
+    headers: { ...getApiHeaders(), 'Content-Type': 'application/json' },
+    body: JSON.stringify({ preferences }),
+  })
+}
+
 export type ProgressionSnapshot = {
   occurredAt: string
   xp: number
@@ -90,3 +115,4 @@ export type ProgressionResponse = {
 export function getProgression(period: '7d' | '30d' | '90d' = '30d') {
   return request<ProgressionResponse>(`/api/profile/progression?period=${period}`)
 }
+
