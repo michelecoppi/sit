@@ -184,8 +184,13 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         {missions.map((mission) => (
           <article className="flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-950/40" key={mission.id}>
+            {(() => {
+              const active = isMissionActive(mission)
+              const displayStatus = active ? mission.status : mission.status === 'active' ? 'expired' : mission.status
+              return (
+                <>
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              <span><span className={`workspace-state workspace-state-${mission.status}`}>{mission.status}</span> · {mission.difficulty} · {mission.metric.replaceAll('_', ' ')}</span>
+              <span><span className={`workspace-state workspace-state-${displayStatus === 'expired' ? 'archived' : displayStatus}`}>{displayStatus}</span> · {mission.difficulty} · {mission.metric.replaceAll('_', ' ')}</span>
               <span>rev {mission.revision}</span>
             </div>
             <h3 className="mt-4 break-words text-lg font-bold text-slate-950 dark:text-white">{mission.title}</h3>
@@ -200,13 +205,16 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
               <progress className="h-2 w-full overflow-hidden rounded-full accent-indigo-600" max={mission.target} value={mission.individualProgress} />
               <small className="mt-2 block text-xs text-slate-500">Team verified activity {mission.aggregateProgress}/{mission.target} · updated {new Date(mission.updatedAt).toLocaleString()}</small>
             </div>
-            {isMissionActive(mission) ? (
+            {active ? (
               <div className="mt-auto pt-5">
                 <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5 text-xs leading-relaxed text-sky-900 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-200">
                   Progress is automatic: Core counts verified encode, decode, and SYTE activity from assigned members. It cannot be edited manually.
                 </div>
               </div>
             ) : null}
+                </>
+              )
+            })()}
           </article>
         ))}
       </div>
