@@ -1,4 +1,3 @@
-Output:
 import {
   getApiHeaders,
   getApiUrl,
