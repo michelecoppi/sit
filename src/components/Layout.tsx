@@ -1,5 +1,3 @@
-Exit code: 0
-Wall time: 0.3 seconds
 Output:
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
