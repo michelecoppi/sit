@@ -1,3 +1,6 @@
+Exit code: 0
+Wall time: 0.3 seconds
+Output:
 # SIT Core API contract
 
 The optional `VITE_API_URL` integration targets the OpenAPI document published
@@ -26,8 +29,10 @@ accepted operations are removed only after Core confirms them.
 | `teamService` progression | `/api/teams*` | Team summaries and details expose Team XP, derived level, current/next thresholds, unlocks, daily mission availability, the minimum accepted target for each activity and Core-calculated reward bands. The UI treats these minimums (3 encode, 3 decode, 64 SYTE) as authoritative alongside difficulty gates and level presentation. |
 | `labService` | `GET /api/lab/presets`, `POST /api/lab/run` | Lab results are contract version `1`, deterministic for equal input/version, include steps plus rule-linked errors, and group presets into `easy`, `medium`, and `hard`. |
 | `nativeProtocolService` | `GET /api/native/registry`, `GET /api/native/dictionary`, `POST /api/native/encode`, `POST /api/native/decode`, `POST /api/native/validate` | The UI consumes registry version/checksum, the 2.0/2.1 capability matrix and structured errors (`code`, `position`, `suggestion`). HTTP 422 remains a typed validation result; transport failures activate the read-only local cache. |
+| `researcherExperienceService` | `GET /api/notifications?cursor`, `POST /api/notifications/:id/read`, `POST /api/notifications/read-all`, `GET/PATCH /api/notification-preferences`, `GET /api/events/stream?cursor` | Notification pages use cursor pagination and normalized, id-keyed activity events. The SSE cursor is persisted in session storage, reconnects with capped exponential backoff, and falls back to notification polling. Preferences are a record keyed by event type with `inApp`, `email`, and `push` channel booleans; PATCH sends `{ preferences }`. |
 
 The contract is exercised by the service tests. When SIT Core changes its
 OpenAPI contract, update the relevant parser, test fixture, and this table in
 the same change.
+
 
