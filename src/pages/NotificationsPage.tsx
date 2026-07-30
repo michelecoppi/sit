@@ -21,7 +21,7 @@ export default function NotificationsPage() {
   const [loading, setLoading] = useState(true)
   const load = useCallback(async (cursor?: string) => { try { const page = await getNotifications(cursor); setItems(current => cursor ? [...current, ...page.items] : page.items); setNextCursor(page.nextCursor); setDemo(false); setMessage(null) } catch { if (!cursor) { setItems(demoNotifications); setNextCursor(null); setDemo(true) }; setMessage('Live notifications are unavailable; showing a local preview.') } finally { setLoading(false) } }, [])
   useEffect(() => { void load() }, [load])
-  useEffect(() => { void getNotificationPreferences().then(setPreferences).catch(() => setPreferences(defaults)) }, [])
+  useEffect(() => { void getNotificationPreferences().then(saved => setPreferences({ ...defaults, ...saved })).catch(() => setPreferences(defaults)) }, [])
   const onActivity = useCallback((activity: ActivityEvent) => setItems(current => current.some(item => item.event.eventId === activity.eventId) ? current : [{ id: activity.eventId, event: activity, readAt: null, deepLink: activity.target?.href }, ...current]), [])
   const streamState = useResumableActivityStream(onActivity)
   useEffect(() => { if (streamState !== 'offline' || demo) return; const timer = window.setInterval(() => { void load() }, 30_000); return () => window.clearInterval(timer) }, [demo, load, streamState])
