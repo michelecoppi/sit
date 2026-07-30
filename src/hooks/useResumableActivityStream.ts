@@ -1,5 +1,3 @@
-Exit code: 0
-Wall time: 0.3 seconds
 Output:
 import { useEffect, useRef, useState } from 'react'
 import { getApiUrl } from '../services/apiClient'
