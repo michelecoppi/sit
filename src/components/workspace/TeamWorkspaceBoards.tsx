@@ -8,6 +8,7 @@ import {
   createWorkspaceMission,
   listWorkspaceCapsules,
   listWorkspaceMissions,
+  isWorkspaceMissionActive,
   publishWorkspaceCapsule,
   updateWorkspaceCapsule,
 } from '../../services/workspaceService'
@@ -50,7 +51,7 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
     setError(null)
     try {
       const page = await listWorkspaceMissions(team.id, status === 'all' ? undefined : status)
-      setMissions(page.items)
+      setMissions(status === 'active' ? page.items.filter((mission) => isWorkspaceMissionActive(mission)) : page.items)
     } catch (caught) {
       setError(messageOf(caught, 'Unable to load team missions.'))
     } finally {
@@ -140,7 +141,7 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
           <fieldset className="sm:col-span-2 xl:col-span-4" disabled={createdToday}>
             <div className="flex flex-wrap items-end justify-between gap-2">
               <legend className={labelClass}>Assignees</legend>
-              <span className="text-xs text-slate-500 dark:text-slate-400">{assigneeIds.length || 1}/{team.progression.missionPolicy.maxAssignees} · limit grows with team level</span>
+              <span className="text-xs text-slate-500 dark:text-slate-400">{assigneeIds.length || 1}/{team.progression.missionPolicy.maxAssignees} Â· limit grows with team level</span>
             </div>
             <p className="mt-1 text-xs text-slate-500 dark:text-slate-400">Select up to {team.progression.missionPolicy.maxAssignees} members. No selection means only you.</p>
             <div className="mt-3 grid gap-2 sm:grid-cols-2 lg:grid-cols-3" role="group" aria-label="Mission assignees">
@@ -158,8 +159,8 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
                       : [...current, member.researcherId])}
                     type="button"
                   >
-                    <span className="min-w-0"><strong className="block truncate">{member.displayName}</strong><span className={`block truncate text-xs ${selected ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>{member.researcherId} · {member.role}</span></span>
-                    <span aria-hidden="true">{selected ? '✓' : '+'}</span>
+                    <span className="min-w-0"><strong className="block truncate">{member.displayName}</strong><span className={`block truncate text-xs ${selected ? 'text-indigo-100' : 'text-slate-500 dark:text-slate-400'}`}>{member.researcherId} Â· {member.role}</span></span>
+                    <span aria-hidden="true">{selected ? 'âœ“' : '+'}</span>
                   </button>
                 )
               })}
@@ -172,19 +173,19 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
                 ? <>Daily slot used. Next mission {team.progression.missionPolicy.nextCreationAt ? new Date(team.progression.missionPolicy.nextCreationAt).toLocaleString() : 'tomorrow (UTC)'}.</>
                 : derivedBand?.unlocked === false
                   ? <><strong className="text-amber-700 dark:text-amber-300">Unlocks at team level {derivedBand.requiredLevel}</strong><span className="block text-xs">Reduce the target or level up the team before creating this mission.</span></>
-                  : <><strong className="text-slate-950 dark:text-white">Core result: {derivedBand?.difficulty ?? 'routine'} · {derivedReward} Team XP · {assigneeCount} participant{assigneeCount === 1 ? '' : 's'}</strong><span className="block text-xs">{activity?.description} Difficulty and collaboration reward are derived by Core; the mission ends at midnight UTC.</span></>}
+                  : <><strong className="text-slate-950 dark:text-white">Core result: {derivedBand?.difficulty ?? 'routine'} Â· {derivedReward} Team XP Â· {assigneeCount} participant{assigneeCount === 1 ? '' : 's'}</strong><span className="block text-xs">{activity?.description} Difficulty and collaboration reward are derived by Core; the mission ends at midnight UTC.</span></>}
             </div>
             <button className="button-primary w-full sm:w-auto" disabled={createdToday || !targetIsValid || derivedBand?.unlocked === false}>{createdToday ? 'Daily mission already created' : !targetIsValid ? 'Enter a valid target' : derivedBand?.unlocked === false ? 'Target locked' : 'Create daily mission'}</button>
           </div>
         </form>
       ) : null}
-      {loading ? <div className="mt-6 rounded-2xl bg-slate-50 p-8 text-center text-sm text-slate-500 dark:bg-slate-950/50 dark:text-slate-400" role="status">Synchronizing team missions…</div> : null}
+      {loading ? <div className="mt-6 rounded-2xl bg-slate-50 p-8 text-center text-sm text-slate-500 dark:bg-slate-950/50 dark:text-slate-400" role="status">Synchronizing team missionsâ€¦</div> : null}
       {!loading && !missions.length ? <div className="mt-6 rounded-2xl border border-dashed border-slate-300 p-8 text-center text-sm text-slate-500 dark:border-slate-700 dark:text-slate-400">No missions match this filter.</div> : null}
       <div className="mt-6 grid gap-4 lg:grid-cols-2">
         {missions.map((mission) => (
           <article className="flex min-w-0 flex-col rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-950/40" key={mission.id}>
             <div className="flex flex-wrap items-center justify-between gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500">
-              <span><span className={`workspace-state workspace-state-${mission.status}`}>{mission.status}</span> · {mission.difficulty} · {mission.metric.replaceAll('_', ' ')}</span>
+              <span><span className={`workspace-state workspace-state-${mission.status}`}>{mission.status}</span> Â· {mission.difficulty} Â· {mission.metric.replaceAll('_', ' ')}</span>
               <span>rev {mission.revision}</span>
             </div>
             <h3 className="mt-4 break-words text-lg font-bold text-slate-950 dark:text-white">{mission.title}</h3>
@@ -197,7 +198,7 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
             <div className="mt-5">
               <div className="mb-2 flex items-center justify-between text-xs font-semibold text-slate-600 dark:text-slate-300"><span>Your verified activity {mission.individualProgress}/{mission.target}</span><span>{progressPercent(mission.individualProgress, mission.target)}%</span></div>
               <progress className="h-2 w-full overflow-hidden rounded-full accent-indigo-600" max={mission.target} value={mission.individualProgress} />
-              <small className="mt-2 block text-xs text-slate-500">Team verified activity {mission.aggregateProgress}/{mission.target} · updated {new Date(mission.updatedAt).toLocaleString()}</small>
+              <small className="mt-2 block text-xs text-slate-500">Team verified activity {mission.aggregateProgress}/{mission.target} Â· updated {new Date(mission.updatedAt).toLocaleString()}</small>
             </div>
             {mission.status === 'active' ? (
               <div className="mt-auto pt-5">
@@ -292,23 +293,23 @@ function CapsuleWorkspace({ team }: { team: TeamDetail }) {
         </label>
       </div>
       {error ? <div className="mt-4 flex flex-col gap-3 rounded-xl border border-rose-200 bg-rose-50 p-3 text-sm text-rose-800 sm:flex-row sm:items-center sm:justify-between dark:border-rose-900 dark:bg-rose-950/40 dark:text-rose-200" role="alert"><span>{error}</span>{conflict ? <button className="button-secondary" onClick={() => void load()}>Reload Core revision</button> : null}</div> : null}
-      {loading ? <div className="route-loader" role="status">Loading capsule revisions…</div> : (
+      {loading ? <div className="route-loader" role="status">Loading capsule revisionsâ€¦</div> : (
         <div className="mt-6 grid min-w-0 gap-5 lg:grid-cols-[minmax(13rem,0.7fr)_minmax(0,2fr)]">
           <aside className="flex min-w-0 gap-2 overflow-x-auto pb-2 lg:max-h-[40rem] lg:flex-col lg:overflow-y-auto lg:pb-0">
             {team.permissions.contribute ? <button className="button-secondary shrink-0" onClick={() => { setSelectedId(null); setDraft({ title: '', description: '', payload: '' }); setConflict(false) }}>New draft</button> : null}
             {!capsules.length ? <div className="min-w-56 rounded-xl border border-dashed border-slate-300 p-4 text-sm text-slate-500 dark:border-slate-700">No capsules match this filter.</div> : capsules.map((capsule) => (
               <button className={selectedId === capsule.id ? 'min-w-56 rounded-xl border border-indigo-400 bg-indigo-50 p-3 text-left text-slate-950 dark:border-indigo-500 dark:bg-indigo-950/50 dark:text-white' : 'min-w-56 rounded-xl border border-slate-200 bg-white p-3 text-left text-slate-700 hover:border-indigo-300 dark:border-slate-700 dark:bg-slate-950 dark:text-slate-200'} key={capsule.id} onClick={() => setSelectedId(capsule.id)}>
-                <strong>{capsule.title}</strong><span>{capsule.status} · rev {capsule.revision}</span>
+                <strong>{capsule.title}</strong><span>{capsule.status} Â· rev {capsule.revision}</span>
               </button>
             ))}
           </aside>
           <form className="min-w-0 space-y-4 rounded-2xl border border-slate-200 bg-slate-50/60 p-4 sm:p-5 dark:border-slate-800 dark:bg-slate-950/40" onSubmit={save}>
-            <div className="flex flex-wrap justify-between gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500"><span>{selected ? `${selected.status} · revision ${selected.revision}` : 'new draft'}</span><span>{selected?.contributors.length ?? 1} contributor(s)</span></div>
+            <div className="flex flex-wrap justify-between gap-2 text-xs font-semibold uppercase tracking-wider text-slate-500"><span>{selected ? `${selected.status} Â· revision ${selected.revision}` : 'new draft'}</span><span>{selected?.contributors.length ?? 1} contributor(s)</span></div>
             <label className={labelClass}>Title<input className={fieldClass} value={draft.title} onChange={(event) => setDraft((current) => ({ ...current, title: event.target.value }))} required disabled={!team.permissions.contribute || selected?.status === 'published'} /></label>
             <label className={labelClass}>Description<textarea className={`${fieldClass} min-h-20 resize-y`} value={draft.description} onChange={(event) => setDraft((current) => ({ ...current, description: event.target.value }))} disabled={!team.permissions.contribute || selected?.status === 'published'} /></label>
             <label className={labelClass}>Capsule payload<textarea className={`${fieldClass} min-h-56 resize-y font-mono`} value={draft.payload} onChange={(event) => setDraft((current) => ({ ...current, payload: event.target.value }))} required disabled={!team.permissions.contribute || selected?.status === 'published'} /></label>
             <div className="flex flex-col gap-3 sm:flex-row">
-              {team.permissions.contribute && selected?.status !== 'published' ? <button className="button-primary" disabled={busy}>{busy ? 'Synchronizing…' : selected ? 'Save revision' : 'Create draft'}</button> : null}
+              {team.permissions.contribute && selected?.status !== 'published' ? <button className="button-primary" disabled={busy}>{busy ? 'Synchronizingâ€¦' : selected ? 'Save revision' : 'Create draft'}</button> : null}
               {selected && team.permissions.publishCapsules && selected.status === 'draft' ? <button className="button-secondary" type="button" disabled={busy} onClick={() => void publish()}>Publish</button> : null}
             </div>
             {selected && team.permissions.manageMembers ? (
@@ -345,3 +346,4 @@ export default function TeamWorkspaceBoards({ team, members }: { team: TeamDetai
     </div>
   )
 }
+
