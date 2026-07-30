@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import {
   UserCircleIcon,
@@ -15,6 +16,7 @@ import {
   SparklesIcon,
   CodeBracketIcon,
   ArrowsRightLeftIcon,
+  BellAlertIcon,
 } from '@heroicons/react/24/outline'
 import AccountLinkSuccessModal from '../components/account/AccountLinkSuccessModal'
 import ConnectedAccountsCard from '../components/account/ConnectedAccountsCard'
@@ -874,6 +876,14 @@ function AuthenticatedDashboard({ onLogout }: { onLogout: () => void }) {
           <StatCard label="Most Active User" value={selectedStatsSummary.mostActiveUser || 'N/A'} icon={StarIcon} accent="violet" />
         </div>
       )}
+
+      <Link to="/notifications" className="group flex items-center justify-between gap-4 rounded-[1.5rem] border border-blue-200 bg-gradient-to-r from-blue-50 to-violet-50 p-5 shadow-sm transition hover:-translate-y-0.5 hover:border-blue-300 hover:shadow-md dark:border-blue-900 dark:from-blue-950/40 dark:to-violet-950/30">
+        <span className="flex min-w-0 items-center gap-4">
+          <span className="flex h-11 w-11 shrink-0 items-center justify-center rounded-2xl bg-blue-600 text-white shadow-sm"><BellAlertIcon className="h-5 w-5" /></span>
+          <span><strong className="block text-sm text-slate-900 dark:text-white">Notifications & activity</strong><small className="mt-0.5 block text-sm text-slate-600 dark:text-slate-300">Review personal updates, live activity and delivery preferences.</small></span>
+        </span>
+        <span className="shrink-0 text-sm font-semibold text-blue-700 transition group-hover:translate-x-0.5 dark:text-blue-300">Open inbox →</span>
+      </Link>
 
       {me?.profile && (
         <div className="rounded-[1.5rem] border border-slate-200 bg-white p-6 shadow-sm dark:border-slate-800 dark:bg-slate-900">
