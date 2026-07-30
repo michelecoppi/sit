@@ -18,6 +18,11 @@ export class WorkspaceConflictError extends Error {
   }
 }
 
+/** An active mission is only actionable while its server-provided window is open. */
+export function isWorkspaceMissionActive(mission: WorkspaceMission, now = Date.now()): boolean {
+  return mission.status === 'active' && (mission.dueAt === null || Date.parse(mission.dueAt) > now)
+}
+
 function isObject(value: unknown): value is Record<string, unknown> {
   return Boolean(value) && typeof value === 'object' && !Array.isArray(value)
 }
@@ -232,3 +237,4 @@ export const addWorkspaceCapsuleContributor = (teamId: string, capsuleId: string
     parseWorkspaceCapsule,
     { method: 'POST', body: JSON.stringify({ researcherId }) },
   )
+
