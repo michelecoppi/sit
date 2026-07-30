@@ -1,8 +1,12 @@
+Exit code: 0
+Wall time: 0.3 seconds
+Output:
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import {
   AcademicCapIcon,
   ArchiveBoxIcon,
+  BellAlertIcon,
   ArrowRightIcon,
   ArrowTopRightOnSquareIcon,
   Bars3Icon,
@@ -35,6 +39,7 @@ const navItems = [
   { href: '/docs', label: 'Documentation', desktopLabel: 'Docs', shortLabel: 'Docs', icon: DocumentTextIcon },
   { href: '/playground', label: 'Playground', shortLabel: 'Playground', icon: BeakerIcon },
   { href: '/missions', label: 'Missions', shortLabel: 'Missions', icon: TrophyIcon },
+  { href: '/notifications', label: 'Notifications', desktopLabel: 'Inbox', shortLabel: 'Inbox', icon: BellAlertIcon },
   { href: '/teams', label: 'Research Teams', desktopLabel: 'Teams', shortLabel: 'Teams', icon: UserGroupIcon },
   { href: '/roadmap', label: 'Roadmap', shortLabel: 'Roadmap', icon: MapIcon },
   { href: '/rfc', label: 'RFC Registry', desktopLabel: 'RFCs', shortLabel: 'RFC', icon: AcademicCapIcon },
@@ -57,6 +62,7 @@ const routeNames: Record<string, string> = {
   '/explorer': 'Character explorer',
   '/profile': 'Researcher profile',
   '/missions': 'Research missions',
+  '/notifications': 'Notifications and activity',
   '/capsules': 'Capsule library',
   '/teams': 'Research teams',
 }
@@ -180,6 +186,9 @@ export default function Layout({ children, title }: LayoutProps) {
             <Link to="/capsules" className="icon-button profile-button" aria-label="Open capsule library">
               <ArchiveBoxIcon aria-hidden="true" />
             </Link>
+            <Link to="/notifications" className="icon-button profile-button" aria-label="Open notifications">
+              <BellAlertIcon aria-hidden="true" />
+            </Link>
             <button
               type="button"
               className="icon-button theme-toggle"
@@ -209,7 +218,7 @@ export default function Layout({ children, title }: LayoutProps) {
             <span className="context-pulse" aria-hidden="true" />
             <span>{routeName}</span>
             <span className="context-divider" aria-hidden="true">/</span>
-            <span className="context-version">Standard v2.0 · Public registry</span>
+            <span className="context-version">Standard v2.0 Â· Public registry</span>
           </div>
         </div>
 
@@ -300,3 +309,4 @@ export default function Layout({ children, title }: LayoutProps) {
     </div>
   )
 }
+
