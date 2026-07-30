@@ -57,6 +57,7 @@ const routeNames: Record<string, string> = {
   '/explorer': 'Character explorer',
   '/profile': 'Researcher profile',
   '/missions': 'Research missions',
+  '/notifications': 'Notifications and activity',
   '/capsules': 'Capsule library',
   '/teams': 'Research teams',
 }
@@ -209,7 +210,7 @@ export default function Layout({ children, title }: LayoutProps) {
             <span className="context-pulse" aria-hidden="true" />
             <span>{routeName}</span>
             <span className="context-divider" aria-hidden="true">/</span>
-            <span className="context-version">Standard v2.0 · Public registry</span>
+            <span className="context-version">Standard v2.0 Â· Public registry</span>
           </div>
         </div>
 
@@ -300,3 +301,4 @@ export default function Layout({ children, title }: LayoutProps) {
     </div>
   )
 }
+
