@@ -1,4 +1,3 @@
-Output:
 import { useEffect, useRef, useState } from 'react'
 import { getApiUrl } from '../services/apiClient'
 import type { ActivityEvent } from '../services/researcherExperienceService'
