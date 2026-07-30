@@ -32,6 +32,7 @@ import type { TeamDetail, TeamInvite, TeamMember, TeamSummary, TeamVisibility } 
 import TeamWorkspaceBoards from '../components/workspace/TeamWorkspaceBoards'
 import { listWorkspaceMissions } from '../services/workspaceService'
 import type { WorkspaceMission } from '../types/workspace'
+import { isMissionActive } from '../utils/workspaceMission'
 
 const visibleSelectClass = 'mt-1 w-full appearance-auto rounded-xl border border-slate-300 bg-white px-3 py-2.5 text-slate-950 [color-scheme:light] focus:border-indigo-500 focus:outline-none focus:ring-4 focus:ring-indigo-500/10 dark:border-slate-700 dark:bg-slate-950 dark:text-white dark:[color-scheme:dark]'
 
@@ -249,7 +250,7 @@ export function TeamProfilePage() {
       }
       if (result.currentMember?.role === 'member') {
         const missions = await listWorkspaceMissions(result.id, 'active')
-        if (active) setActiveMission(missions.items[0] ?? null)
+        if (active) setActiveMission(missions.items.find(isMissionActive) ?? null)
       }
     }).catch((caught) => active && setError(caught instanceof Error ? caught.message : 'Unable to load this team.'))
     return () => { active = false }

@@ -11,6 +11,7 @@ import {
   publishWorkspaceCapsule,
   updateWorkspaceCapsule,
 } from '../../services/workspaceService'
+import { isMissionActive } from '../../utils/workspaceMission'
 
 function messageOf(error: unknown, fallback: string) {
   return error instanceof Error ? error.message : fallback
@@ -50,7 +51,7 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
     setError(null)
     try {
       const page = await listWorkspaceMissions(team.id, status === 'all' ? undefined : status)
-      setMissions(page.items)
+      setMissions(status === 'active' ? page.items.filter(isMissionActive) : page.items)
     } catch (caught) {
       setError(messageOf(caught, 'Unable to load team missions.'))
     } finally {
@@ -199,7 +200,7 @@ function MissionBoard({ team, members }: { team: TeamDetail, members: TeamMember
               <progress className="h-2 w-full overflow-hidden rounded-full accent-indigo-600" max={mission.target} value={mission.individualProgress} />
               <small className="mt-2 block text-xs text-slate-500">Team verified activity {mission.aggregateProgress}/{mission.target} · updated {new Date(mission.updatedAt).toLocaleString()}</small>
             </div>
-            {mission.status === 'active' ? (
+            {isMissionActive(mission) ? (
               <div className="mt-auto pt-5">
                 <div className="rounded-xl border border-sky-200 bg-sky-50 px-3 py-2.5 text-xs leading-relaxed text-sky-900 dark:border-sky-900 dark:bg-sky-950/40 dark:text-sky-200">
                   Progress is automatic: Core counts verified encode, decode, and SYTE activity from assigned members. It cannot be edited manually.
