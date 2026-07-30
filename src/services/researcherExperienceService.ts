@@ -37,6 +37,27 @@ export type NotificationPreferences = Record<string, {
   push: boolean
 }>
 
+type NotificationPreferenceEntry = {
+  eventType: string
+  channel: 'inApp' | 'email' | 'push'
+  enabled: boolean
+}
+
+function toPreferenceMap(entries: NotificationPreferenceEntry[]): NotificationPreferences {
+  const preferences: NotificationPreferences = {}
+  for (const entry of entries) {
+    const current = preferences[entry.eventType] ?? { inApp: true, email: false, push: false }
+    preferences[entry.eventType] = { ...current, [entry.channel]: entry.enabled }
+  }
+  return preferences
+}
+
+function toPreferenceEntries(preferences: NotificationPreferences): NotificationPreferenceEntry[] {
+  return Object.entries(preferences).flatMap(([eventType, channels]) => (
+    (['inApp', 'email', 'push'] as const).map((channel) => ({ eventType, channel, enabled: channels[channel] }))
+  ))
+}
+
 async function request<T>(path: string, init?: RequestInit): Promise<T> {
   const response = await fetch(`${getApiUrl()}${path}`, {
     credentials: 'include',
@@ -73,16 +94,18 @@ export function markAllNotificationsRead(before?: string) {
  * Preferences are keyed by the normalized event type. This keeps new event
  * types forward-compatible: clients can render an unknown type as enabled.
  */
-export function getNotificationPreferences() {
-  return request<NotificationPreferences>('/api/notification-preferences')
+export async function getNotificationPreferences() {
+  const response = await request<{ items: NotificationPreferenceEntry[] }>('/api/notification-preferences')
+  return toPreferenceMap(response.items)
 }
 
-export function updateNotificationPreferences(preferences: NotificationPreferences) {
-  return request<NotificationPreferences>('/api/notification-preferences', {
+export async function updateNotificationPreferences(preferences: NotificationPreferences) {
+  const response = await request<{ items: NotificationPreferenceEntry[] }>('/api/notification-preferences', {
     method: 'PATCH',
     headers: { ...getApiHeaders(), 'Content-Type': 'application/json' },
-    body: JSON.stringify({ preferences }),
+    body: JSON.stringify({ items: toPreferenceEntries(preferences) }),
   })
+  return toPreferenceMap(response.items)
 }
 
 export type ProgressionSnapshot = {
