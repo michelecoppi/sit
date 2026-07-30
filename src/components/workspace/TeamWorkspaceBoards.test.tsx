@@ -77,6 +77,7 @@ const team: TeamDetail = {
 
 const service = vi.hoisted(() => ({
   listWorkspaceMissions: vi.fn(),
+  isWorkspaceMissionActive: vi.fn((value: typeof mission) => value.status === 'active' && (value.dueAt === null || Date.parse(value.dueAt) > Date.now())),
   listWorkspaceCapsules: vi.fn(),
   createWorkspaceMission: vi.fn(),
 }))
@@ -137,8 +138,8 @@ describe('TeamWorkspaceBoards', () => {
     fireEvent.click(teammateButton)
     expect(currentButton).toHaveAttribute('aria-pressed', 'true')
     expect(teammateButton).toHaveAttribute('aria-pressed', 'true')
-    expect(screen.getByText(/2\/5 · limit grows with team level/)).toBeInTheDocument()
-    expect(screen.getByText(/routine · 50 Team XP · 2 participants/)).toBeInTheDocument()
+    expect(screen.getByText(/2\/5 Â· limit grows with team level/)).toBeInTheDocument()
+    expect(screen.getByText(/routine Â· 50 Team XP Â· 2 participants/)).toBeInTheDocument()
 
     fireEvent.change(activitySelect, { target: { value: 'syte_processed' } })
     const syteTarget = screen.getByRole('spinbutton', { name: /Target \(SYTE\)/ })
@@ -157,4 +158,5 @@ describe('TeamWorkspaceBoards', () => {
     expect(screen.getByRole('button', { name: 'Target locked' })).toBeDisabled()
   })
 })
+
 
