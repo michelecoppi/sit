@@ -1,5 +1,3 @@
-Exit code: 0
-Wall time: 0.3 seconds
 Output:
 import { Suspense, lazy, useEffect } from 'react'
 import { HashRouter, Routes, Route, useLocation } from 'react-router-dom'
